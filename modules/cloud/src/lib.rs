@@ -1,1 +1,1 @@
-mod secret;
+pub mod secret;

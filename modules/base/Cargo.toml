@@ -1,0 +1,19 @@
+[package]
+name = "omnius-core-base"
+version = "0.1.0"
+edition = { workspace = true }
+authors = { workspace = true }
+
+[features]
+stable-test = []
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true }
+tokio-postgres = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+testcontainers = { workspace = true }
