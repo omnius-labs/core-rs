@@ -1,13 +1,14 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
 
-use crate::cloud::secret::secret_reader::SecretReader;
+use crate::secret::secret_reader::SecretReader;
 
 pub struct AwsSecretReader {
     client: aws_sdk_secretsmanager::Client,
 }
 
 impl AwsSecretReader {
+    #[allow(dead_code)]
     pub async fn new() -> Self {
         let sdk_config = aws_config::from_env().load().await;
         let client = aws_sdk_secretsmanager::Client::new(&sdk_config);
