@@ -1,0 +1,56 @@
+name: test
+
+on:
+  push:
+    branches:
+      - "release/*"
+    paths:
+      - "**"
+      - "!/docs/**"
+
+env:
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: Setup rust toolchain
+        uses: dtolnay/rust-toolchain@1.69.0
+        with:
+          components: clippy, rustfmt
+      - name: Setup cargo make
+        uses: davidB/rust-cargo-make@v1
+        with:
+          version: latest
+      - name: Setup rust cache
+        uses: Swatinem/rust-cache@v2.3.0
+        with:
+          shared-key: lint
+      - name: Lint
+        run: cargo make lint
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+      - name: Setup rust toolchain
+        uses: dtolnay/rust-toolchain@1.69.0
+        with:
+          components: clippy, rustfmt
+      - name: Setup cargo make
+        uses: davidB/rust-cargo-make@v1
+        with:
+          version: latest
+      - name: Setup rust cache
+        uses: Swatinem/rust-cache@v2.3.0
+        with:
+          shared-key: test
+      - name: test
+        run: cargo test -- --ignored
