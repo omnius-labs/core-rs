@@ -1,0 +1,17 @@
+[package]
+name = "omnius-core-image"
+version = "0.1.0"
+edition = { workspace = true }
+authors = { workspace = true }
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+kamadak-exif = "0.5.5"
+tokio = { workspace = true }
+tokio-postgres = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+testcontainers = { workspace = true }
