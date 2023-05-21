@@ -1,1 +1,7 @@
 /target
+/tmp
+
+# Visual Studio Code
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
