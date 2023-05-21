@@ -52,5 +52,5 @@ jobs:
         uses: Swatinem/rust-cache@v2.3.0
         with:
           shared-key: test
-      - name: test
+      - name: Test
         run: cargo test --features "stable-test"
