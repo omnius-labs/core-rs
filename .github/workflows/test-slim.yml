@@ -1,9 +1,11 @@
-name: test-release
+name: test-feature
 
 on:
   push:
     branches:
-      - "release/*"
+      - "**"
+      - "!main"
+      - "!release/*"
     paths:
       - "**"
       - "!/docs/**"
@@ -53,4 +55,4 @@ jobs:
         with:
           shared-key: test
       - name: Test
-        run: cargo test --features "stable-test"
+        run: cargo test
