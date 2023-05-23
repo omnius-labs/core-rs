@@ -1109,6 +1109,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "omnius-core-base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "omnius-core-cloud"
 version = "0.1.0"
 dependencies = [
