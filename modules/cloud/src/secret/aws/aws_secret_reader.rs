@@ -9,10 +9,10 @@ pub struct AwsSecretReader {
 
 impl AwsSecretReader {
     #[allow(dead_code)]
-    pub async fn new() -> Self {
+    pub async fn new() -> anyhow::Result<Self> {
         let sdk_config = aws_config::from_env().load().await;
         let client = aws_sdk_secretsmanager::Client::new(&sdk_config);
-        Self { client }
+        Ok(Self { client })
     }
 }
 
@@ -38,7 +38,7 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn secret_reader_test() {
-        let secret_reader = AwsSecretReader::new().await;
+        let secret_reader = AwsSecretReader::new().await.unwrap();
         let result = secret_reader.read_value("opxs-api").await.unwrap();
         println!("{result}");
     }
