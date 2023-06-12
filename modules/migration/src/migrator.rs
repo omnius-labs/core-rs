@@ -99,6 +99,8 @@ create table if not exists _semaphores (
             results.push(result);
         }
 
+        results.sort_by(|x, y| x.filename.cmp(&y.filename));
+
         Ok(results)
     }
 
