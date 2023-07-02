@@ -10,12 +10,7 @@ pub struct Migrator {
 }
 
 impl Migrator {
-    pub async fn new(
-        url: &str,
-        path: &str,
-        username: &str,
-        description: &str,
-    ) -> anyhow::Result<Migrator> {
+    pub async fn new(url: &str, path: &str, username: &str, description: &str) -> anyhow::Result<Migrator> {
         // Get DB client and connection
         let (client, connection) = tokio_postgres::connect(url, tokio_postgres::NoTls).await?;
 
@@ -41,10 +36,7 @@ impl Migrator {
         let ignore_set: HashSet<String> = histories.iter().map(|n| n.filename.clone()).collect();
 
         let files: Vec<MigrationFile> = self.load_migration_files().await?;
-        let files: Vec<MigrationFile> = files
-            .into_iter()
-            .filter(|x| !ignore_set.contains(x.filename.as_str()))
-            .collect();
+        let files: Vec<MigrationFile> = files.into_iter().filter(|x| !ignore_set.contains(x.filename.as_str())).collect();
 
         if files.is_empty() {
             return Ok(());
@@ -91,10 +83,7 @@ create table if not exists _semaphores (
 
             let name: String = path.file_name().unwrap().to_str().unwrap().to_string();
             let queries: String = std::fs::read_to_string(path)?;
-            let result = MigrationFile {
-                filename: name,
-                queries,
-            };
+            let result = MigrationFile { filename: name, queries };
 
             results.push(result);
         }
@@ -126,8 +115,7 @@ select filename, executed_at from _migrations
     async fn execute_migration_queries(&self, files: Vec<MigrationFile>) -> anyhow::Result<()> {
         for f in files {
             self.client.batch_execute(&f.queries).await?;
-            self.insert_migration_history(&f.filename, &f.queries)
-                .await?;
+            self.insert_migration_history(&f.filename, &f.queries).await?;
         }
 
         Ok(())
@@ -137,9 +125,7 @@ select filename, executed_at from _migrations
         let statement = "\
 insert into _migrations (filename, queries) values ($1, $2)
 ";
-        self.client
-            .execute(statement, &[&filename, &queries])
-            .await?;
+        self.client.execute(statement, &[&filename, &queries]).await?;
 
         Ok(())
     }
@@ -148,9 +134,7 @@ insert into _migrations (filename, queries) values ($1, $2)
         let query = "\
 insert into _semaphores (username, description) values ($1, $2)
 ";
-        self.client
-            .execute(query, &[&self.username, &self.description])
-            .await?;
+        self.client.execute(query, &[&self.username, &self.description]).await?;
 
         Ok(())
     }

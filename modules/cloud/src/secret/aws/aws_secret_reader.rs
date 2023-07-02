@@ -19,12 +19,7 @@ impl AwsSecretReader {
 #[async_trait]
 impl SecretReader for AwsSecretReader {
     async fn read_value(&self, secret_id: &str) -> anyhow::Result<serde_json::Value> {
-        let res = self
-            .client
-            .get_secret_value()
-            .secret_id(secret_id)
-            .send()
-            .await?;
+        let res = self.client.get_secret_value().secret_id(secret_id).send().await?;
 
         let json = res.secret_string().ok_or_else(|| anyhow!("not found"))?;
         Ok(serde_json::from_str(json)?)
