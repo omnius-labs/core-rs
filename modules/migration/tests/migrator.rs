@@ -34,10 +34,7 @@ mod tests {
         .await
         .expect("Migrator new error");
 
-        migrator
-            .migrate()
-            .await
-            .expect_err("Error expected but successful.");
+        migrator.migrate().await.expect_err("Error expected but successful.");
     }
 
     #[tokio::test]
@@ -83,22 +80,14 @@ mod tests {
             let password = "postgres-password-test";
 
             let generic_postgres = GenericImage::new("postgres", "15.1")
-                .with_wait_for(WaitFor::message_on_stderr(
-                    "database system is ready to accept connections",
-                ))
+                .with_wait_for(WaitFor::message_on_stderr("database system is ready to accept connections"))
                 .with_env_var("POSTGRES_DB", db)
                 .with_env_var("POSTGRES_USER", user)
                 .with_env_var("POSTGRES_PASSWORD", password);
 
             let container: Container<'a, GenericImage> = docker.run(generic_postgres);
 
-            let connection_string = format!(
-                "postgres://{}:{}@127.0.0.1:{}/{}",
-                user,
-                password,
-                container.get_host_port_ipv4(5432),
-                db
-            );
+            let connection_string = format!("postgres://{}:{}@127.0.0.1:{}/{}", user, password, container.get_host_port_ipv4(5432), db);
 
             Self {
                 container,
