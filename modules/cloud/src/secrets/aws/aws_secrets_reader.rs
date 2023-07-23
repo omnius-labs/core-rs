@@ -1,13 +1,13 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
 
-use crate::secret::secret_reader::SecretReader;
+use crate::secrets::secrets_reader::SecretsReader;
 
-pub struct AwsSecretReader {
+pub struct AwsSecretsReader {
     client: aws_sdk_secretsmanager::Client,
 }
 
-impl AwsSecretReader {
+impl AwsSecretsReader {
     #[allow(dead_code)]
     pub async fn new() -> anyhow::Result<Self> {
         let sdk_config = aws_config::from_env().load().await;
@@ -17,7 +17,7 @@ impl AwsSecretReader {
 }
 
 #[async_trait]
-impl SecretReader for AwsSecretReader {
+impl SecretsReader for AwsSecretsReader {
     async fn read_value(&self, secret_id: &str) -> anyhow::Result<serde_json::Value> {
         let res = self.client.get_secret_value().secret_id(secret_id).send().await?;
 
@@ -33,7 +33,7 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn secret_reader_test() {
-        let secret_reader = AwsSecretReader::new().await.unwrap();
+        let secret_reader = AwsSecretsReader::new().await.unwrap();
         let result = secret_reader.read_value("opxs-api").await.unwrap();
         println!("{result}");
     }
