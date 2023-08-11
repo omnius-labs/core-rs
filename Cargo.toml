@@ -2,8 +2,9 @@
 members = [
     "modules/base",
     "modules/cloud",
-    "modules/migration",
     "modules/image",
+    "modules/migration",
+    "modules/testkit",
 ]
 
 [workspace.package]

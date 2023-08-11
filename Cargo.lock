@@ -1163,6 +1163,21 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "omnius-core-testkit",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "omnius-core-testkit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "kamadak-exif",
  "testcontainers",
  "tokio",
  "tokio-postgres",
