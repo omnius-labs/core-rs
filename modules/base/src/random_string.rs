@@ -7,7 +7,7 @@ pub enum RandomBase16StringCase {
 }
 
 pub trait RandomStringGenerator {
-    fn get_random_string(&self) -> String;
+    fn gen(&self) -> String;
 }
 
 pub struct RandomBase16StringProvider {
@@ -23,7 +23,7 @@ impl RandomBase16StringProvider {
 }
 
 impl RandomStringGenerator for RandomBase16StringProvider {
-    fn get_random_string(&self) -> String {
+    fn gen(&self) -> String {
         let mut rng = ChaCha20Rng::from_entropy();
         let mut data: Vec<u8> = vec![0; self.len];
         rng.fill_bytes(&mut data);
@@ -43,11 +43,11 @@ mod tests {
     #[tokio::test]
     async fn random_base16_string_provider_test() {
         let p = RandomBase16StringProvider::new(10, RandomBase16StringCase::Lower);
-        let result = p.get_random_string();
+        let result = p.gen();
         println!("{result}");
 
         let p = RandomBase16StringProvider::new(10, RandomBase16StringCase::Upper);
-        let result = p.get_random_string();
+        let result = p.gen();
         println!("{result}");
     }
 }
