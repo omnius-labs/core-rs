@@ -23,7 +23,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@1.69.0
+        uses: dtolnay/rust-toolchain@1.71.1
         with:
           components: clippy, rustfmt
       - name: Setup cargo make
@@ -44,7 +44,7 @@ jobs:
         with:
           submodules: "recursive"
       - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@1.69.0
+        uses: dtolnay/rust-toolchain@1.71.1
         with:
           components: clippy, rustfmt
       - name: Setup cargo make
