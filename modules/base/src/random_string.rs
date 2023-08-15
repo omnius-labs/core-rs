@@ -11,8 +11,8 @@ pub trait RandomStringGenerator {
 }
 
 pub struct RandomBase16StringProvider {
-    len: usize,
-    string_case: RandomBase16StringCase,
+    pub len: usize,
+    pub string_case: RandomBase16StringCase,
 }
 
 impl RandomBase16StringProvider {

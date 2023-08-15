@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = { workspace = true }
 authors = { workspace = true }
 
+[features]
+stable-test = []
+
 [dependencies]
 anyhow = { workspace = true }
 chrono = { workspace = true }
