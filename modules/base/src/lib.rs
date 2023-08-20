@@ -1,2 +1,2 @@
 pub mod clock;
-pub mod random_string;
+pub mod random_bytes;
