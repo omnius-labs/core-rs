@@ -16,6 +16,7 @@ tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+serial_test = { workspace = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }
