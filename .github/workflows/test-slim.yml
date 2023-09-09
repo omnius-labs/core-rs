@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@1.71.1
         with:
@@ -41,8 +39,6 @@ jobs:
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@1.71.1
         with:
