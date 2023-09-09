@@ -32,7 +32,3 @@ replace_filepath = ".github/workflows/test-slim.yml"
 replace_pattern = r"dtolnay/rust-toolchain@\d+\.\d+\.\d+"
 replace_text = r"dtolnay/rust-toolchain@{0}".format(rust_version)
 replace_file(replace_filepath, replace_pattern, replace_text)
-
-# github outputs
-with open(os.environ.get("GITHUB_OUTPUT", "github_output.txt"), "a") as file:
-    file.write("rust_version={0}".format(rust_version))
