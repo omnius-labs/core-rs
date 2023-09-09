@@ -1,1 +1,1 @@
-pub mod secrets;
+pub mod aws;
