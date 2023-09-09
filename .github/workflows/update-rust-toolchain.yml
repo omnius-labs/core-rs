@@ -1,6 +1,8 @@
 name: update-rust-toolchain
 
-on: push
+on:
+  schedule:
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
