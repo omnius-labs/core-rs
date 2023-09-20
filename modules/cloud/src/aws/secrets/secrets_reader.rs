@@ -7,15 +7,7 @@ pub trait SecretsReader {
 }
 
 pub struct SecretsReaderImpl {
-    client: aws_sdk_secretsmanager::Client,
-}
-
-impl SecretsReaderImpl {
-    #[allow(dead_code)]
-    pub async fn new(config: aws_config::SdkConfig) -> anyhow::Result<Self> {
-        let client = aws_sdk_secretsmanager::Client::new(&config);
-        Ok(Self { client })
-    }
+    pub client: aws_sdk_secretsmanager::Client,
 }
 
 #[async_trait]
@@ -36,7 +28,9 @@ mod tests {
     #[tokio::test]
     async fn secret_reader_test() {
         let sdk_config = aws_config::from_env().load().await;
-        let secret_reader = SecretsReaderImpl::new(sdk_config).await.unwrap();
+        let secret_reader = SecretsReaderImpl {
+            client: aws_sdk_secretsmanager::Client::new(&sdk_config),
+        };
         let result = secret_reader.read_value("opxs-api").await.unwrap();
         println!("{result}");
     }

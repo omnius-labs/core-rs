@@ -1,0 +1,54 @@
+use async_trait::async_trait;
+use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
+
+#[async_trait]
+pub trait SesSender {
+    async fn send_mail_simple_text(&self, to_address: &str, reply_to_addresses: &str, subject: &str, body: &str) -> anyhow::Result<()>;
+}
+
+pub struct SesSenderImpl {
+    pub client: aws_sdk_sesv2::Client,
+    pub configuration_set_name: Option<String>,
+}
+
+#[async_trait]
+impl SesSender for SesSenderImpl {
+    async fn send_mail_simple_text(&self, to_address: &str, reply_to_addresses: &str, subject: &str, text_body: &str) -> anyhow::Result<()> {
+        let _ = self
+            .client
+            .send_email()
+            .destination(Destination::builder().to_addresses(to_address).build())
+            .reply_to_addresses(reply_to_addresses)
+            .content(
+                EmailContent::builder()
+                    .simple(
+                        Message::builder()
+                            .subject(Content::builder().data(subject).build())
+                            .body(Body::builder().text(Content::builder().data(text_body).build()).build())
+                            .build(),
+                    )
+                    .build(),
+            )
+            .set_configuration_set_name(self.configuration_set_name.clone())
+            .send()
+            .await?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[ignore]
+    #[tokio::test]
+    async fn secret_reader_test() {
+        let sdk_config = aws_config::from_env().load().await;
+        let sender = SesSenderImpl {
+            client: aws_sdk_sesv2::Client::new(&sdk_config),
+            configuration_set_name: None,
+        };
+        sender.send_mail_simple_text("", "", "test subject", "test body").await.unwrap();
+    }
+}
