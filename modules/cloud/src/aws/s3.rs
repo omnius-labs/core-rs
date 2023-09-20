@@ -8,15 +8,7 @@ trait S3 {
     async fn gen_put_presigned_uri(&self, bucket: &str, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String>;
 }
 pub struct S3Impl {
-    client: aws_sdk_s3::Client,
-}
-
-impl S3Impl {
-    #[allow(dead_code)]
-    async fn new(config: aws_config::SdkConfig) -> anyhow::Result<Self> {
-        let client = aws_sdk_s3::Client::new(&config);
-        Ok(Self { client })
-    }
+    pub client: aws_sdk_s3::Client,
 }
 
 #[async_trait]

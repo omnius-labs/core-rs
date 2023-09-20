@@ -2,33 +2,44 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait SqsSender {
-    async fn send_message(&self, queue_url: &str, delay_seconds: i32, message_body: &str) -> anyhow::Result<()>;
+    async fn send_message(&self, message_body: &str) -> anyhow::Result<()>;
 }
 
 pub struct SqsSenderImpl {
-    client: aws_sdk_sqs::Client,
-}
-
-impl SqsSenderImpl {
-    #[allow(dead_code)]
-    pub async fn new(config: aws_config::SdkConfig) -> anyhow::Result<Self> {
-        let client = aws_sdk_sqs::Client::new(&config);
-        Ok(Self { client })
-    }
+    pub client: aws_sdk_sqs::Client,
+    pub queue_url: String,
+    pub delay_seconds: Option<i32>,
 }
 
 #[async_trait]
 impl SqsSender for SqsSenderImpl {
-    async fn send_message(&self, queue_url: &str, delay_seconds: i32, message_body: &str) -> anyhow::Result<()> {
-        let _output = self
+    async fn send_message(&self, message_body: &str) -> anyhow::Result<()> {
+        let _ = self
             .client
             .send_message()
-            .queue_url(queue_url)
-            .delay_seconds(delay_seconds)
-            .message_body(message_body)
+            .queue_url(&self.queue_url)
+            .set_delay_seconds(self.delay_seconds)
+            .set_message_body(Some(message_body.to_string()))
             .send()
             .await?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[ignore]
+    #[tokio::test]
+    async fn send_test() {
+        let sdk_config = aws_config::from_env().load().await;
+        let sqs_sender = SqsSenderImpl {
+            client: aws_sdk_sqs::Client::new(&sdk_config),
+            queue_url: "opxs-batch-email-send-sqs".to_string(),
+            delay_seconds: None,
+        };
+        sqs_sender.send_message("{}").await.unwrap();
     }
 }
