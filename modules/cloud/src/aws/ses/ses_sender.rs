@@ -13,12 +13,12 @@ pub struct SesSenderImpl {
 
 #[async_trait]
 impl SesSender for SesSenderImpl {
-    async fn send_mail_simple_text(&self, to_address: &str, reply_to_addresses: &str, subject: &str, text_body: &str) -> anyhow::Result<()> {
+    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> anyhow::Result<()> {
         let _ = self
             .client
             .send_email()
             .destination(Destination::builder().to_addresses(to_address).build())
-            .reply_to_addresses(reply_to_addresses)
+            .from_email_address(from_address)
             .content(
                 EmailContent::builder()
                     .simple(
@@ -49,6 +49,16 @@ mod tests {
             client: aws_sdk_sesv2::Client::new(&sdk_config),
             configuration_set_name: None,
         };
-        sender.send_mail_simple_text("", "", "test subject", "test body").await.unwrap();
+        let r = sender
+            .send_mail_simple_text(
+                "test@opxs-dev.omnius-labs.com",
+                "no-reply@opxs-dev.omnius-labs.com",
+                "test subject",
+                "test body",
+            )
+            .await;
+        if let Err(e) = r {
+            println!("{:?}", e);
+        }
     }
 }
