@@ -1,5 +1,5 @@
 [package]
-name = "omnius-core-base"
+name = "core-base"
 version = "0.1.0"
 edition = { workspace = true }
 authors = { workspace = true }
