@@ -1,5 +1,5 @@
 [package]
-name = "omnius-core-migration"
+name = "core-migration"
 version = "0.1.0"
 edition = { workspace = true }
 authors = { workspace = true }
@@ -8,7 +8,7 @@ authors = { workspace = true }
 stable-test = []
 
 [dependencies]
-omnius-core-testkit = { path = "../testkit" }
+core-testkit = { path = "../testkit" }
 
 anyhow = { workspace = true }
 chrono = { workspace = true }
