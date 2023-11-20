@@ -51,7 +51,7 @@ mod tests {
         };
         let r = sender
             .send_mail_simple_text(
-                "test@opxs-dev.omnius-labs.com",
+                "lyrise1984@gmail.com",
                 "no-reply@opxs-dev.omnius-labs.com",
                 "test subject",
                 "test body",
