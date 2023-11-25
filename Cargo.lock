@@ -647,6 +647,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "hex",
+ "rand",
+ "rand_chacha",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "core-cloud"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "aws-config",
+ "aws-sdk-s3",
+ "aws-sdk-secretsmanager",
+ "aws-sdk-sesv2",
+ "aws-sdk-sqs",
+ "chrono",
+ "serde",
+ "serde_json",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -661,6 +699,49 @@ name = "core-foundation-sys"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
+
+[[package]]
+name = "core-image"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "kamadak-exif",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "core-migration"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "core-testkit",
+ "serial_test",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "core-testkit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "kamadak-exif",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
 
 [[package]]
 name = "cpufeatures"
@@ -1285,87 +1366,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea86265d3d3dcb6a27fc51bd29a4bf387fae9d2986b823079d4986af253eb439"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "core-base"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "hex",
- "rand",
- "rand_chacha",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "core-cloud"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "aws-config",
- "aws-sdk-s3",
- "aws-sdk-secretsmanager",
- "aws-sdk-sesv2",
- "aws-sdk-sqs",
- "chrono",
- "serde",
- "serde_json",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "core-image"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "kamadak-exif",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "core-migration"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "core-testkit",
- "serial_test",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "core-testkit"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "kamadak-exif",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
