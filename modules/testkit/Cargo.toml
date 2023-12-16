@@ -10,7 +10,6 @@ stable-test = []
 [dependencies]
 anyhow = { workspace = true }
 chrono = { workspace = true }
-kamadak-exif = "0.5.5"
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tracing = { workspace = true }
