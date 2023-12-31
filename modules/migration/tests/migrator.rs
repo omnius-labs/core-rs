@@ -5,11 +5,13 @@ mod tests {
     use core_testkit::containers::postgres::PostgresContainer;
     use serial_test::serial;
 
+    const POSTGRES_VERSION: &str = "15.1";
+
     #[serial(migrate)]
     #[tokio::test]
     async fn simple_create_table_test() {
         let docker = testcontainers::clients::Cli::default();
-        let container = PostgresContainer::new(&docker, "15.1");
+        let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
         let migrator = Migrator::new(
             &container.connection_string,
@@ -27,7 +29,7 @@ mod tests {
     #[tokio::test]
     async fn create_table_syntax_error_test() {
         let docker = testcontainers::clients::Cli::default();
-        let container = PostgresContainer::new(&docker, "15.1");
+        let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
         let migrator = Migrator::new(
             &container.connection_string,
@@ -45,7 +47,7 @@ mod tests {
     #[tokio::test]
     async fn migrate_twice_test() {
         let docker = testcontainers::clients::Cli::default();
-        let container = PostgresContainer::new(&docker, "15.1");
+        let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
         let migrator1 = Migrator::new(
             &container.connection_string,
