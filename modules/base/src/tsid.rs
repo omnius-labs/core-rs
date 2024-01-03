@@ -17,7 +17,7 @@ where
 {
     pub system_clock: TSystemClock,
     pub random_bytes_provider: TRandomBytesProvider,
-    pub random_byte_count: u32,
+    pub random_byte_count: usize,
 }
 
 pub struct Tsid {
@@ -30,7 +30,7 @@ where
     TSystemClock: SystemClock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
 {
-    pub fn new(system_clock: TSystemClock, random_bytes_provider: TRandomBytesProvider, random_byte_count: u32) -> Self {
+    pub fn new(system_clock: TSystemClock, random_bytes_provider: TRandomBytesProvider, random_byte_count: usize) -> Self {
         Self {
             system_clock,
             random_bytes_provider,
@@ -46,16 +46,17 @@ where
 {
     fn gen(&self) -> Tsid {
         let timestamp = self.system_clock.now();
-        let random_bytes = self.random_bytes_provider.get_bytes(32);
+        let random_bytes = self.random_bytes_provider.get_bytes(self.random_byte_count);
         Tsid { timestamp, random_bytes }
     }
 }
 
 impl Display for Tsid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let timestamp_str = self.timestamp.to_rfc3339_opts(chrono::SecondsFormat::Nanos, true);
+        let seconds = self.timestamp.timestamp();
+        let nanos = self.timestamp.timestamp_subsec_nanos();
         let random_bytes_str = hex::encode(&self.random_bytes);
-        write!(f, "{}_{}", timestamp_str, random_bytes_str)
+        write!(f, "{}.{:09}.{}", seconds, nanos, random_bytes_str)
     }
 }
 
@@ -68,7 +69,7 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn print_test() {
-        let p = TsidProviderImpl::new(SystemClockUtc, RandomBytesProviderImpl, 32);
+        let p = TsidProviderImpl::new(SystemClockUtc, RandomBytesProviderImpl, 16);
         println!("{:}", p.gen());
     }
 }

@@ -3,7 +3,7 @@ use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 
 #[async_trait]
 pub trait SesSender {
-    async fn send_mail_simple_text(&self, to_address: &str, reply_to_addresses: &str, subject: &str, body: &str) -> anyhow::Result<()>;
+    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, body: &str) -> anyhow::Result<()>;
 }
 
 pub struct SesSenderImpl {
