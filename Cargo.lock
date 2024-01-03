@@ -735,7 +735,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "kamadak-exif",
  "testcontainers",
  "tokio",
  "tokio-postgres",
