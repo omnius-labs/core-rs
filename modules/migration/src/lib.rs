@@ -1,3 +1,1 @@
-mod migrator;
-
-pub use migrator::Migrator;
+pub mod postgres;
