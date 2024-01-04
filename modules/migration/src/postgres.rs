@@ -2,15 +2,15 @@ use std::collections::HashSet;
 
 use chrono::NaiveDateTime;
 
-pub struct Migrator {
+pub struct PostgresMigrator {
     client: tokio_postgres::Client,
     path: String,
     username: String,
     description: String,
 }
 
-impl Migrator {
-    pub async fn new(url: &str, path: &str, username: &str, description: &str) -> anyhow::Result<Migrator> {
+impl PostgresMigrator {
+    pub async fn new(url: &str, path: &str, username: &str, description: &str) -> anyhow::Result<PostgresMigrator> {
         // Get DB client and connection
         let (client, connection) = tokio_postgres::connect(url, tokio_postgres::NoTls).await?;
 
@@ -21,7 +21,7 @@ impl Migrator {
             }
         });
 
-        Ok(Migrator {
+        Ok(PostgresMigrator {
             client,
             path: path.to_string(),
             username: username.to_string(),
