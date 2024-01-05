@@ -1,4 +1,4 @@
-#[cfg(feature = "stable-test")]
+// #[cfg(feature = "stable-test")]
 #[cfg(test)]
 mod tests {
     use core_migration::postgres::PostgresMigrator;
@@ -13,7 +13,7 @@ mod tests {
         let docker = testcontainers::clients::Cli::default();
         let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
-        let migrator = Migrator::new(
+        let migrator = PostgresMigrator::new(
             &container.connection_string,
             "./tests/cases/simple_create_table",
             "test01",
@@ -31,7 +31,7 @@ mod tests {
         let docker = testcontainers::clients::Cli::default();
         let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
-        let migrator = Migrator::new(
+        let migrator = PostgresMigrator::new(
             &container.connection_string,
             "./tests/cases/create_table_syntax_error",
             "test01",
@@ -49,7 +49,7 @@ mod tests {
         let docker = testcontainers::clients::Cli::default();
         let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
-        let migrator1 = Migrator::new(
+        let migrator1 = PostgresMigrator::new(
             &container.connection_string,
             "./tests/cases/simple_create_table",
             "test01",
@@ -60,7 +60,7 @@ mod tests {
 
         migrator1.migrate().await.expect("Migrator migrate error");
 
-        let migrator2 = Migrator::new(
+        let migrator2 = PostgresMigrator::new(
             &container.connection_string,
             "./tests/cases/simple_create_table",
             "test01",
