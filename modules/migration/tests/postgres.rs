@@ -1,5 +1,4 @@
-// #[cfg(feature = "stable-test")]
-#[cfg(test)]
+#[cfg(all(test, feature = "stable-test", feature = "postgres"))]
 mod tests {
     use core_migration::postgres::PostgresMigrator;
     use core_testkit::containers::postgres::PostgresContainer;
