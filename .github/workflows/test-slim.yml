@@ -52,4 +52,4 @@ jobs:
         with:
           shared-key: test
       - name: Test
-        run: cargo test
+        run: cargo test --features "aws,postgres"

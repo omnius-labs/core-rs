@@ -51,4 +51,4 @@ jobs:
         with:
           shared-key: test
       - name: Test
-        run: cargo test --features "stable-test"
+        run: cargo test --features "stable-test,aws,postgres"
