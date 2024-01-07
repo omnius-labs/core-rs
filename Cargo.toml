@@ -1,5 +1,11 @@
 [workspace]
-members = ["modules/*"]
+members = [
+    "modules/base",
+    "modules/cloud",
+    "modules/image",
+    "modules/migration",
+    "modules/testkit",
+]
 resolver = "2"
 
 [workspace.package]
