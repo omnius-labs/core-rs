@@ -23,6 +23,7 @@ pub struct GenGetPresignedUriInput {
     key: String,
     start_time: DateTime<Utc>,
     expires_in: Duration,
+    filename: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,11 +47,12 @@ pub struct PutObject {
 
 #[async_trait]
 impl S3Client for S3ClientMock {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String> {
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, filename: &str) -> anyhow::Result<String> {
         self.gen_get_presigned_uri_inputs.borrow_mut().push(GenGetPresignedUriInput {
             key: key.to_string(),
             start_time,
             expires_in,
+            filename: filename.to_string(),
         });
 
         let output = self.gen_get_presigned_uri_outputs.borrow_mut().pop_front().unwrap_or_default();

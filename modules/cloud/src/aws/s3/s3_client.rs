@@ -10,7 +10,7 @@ use tokio_stream::StreamExt;
 
 #[async_trait]
 pub trait S3Client {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String>;
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, filename: &str) -> anyhow::Result<String>;
     async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String>;
     async fn get_object(&self, key: &str, destination: &str) -> anyhow::Result<()>;
     async fn put_object(&self, key: &str, source: &str) -> anyhow::Result<()>;
@@ -22,7 +22,7 @@ pub struct S3ClientImpl {
 
 #[async_trait]
 impl S3Client for S3ClientImpl {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String> {
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, filename: &str) -> anyhow::Result<String> {
         let presigning_config = PresigningConfig::builder()
             .start_time(start_time.into())
             .expires_in(expires_in.to_std()?)
@@ -33,6 +33,7 @@ impl S3Client for S3ClientImpl {
             .get_object()
             .bucket(self.bucket.as_str())
             .key(key)
+            .set_response_content_disposition(Some(format!("attachment; filename=\"{filename}\"")))
             .presigned(presigning_config)
             .await?;
         Ok(request.uri().to_string())
@@ -88,7 +89,7 @@ mod tests {
         let sdk_config = aws_config::load_from_env().await;
         let s3 = S3ClientImpl {
             client: aws_sdk_s3::Client::new(&sdk_config),
-            bucket: "opxs.v1.dev.file-convert".to_string(),
+            bucket: "opxs.v1.dev.image-convert".to_string(),
         };
         let uri = s3.gen_put_presigned_uri("in/test.txt", Utc::now(), Duration::minutes(5)).await.unwrap();
         println!("{:?}", uri);
