@@ -26,7 +26,7 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn secret_reader_test() {
+    async fn secrets_reader_test() {
         let sdk_config = aws_config::from_env().load().await;
         let secret_reader = SecretsReaderImpl {
             client: aws_sdk_secretsmanager::Client::new(&sdk_config),
