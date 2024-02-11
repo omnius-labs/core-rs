@@ -20,29 +20,29 @@ unsafe impl Send for S3ClientMock {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenGetPresignedUriInput {
-    key: String,
-    start_time: DateTime<Utc>,
-    expires_in: Duration,
-    filename: String,
+    pub key: String,
+    pub start_time: DateTime<Utc>,
+    pub expires_in: Duration,
+    pub filename: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GenPutPresignedUriInput {
-    key: String,
-    start_time: DateTime<Utc>,
-    expires_in: Duration,
+    pub key: String,
+    pub start_time: DateTime<Utc>,
+    pub expires_in: Duration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GetObject {
-    key: String,
-    destination: String,
+    pub key: String,
+    pub destination: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PutObject {
-    key: String,
-    source: String,
+    pub key: String,
+    pub source: String,
 }
 
 #[async_trait]
