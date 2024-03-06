@@ -31,7 +31,7 @@ anyhow = { version = "1.0.66", features = ["backtrace"] }
 async-trait = "0.1.74"
 axum = { version = "0.6.3", features = ["macros", "headers"] }
 axum-extra = "0.4.2"
-chrono = "0.4.23"
+chrono = "0.4.35"
 config = "0.13.3"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0.91"
@@ -53,7 +53,7 @@ sqlx = { version = "0.6.2", features = [
 tower-http = { version = "0.3.5", features = ["cors"] }
 utoipa = "3.0.0"
 utoipa-swagger-ui = { version = "3.0.2", features = ["axum"] }
-ring = "0.16.20"
+ring = "0.17.8"
 hex = "0.4.3"
 vergen = { version = "7", default-features = false, features = [
     "build",
