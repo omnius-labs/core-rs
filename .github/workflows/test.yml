@@ -20,7 +20,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
       - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@1.72.1
+        uses: dtolnay/rust-toolchain@1.76.0
         with:
           components: clippy, rustfmt
       - name: Setup cargo make
@@ -39,7 +39,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
       - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@1.72.1
+        uses: dtolnay/rust-toolchain@1.76.0
         with:
           components: clippy, rustfmt
       - name: Setup cargo make
