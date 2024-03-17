@@ -55,11 +55,6 @@ utoipa = "3.0.0"
 utoipa-swagger-ui = { version = "3.0.2", features = ["axum"] }
 ring = "0.16.20"
 hex = "0.4.3"
-vergen = { version = "7", default-features = false, features = [
-    "build",
-    "rustc",
-    "git",
-] }
 urlencoding = "2.1.2"
 axum-aws-lambda = "0.4.0"
 lambda_http = "0.7"
