@@ -3,12 +3,13 @@ mod tests {
     use core_migration::postgres::PostgresMigrator;
     use core_testkit::containers::postgres::PostgresContainer;
     use serial_test::serial;
+    use testresult::TestResult;
 
     const POSTGRES_VERSION: &str = "15.1";
 
     #[serial(migrate)]
     #[tokio::test]
-    async fn simple_create_table_test() {
+    async fn simple_create_table_test() -> TestResult {
         let docker = testcontainers::clients::Cli::default();
         let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
@@ -18,15 +19,16 @@ mod tests {
             "test01",
             "test01_description",
         )
-        .await
-        .expect("Migrator new error");
+        .await?;
 
-        migrator.migrate().await.expect("Migrator migrate error");
+        migrator.migrate().await?;
+
+        Ok(())
     }
 
     #[serial(migrate)]
     #[tokio::test]
-    async fn create_table_syntax_error_test() {
+    async fn create_table_syntax_error_test() -> TestResult {
         let docker = testcontainers::clients::Cli::default();
         let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
@@ -36,15 +38,16 @@ mod tests {
             "test01",
             "test01_description",
         )
-        .await
-        .expect("Migrator new error");
+        .await?;
 
-        migrator.migrate().await.expect_err("Error expected but successful.");
+        migrator.migrate().await?;
+
+        Ok(())
     }
 
     #[serial(migrate)]
     #[tokio::test]
-    async fn migrate_twice_test() {
+    async fn migrate_twice_test() -> TestResult {
         let docker = testcontainers::clients::Cli::default();
         let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
 
@@ -54,10 +57,9 @@ mod tests {
             "test01",
             "test01_description",
         )
-        .await
-        .expect("Migrator new error");
+        .await?;
 
-        migrator1.migrate().await.expect("Migrator migrate error");
+        migrator1.migrate().await?;
 
         let migrator2 = PostgresMigrator::new(
             &container.connection_string,
@@ -65,9 +67,10 @@ mod tests {
             "test01",
             "test01_description",
         )
-        .await
-        .expect("Migrator new error");
+        .await?;
 
-        migrator2.migrate().await.expect("Migrator migrate error");
+        migrator2.migrate().await?;
+
+        Ok(())
     }
 }
