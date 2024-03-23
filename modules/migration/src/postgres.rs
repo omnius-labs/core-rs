@@ -43,25 +43,25 @@ impl PostgresMigrator {
         }
 
         self.semaphore_lock().await?;
-        let result = self.execute_migration_queries(files).await;
+        self.execute_migration_queries(files).await;
         self.semaphore_unlock().await?;
 
-        result
+        Ok(())
     }
 
     async fn init(&self) -> anyhow::Result<()> {
         let queries = "\
-create table if not exists _migrations (
-    filename varchar(255) NOT NULL,
-    queries text NOT NULL,
-    executed_at timestamp without time zone default CURRENT_TIMESTAMP,
-    primary key (filename)
+CREATE TABLE IF NOT EXISTS _migrations (
+    filename VARCHAR(255) NOT NULL,
+    queries TEXT NOT NULL,
+    executed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filename)
 );
-create table if not exists _semaphores (
+CREATE TABLE IF NOT EXISTS _semaphores (
     username varchar(255) NOT NULL,
     description text NOT NULL,
-    executed_at timestamp without time zone default CURRENT_TIMESTAMP,
-    primary key (username)
+    executed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (username)
 );
 ";
         self.client.batch_execute(queries).await?;
@@ -97,7 +97,7 @@ create table if not exists _semaphores (
         let mut results: Vec<MigrationHistory> = Vec::new();
 
         let query = "\
-select filename, executed_at from _migrations
+SELECT filename, executed_at FROM _migrations
 ";
         let rows = self.client.query(query, &[]).await?;
 
@@ -123,7 +123,7 @@ select filename, executed_at from _migrations
 
     async fn insert_migration_history(&self, filename: &str, queries: &str) -> anyhow::Result<()> {
         let statement = "\
-insert into _migrations (filename, queries) values ($1, $2)
+INSERT INTO _migrations (filename, queries) VALUES ($1, $2)
 ";
         self.client.execute(statement, &[&filename, &queries]).await?;
 
@@ -132,7 +132,7 @@ insert into _migrations (filename, queries) values ($1, $2)
 
     async fn semaphore_lock(&self) -> anyhow::Result<()> {
         let query = "\
-insert into _semaphores (username, description) values ($1, $2)
+INSERT INTO _semaphores (username, description) VALUES ($1, $2)
 ";
         self.client.execute(query, &[&self.username, &self.description]).await?;
 
@@ -141,7 +141,7 @@ insert into _semaphores (username, description) values ($1, $2)
 
     async fn semaphore_unlock(&self) -> anyhow::Result<()> {
         let query = "\
-delete from _semaphores where username = $1
+DELETE FROM _semaphores WHERE username = $1
 ";
         self.client.execute(query, &[&self.username]).await?;
 
