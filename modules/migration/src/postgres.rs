@@ -43,10 +43,10 @@ impl PostgresMigrator {
         }
 
         self.semaphore_lock().await?;
-        self.execute_migration_queries(files).await;
+        let res = self.execute_migration_queries(files).await;
         self.semaphore_unlock().await?;
 
-        Ok(())
+        res
     }
 
     async fn init(&self) -> anyhow::Result<()> {
