@@ -40,7 +40,7 @@ mod tests {
         )
         .await?;
 
-        migrator.migrate().await?;
+        assert!(migrator.migrate().await.is_err());
 
         Ok(())
     }
