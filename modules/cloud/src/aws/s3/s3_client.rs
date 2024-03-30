@@ -7,6 +7,7 @@ use chrono::{DateTime, Duration, Utc};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use tokio_stream::StreamExt;
+use urlencoding::encode;
 
 #[async_trait]
 pub trait S3Client {
@@ -28,12 +29,14 @@ impl S3Client for S3ClientImpl {
             .expires_in(expires_in.to_std()?)
             .build()?;
 
+        let encoded_filename = encode(filename).to_string();
+
         let request = self
             .client
             .get_object()
             .bucket(self.bucket.as_str())
             .key(key)
-            .set_response_content_disposition(Some(format!("attachment; filename=\"{filename}\"")))
+            .set_response_content_disposition(Some(format!("attachment; filename*=UTF-8''\"{encoded_filename}\"")))
             .presigned(presigning_config)
             .await?;
         Ok(request.uri().to_string())
