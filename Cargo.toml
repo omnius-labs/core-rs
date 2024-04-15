@@ -25,6 +25,10 @@ aws-sdk-s3 = "0.30.0"
 aws-sdk-sqs = "0.30.0"
 aws-sdk-sesv2 = "0.30.0"
 
+gcloud-sdk = { version = "0.24.5", features = [
+    "google-cloud-secretmanager-v1",
+] }
+
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 anyhow = { version = "1.0.66", features = ["backtrace"] }
