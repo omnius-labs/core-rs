@@ -1,36 +1,40 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, TimeZone, Utc};
 
-pub trait SystemClock<Tz: TimeZone> {
+pub trait Clock<Tz: TimeZone> {
     fn now(&self) -> DateTime<Tz>;
 }
 
-pub struct SystemClockUtc;
+pub struct RealClockUtc;
 
-impl SystemClock<Utc> for SystemClockUtc {
+impl Clock<Utc> for RealClockUtc {
     fn now(&self) -> DateTime<Utc> {
         Utc::now()
     }
 }
 
-pub struct SystemClockUtcMock {
-    pub vs: Arc<Mutex<VecDeque<DateTime<Utc>>>>,
+use tokio::time::Duration;
+
+pub struct FakeClockUtc {
+    current_time: Arc<Mutex<DateTime<Utc>>>,
 }
 
-impl SystemClock<Utc> for SystemClockUtcMock {
+impl Clock<Utc> for FakeClockUtc {
     fn now(&self) -> DateTime<Utc> {
-        self.vs.lock().unwrap().pop_front().unwrap()
+        *self.current_time.lock().unwrap()
     }
 }
 
-impl SystemClockUtcMock {
-    pub fn new(vs: Vec<DateTime<Utc>>) -> Self {
+impl FakeClockUtc {
+    pub fn new(start: DateTime<Utc>) -> Self {
         Self {
-            vs: Arc::new(Mutex::new(VecDeque::from(vs))),
+            current_time: Arc::new(Mutex::new(start)),
         }
+    }
+
+    pub fn advance_time(&self, duration: Duration) {
+        let mut current_time = self.current_time.lock().unwrap();
+        *current_time += duration;
     }
 }

@@ -8,6 +8,7 @@ authors = { workspace = true }
 stable-test = []
 
 [dependencies]
+async-trait = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 hex = { workspace = true }
