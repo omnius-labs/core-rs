@@ -4,18 +4,18 @@ use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
 
-use crate::{clock::SystemClock, random_bytes::RandomBytesProvider};
+use crate::{clock::Clock, random_bytes::RandomBytesProvider};
 
 pub trait TsidProvider {
     fn gen(&self) -> Tsid;
 }
 
-pub struct TsidProviderImpl<TSystemClock, TRandomBytesProvider>
+pub struct TsidProviderImpl<TClock, TRandomBytesProvider>
 where
-    TSystemClock: SystemClock<Utc>,
+    TClock: Clock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
 {
-    pub system_clock: TSystemClock,
+    pub clock: TClock,
     pub random_bytes_provider: TRandomBytesProvider,
     pub random_byte_count: usize,
 }
@@ -27,12 +27,12 @@ pub struct Tsid {
 
 impl<TSystemClock, TRandomBytesProvider> TsidProviderImpl<TSystemClock, TRandomBytesProvider>
 where
-    TSystemClock: SystemClock<Utc>,
+    TSystemClock: Clock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
 {
-    pub fn new(system_clock: TSystemClock, random_bytes_provider: TRandomBytesProvider, random_byte_count: usize) -> Self {
+    pub fn new(clock: TSystemClock, random_bytes_provider: TRandomBytesProvider, random_byte_count: usize) -> Self {
         Self {
-            system_clock,
+            clock,
             random_bytes_provider,
             random_byte_count,
         }
@@ -41,11 +41,11 @@ where
 
 impl<TSystemClock, TRandomBytesProvider> TsidProvider for TsidProviderImpl<TSystemClock, TRandomBytesProvider>
 where
-    TSystemClock: SystemClock<Utc>,
+    TSystemClock: Clock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
 {
     fn gen(&self) -> Tsid {
-        let timestamp = self.system_clock.now();
+        let timestamp = self.clock.now();
         let random_bytes = self.random_bytes_provider.get_bytes(self.random_byte_count);
         Tsid { timestamp, random_bytes }
     }
@@ -62,14 +62,14 @@ impl Display for Tsid {
 
 #[cfg(test)]
 mod tests {
-    use crate::{clock::SystemClockUtc, random_bytes::RandomBytesProviderImpl};
+    use crate::{clock::RealClockUtc, random_bytes::RandomBytesProviderImpl};
 
     use super::*;
 
     #[ignore]
     #[tokio::test]
     async fn print_test() {
-        let p = TsidProviderImpl::new(SystemClockUtc, RandomBytesProviderImpl, 16);
+        let p = TsidProviderImpl::new(RealClockUtc, RandomBytesProviderImpl, 16);
         println!("{:}", p.gen());
     }
 }
