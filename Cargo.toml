@@ -4,6 +4,7 @@ members = [
     "modules/cloud",
     "modules/image",
     "modules/migration",
+    "modules/omnius",
     "modules/testkit",
 ]
 resolver = "2"
@@ -17,6 +18,7 @@ core-base = { path = "./modules/base" }
 core-cloud = { path = "./modules/cloud", features = ["aws"] }
 core-image = { path = "./modules/image" }
 core-migration = { path = "./modules/migration", features = ["postgres"] }
+core-omnius = { path = "./modules/omnius" }
 core-testkit = { path = "./modules/testkit" }
 
 aws-config = "0.56.1"
@@ -74,3 +76,17 @@ serial_test = "2.0.0"
 proc-macro2 = "1.0.70"
 reqwest = { version = "0.11.23", features = ["json"] }
 testresult = "0.4.0"
+base64 = "0.21.7"
+ciborium = "0.2.2"
+bitflags = { version = "2.4.2", features = ["serde"] }
+tempfile = "3.10.0"
+crc = "3.0.1"
+sha3 = "0.10.8"
+ed25519-dalek = { version = "2.1.0", features = ["rand_core", "serde"] }
+rand_core = "0.6.4"
+nom = "7.1.3"
+fast-socks5 = "0.9.2"
+futures = "0.3.30"
+futures-util = "0.3.28"
+local-ip-address = "0.5.7"
+pin-utils = "0.1.0"
