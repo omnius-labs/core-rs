@@ -1,3 +1,2 @@
-mod stream;
-
-pub use stream::*;
+pub mod framed;
+pub mod omni_secure;

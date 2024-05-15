@@ -1,46 +1,51 @@
 use std::fmt;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD as BASE64, Engine};
+use bitflags::bitflags;
 use ed25519_dalek::Signer;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum OmniSignType {
-    Ed25519,
+bitflags! {
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    pub struct OmniSignType: u32 {
+        const None = 0;
+        const Ed25519 = 1;
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OmniSigner {
-    typ: OmniSignType,
-    name: String,
-    key: Vec<u8>,
+    pub typ: OmniSignType,
+    pub name: String,
+    pub key: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OmniSignature {
-    typ: OmniSignType,
-    name: String,
-    public_key: Vec<u8>,
-    value: Vec<u8>,
+pub struct OmniCert {
+    pub typ: OmniSignType,
+    pub name: String,
+    pub public_key: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 impl OmniSigner {
-    pub fn new(typ: &OmniSignType, name: &str) -> Self {
+    pub fn new(typ: &OmniSignType, name: &str) -> anyhow::Result<Self> {
         match typ {
-            OmniSignType::Ed25519 => {
+            &OmniSignType::Ed25519 => {
                 let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng);
 
                 let typ = typ.clone();
                 let name = name.to_string();
                 let key = signing_key.to_keypair_bytes().to_vec();
-                Self { typ, name, key }
+                Ok(Self { typ, name, key })
             }
+            _ => anyhow::bail!("Unsupported sign type"),
         }
     }
 
-    pub fn sign(&self, msg: &[u8]) -> anyhow::Result<OmniSignature> {
+    pub fn sign(&self, msg: &[u8]) -> anyhow::Result<OmniCert> {
         match self.typ {
             OmniSignType::Ed25519 => {
                 let signing_key_bytes = self.key.as_slice();
@@ -55,13 +60,14 @@ impl OmniSigner {
                 let name = self.name.clone();
                 let public_key = signing_key.verifying_key().to_bytes().to_vec();
                 let value = signing_key.sign(msg).to_vec();
-                Ok(OmniSignature {
+                Ok(OmniCert {
                     typ,
                     name,
                     public_key,
                     value,
                 })
             }
+            _ => anyhow::bail!("Unsupported sign type"),
         }
     }
 }
@@ -81,11 +87,12 @@ impl fmt::Display for OmniSigner {
 
                 write!(f, "{}@{}", self.name, BASE64.encode(hash))
             }
+            _ => Err(std::fmt::Error),
         }
     }
 }
 
-impl OmniSignature {
+impl OmniCert {
     pub fn verify(&self, msg: &[u8]) -> anyhow::Result<()> {
         match self.typ {
             OmniSignType::Ed25519 => {
@@ -101,11 +108,12 @@ impl OmniSignature {
                 let signature = ed25519_dalek::Signature::from_bytes(&signature_bytes);
                 Ok(verifying_key.verify_strict(msg, &signature)?)
             }
+            _ => anyhow::bail!("Unsupported sign type"),
         }
     }
 }
 
-impl fmt::Display for OmniSignature {
+impl fmt::Display for OmniCert {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.typ {
             OmniSignType::Ed25519 => {
@@ -115,24 +123,31 @@ impl fmt::Display for OmniSignature {
 
                 write!(f, "{}@{}", self.name, BASE64.encode(hash))
             }
+            _ => {
+                write!(f, "")
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use testresult::TestResult;
+
     use super::{OmniSignType, OmniSigner};
 
     #[tokio::test]
     #[ignore]
-    async fn simple_test() {
-        let signer = OmniSigner::new(&OmniSignType::Ed25519, "test_user");
-        let signature = signer.sign(b"test").unwrap();
+    async fn simple_test() -> TestResult {
+        let signer = OmniSigner::new(&OmniSignType::Ed25519, "test_user")?;
+        let signature = signer.sign(b"test")?;
 
         println!("{}", signer);
         println!("{}", signature);
 
         assert!(signature.verify(b"test").is_ok());
         assert!(signature.verify(b"test_err").is_err());
+
+        Ok(())
     }
 }
