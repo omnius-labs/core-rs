@@ -7,11 +7,11 @@ use nom::IResult;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct OmniAddress(String);
+pub struct OmniAddr(String);
 
-impl OmniAddress {
-    pub fn new(value: &str) -> OmniAddress {
-        OmniAddress(value.to_owned())
+impl OmniAddr {
+    pub fn new(value: &str) -> OmniAddr {
+        OmniAddr(value.to_owned())
     }
 
     pub fn parse_tcp(&self) -> anyhow::Result<String> {
@@ -26,13 +26,13 @@ impl OmniAddress {
     }
 }
 
-impl fmt::Display for OmniAddress {
+impl fmt::Display for OmniAddr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl From<String> for OmniAddress {
+impl From<String> for OmniAddr {
     fn from(value: String) -> Self {
         Self::new(value.as_str())
     }
@@ -40,12 +40,12 @@ impl From<String> for OmniAddress {
 
 #[cfg(test)]
 mod tests {
-    use crate::model::OmniAddress;
+    use crate::model::OmniAddr;
 
     #[tokio::test]
     #[ignore]
     async fn add_port_mapping_test() {
-        let addr = OmniAddress::new("tcp(127.0.0.1:8000)");
+        let addr = OmniAddr::new("tcp(127.0.0.1:8000)");
         println!("{:?}", addr.parse_tcp());
     }
 }
