@@ -46,30 +46,30 @@ pub struct PutObject {
 #[async_trait]
 impl S3Client for S3ClientMock {
     async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, filename: &str) -> anyhow::Result<String> {
-        self.gen_get_presigned_uri_inputs.lock().unwrap().push(GenGetPresignedUriInput {
+        self.gen_get_presigned_uri_inputs.lock().push(GenGetPresignedUriInput {
             key: key.to_string(),
             start_time,
             expires_in,
             filename: filename.to_string(),
         });
 
-        let output = self.gen_get_presigned_uri_outputs.lock().unwrap().pop_front().unwrap_or_default();
+        let output = self.gen_get_presigned_uri_outputs.lock().pop_front().unwrap_or_default();
         Ok(output)
     }
 
     async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String> {
-        self.gen_put_presigned_uri_inputs.lock().unwrap().push(GenPutPresignedUriInput {
+        self.gen_put_presigned_uri_inputs.lock().push(GenPutPresignedUriInput {
             key: key.to_string(),
             start_time,
             expires_in,
         });
 
-        let output = self.gen_put_presigned_uri_outputs.lock().unwrap().pop_front().unwrap_or_default();
+        let output = self.gen_put_presigned_uri_outputs.lock().pop_front().unwrap_or_default();
         Ok(output)
     }
 
     async fn get_object(&self, key: &str, destination: &str) -> anyhow::Result<()> {
-        self.get_object_inputs.lock().unwrap().push(GetObject {
+        self.get_object_inputs.lock().push(GetObject {
             key: key.to_string(),
             destination: destination.to_string(),
         });
@@ -77,7 +77,7 @@ impl S3Client for S3ClientMock {
     }
 
     async fn put_object(&self, key: &str, source: &str) -> anyhow::Result<()> {
-        self.put_object_inputs.lock().unwrap().push(PutObject {
+        self.put_object_inputs.lock().push(PutObject {
             key: key.to_string(),
             source: source.to_string(),
         });

@@ -17,7 +17,7 @@ pub struct SendMessageInput {
 #[async_trait]
 impl SqsSender for SqsSenderMock {
     async fn send_message(&self, message_body: &str) -> anyhow::Result<()> {
-        self.send_message_inputs.lock().unwrap().push(SendMessageInput {
+        self.send_message_inputs.lock().push(SendMessageInput {
             message_body: message_body.to_string(),
         });
         Ok(())
