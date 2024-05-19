@@ -8,7 +8,7 @@ use rand_chacha::ChaCha20Rng;
 use sha3::{Digest, Sha3_256};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
-    sync::Mutex,
+    sync::Mutex as TokioMutex,
 };
 
 use crate::{
@@ -29,8 +29,8 @@ where
 {
     version: OmniSecureStreamVersion,
     typ: OmniSecureStreamType,
-    receiver: Arc<Mutex<FramedReceiver<R>>>,
-    sender: Arc<Mutex<FramedSender<W>>>,
+    receiver: Arc<TokioMutex<FramedReceiver<R>>>,
+    sender: Arc<TokioMutex<FramedSender<W>>>,
     signer: Option<OmniSigner>,
     clock: Arc<dyn Clock<Utc> + Send + Sync>,
 }
@@ -54,8 +54,8 @@ where
     pub async fn new(
         version: OmniSecureStreamVersion,
         typ: OmniSecureStreamType,
-        receiver: Arc<Mutex<FramedReceiver<R>>>,
-        sender: Arc<Mutex<FramedSender<W>>>,
+        receiver: Arc<TokioMutex<FramedReceiver<R>>>,
+        sender: Arc<TokioMutex<FramedSender<W>>>,
         signer: Option<OmniSigner>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
     ) -> anyhow::Result<Self> {

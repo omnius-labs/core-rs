@@ -1,6 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use chrono::{DateTime, TimeZone, Utc};
+use parking_lot::Mutex;
 
 pub trait Clock<Tz: TimeZone> {
     fn now(&self) -> DateTime<Tz>;
@@ -22,7 +23,7 @@ pub struct FakeClockUtc {
 
 impl Clock<Utc> for FakeClockUtc {
     fn now(&self) -> DateTime<Utc> {
-        *self.current_time.lock().unwrap()
+        *self.current_time.lock()
     }
 }
 
@@ -34,7 +35,7 @@ impl FakeClockUtc {
     }
 
     pub fn advance_time(&self, duration: Duration) {
-        let mut current_time = self.current_time.lock().unwrap();
+        let mut current_time = self.current_time.lock();
         *current_time += duration;
     }
 }

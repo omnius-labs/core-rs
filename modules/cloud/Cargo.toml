@@ -29,6 +29,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
 urlencoding = { workspace = true }
+parking_lot = { workspace = true }
 
 aws-config = { workspace = true, optional = true }
 aws-sdk-secretsmanager = { workspace = true, optional = true }
