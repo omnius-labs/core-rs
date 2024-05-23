@@ -7,15 +7,19 @@ use nom::IResult;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct OmniAddr(String);
+pub struct OmniAddr {
+    inner: String,
+}
 
 impl OmniAddr {
-    pub fn new(value: &str) -> OmniAddr {
-        OmniAddr(value.to_owned())
+    pub fn new<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
+        OmniAddr {
+            inner: value.as_ref().to_string(),
+        }
     }
 
     pub fn parse_tcp(&self) -> anyhow::Result<String> {
-        let (_, addr) = Self::parse_tcp_sub(&self.0).map_err(|e| e.to_owned())?;
+        let (_, addr) = Self::parse_tcp_sub(&self.inner).map_err(|e| e.to_owned())?;
         Ok(addr.to_string())
     }
 
@@ -28,13 +32,13 @@ impl OmniAddr {
 
 impl fmt::Display for OmniAddr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.inner)
     }
 }
 
 impl From<String> for OmniAddr {
     fn from(value: String) -> Self {
-        Self::new(value.as_str())
+        Self::new(&value)
     }
 }
 
