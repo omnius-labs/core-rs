@@ -31,13 +31,12 @@ pub struct OmniCert {
 }
 
 impl OmniSigner {
-    pub fn new(typ: &OmniSignType, name: &str) -> anyhow::Result<Self> {
-        match typ {
+    pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> anyhow::Result<Self> {
+        match &typ {
             &OmniSignType::Ed25519 => {
                 let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng);
 
-                let typ = typ.clone();
-                let name = name.to_string();
+                let name = name.as_ref().to_string();
                 let key = signing_key.to_keypair_bytes().to_vec();
                 Ok(Self { typ, name, key })
             }
@@ -139,7 +138,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn simple_test() -> TestResult {
-        let signer = OmniSigner::new(&OmniSignType::Ed25519, "test_user")?;
+        let signer = OmniSigner::new(OmniSignType::Ed25519, "test_user")?;
         let signature = signer.sign(b"test")?;
 
         println!("{}", signer);
