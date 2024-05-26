@@ -11,7 +11,7 @@ use urlencoding::encode;
 
 #[async_trait]
 pub trait S3Client {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, filename: &str) -> anyhow::Result<String>;
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String>;
     async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String>;
     async fn get_object(&self, key: &str, destination: &str) -> anyhow::Result<()>;
     async fn put_object(&self, key: &str, source: &str) -> anyhow::Result<()>;
@@ -23,20 +23,20 @@ pub struct S3ClientImpl {
 
 #[async_trait]
 impl S3Client for S3ClientImpl {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, filename: &str) -> anyhow::Result<String> {
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String> {
         let presigning_config = PresigningConfig::builder()
             .start_time(start_time.into())
             .expires_in(expires_in.to_std()?)
             .build()?;
 
-        let encoded_filename = encode(filename).to_string();
+        let encoded_file_name = encode(file_name).to_string();
 
         let request = self
             .client
             .get_object()
             .bucket(self.bucket.as_str())
             .key(key)
-            .set_response_content_disposition(Some(format!("attachment; filename*=UTF-8''\"{encoded_filename}\"")))
+            .set_response_content_disposition(Some(format!("attachment; filename*=UTF-8''\"{encoded_file_name}\"")))
             .presigned(presigning_config)
             .await?;
         Ok(request.uri().to_string())
