@@ -33,10 +33,10 @@ impl PostgresMigrator {
         self.init().await?;
 
         let histories: Vec<MigrationHistory> = self.fetch_migration_histories().await?;
-        let ignore_set: HashSet<String> = histories.iter().map(|n| n.filename.clone()).collect();
+        let ignore_set: HashSet<String> = histories.iter().map(|n| n.file_name.clone()).collect();
 
         let files: Vec<MigrationFile> = self.load_migration_files().await?;
-        let files: Vec<MigrationFile> = files.into_iter().filter(|x| !ignore_set.contains(x.filename.as_str())).collect();
+        let files: Vec<MigrationFile> = files.into_iter().filter(|x| !ignore_set.contains(x.file_name.as_str())).collect();
 
         if files.is_empty() {
             return Ok(());
@@ -52,10 +52,10 @@ impl PostgresMigrator {
     async fn init(&self) -> anyhow::Result<()> {
         let queries = "\
 CREATE TABLE IF NOT EXISTS _migrations (
-    filename VARCHAR(255) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
     queries TEXT NOT NULL,
     executed_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (filename)
+    PRIMARY KEY (file_name)
 );
 CREATE TABLE IF NOT EXISTS _semaphores (
     username varchar(255) NOT NULL,
@@ -83,12 +83,12 @@ CREATE TABLE IF NOT EXISTS _semaphores (
 
             let name: String = path.file_name().unwrap().to_str().unwrap().to_string();
             let queries: String = std::fs::read_to_string(path)?;
-            let result = MigrationFile { filename: name, queries };
+            let result = MigrationFile { file_name: name, queries };
 
             results.push(result);
         }
 
-        results.sort_by(|x, y| x.filename.cmp(&y.filename));
+        results.sort_by(|x, y| x.file_name.cmp(&y.file_name));
 
         Ok(results)
     }
@@ -97,13 +97,13 @@ CREATE TABLE IF NOT EXISTS _semaphores (
         let mut results: Vec<MigrationHistory> = Vec::new();
 
         let query = "\
-SELECT filename, executed_at FROM _migrations
+SELECT file_name, executed_at FROM _migrations
 ";
         let rows = self.client.query(query, &[]).await?;
 
         for row in rows {
             let result = MigrationHistory {
-                filename: row.get("filename"),
+                file_name: row.get("file_name"),
                 executed_at: row.get("executed_at"),
             };
             results.push(result);
@@ -115,17 +115,17 @@ SELECT filename, executed_at FROM _migrations
     async fn execute_migration_queries(&self, files: Vec<MigrationFile>) -> anyhow::Result<()> {
         for f in files {
             self.client.batch_execute(&f.queries).await?;
-            self.insert_migration_history(&f.filename, &f.queries).await?;
+            self.insert_migration_history(&f.file_name, &f.queries).await?;
         }
 
         Ok(())
     }
 
-    async fn insert_migration_history(&self, filename: &str, queries: &str) -> anyhow::Result<()> {
+    async fn insert_migration_history(&self, file_name: &str, queries: &str) -> anyhow::Result<()> {
         let statement = "\
-INSERT INTO _migrations (filename, queries) VALUES ($1, $2)
+INSERT INTO _migrations (file_name, queries) VALUES ($1, $2)
 ";
-        self.client.execute(statement, &[&filename, &queries]).await?;
+        self.client.execute(statement, &[&file_name, &queries]).await?;
 
         Ok(())
     }
@@ -150,12 +150,12 @@ DELETE FROM _semaphores WHERE username = $1
 }
 
 struct MigrationFile {
-    pub filename: String,
+    pub file_name: String,
     pub queries: String,
 }
 
 struct MigrationHistory {
-    pub filename: String,
+    pub file_name: String,
     #[allow(unused)]
     pub executed_at: NaiveDateTime,
 }
