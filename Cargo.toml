@@ -73,10 +73,10 @@ headers = "0.3.8"
 once_cell = "1.17.1"
 kamadak-exif = "0.5.5"
 serial_test = "2.0.0"
-proc-macro2 = "1.0.82"
+proc-macro2 = "1.0.84"
 reqwest = { version = "0.11.27", features = ["json"] }
 testresult = "0.4.0"
-base64 = "0.22.0"
+base64 = "0.22.1"
 ciborium = "0.2.2"
 bitflags = { version = "2.5.0", features = ["serde"] }
 tempfile = "3.10.0"
@@ -93,4 +93,4 @@ pin-utils = "0.1.0"
 p256 = { version = "0.13.2", features = ["ecdh"] }
 hkdf = "0.12.4"
 aes-gcm = "0.10.3"
-parking_lot = "0.12.2"
+parking_lot = "0.12.3"
