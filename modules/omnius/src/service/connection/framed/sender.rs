@@ -5,7 +5,7 @@ use serde::Serialize;
 use tokio::io::AsyncWrite;
 use tokio_util::bytes::Bytes;
 
-use crate::service::util::Packet;
+use super::packet::Packet;
 
 #[async_trait]
 pub trait FramedSend {
