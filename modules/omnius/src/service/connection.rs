@@ -1,2 +1,2 @@
 pub mod framed;
-pub mod omni_secure;
+pub mod secure;

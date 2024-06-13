@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::de::DeserializeOwned;
 use tokio::io::AsyncRead;
 use tokio_stream::StreamExt;
 use tokio_util::bytes::Bytes;
@@ -13,7 +13,7 @@ pub trait FramedRecv {
 
 #[async_trait]
 pub trait FramedRecvExt: FramedRecv {
-    async fn recv_message<T: for<'a> Deserialize<'a>>(&mut self) -> anyhow::Result<T>;
+    async fn recv_message<T: DeserializeOwned>(&mut self) -> anyhow::Result<T>;
 }
 
 pub struct FramedReceiver<T>

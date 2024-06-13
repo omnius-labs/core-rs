@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 
-use crate::connection::omni_secure::OmniSecureStreamVersion;
+use crate::connection::secure::OmniSecureStreamVersion;
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
