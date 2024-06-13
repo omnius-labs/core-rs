@@ -14,7 +14,7 @@ use tokio::{
 use crate::{
     connection::{
         framed::{FramedReceiver, FramedRecvExt as _, FramedSendExt as _, FramedSender},
-        omni_secure::OmniSecureStreamVersion,
+        secure::OmniSecureStreamVersion,
     },
     OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner,
 };
