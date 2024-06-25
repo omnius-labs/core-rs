@@ -40,7 +40,7 @@ axum-extra = "0.4.2"
 chrono = "0.4.38"
 config = "0.13.3"
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0.117"
+serde_json = "1.0.118"
 testcontainers = "0.14.0"
 tokio = { version = "1.38.0", features = ["full"] }
 tokio-postgres = { version = "0.7.7", features = ["with-chrono-0_4"] }
@@ -48,7 +48,7 @@ tokio-util = { version = "0.7.11", features = ["full"] }
 tokio-stream = "0.1.15"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
-uuid = { version = "1.8.0", features = ["serde", "v4"] }
+uuid = { version = "1.9.1", features = ["serde", "v4"] }
 sqlx = { version = "0.6.2", features = [
     "postgres",
     "chrono",
@@ -78,7 +78,7 @@ reqwest = { version = "0.11.27", features = ["json"] }
 testresult = "0.4.0"
 base64 = "0.22.1"
 ciborium = "0.2.2"
-bitflags = { version = "2.5.0", features = ["serde"] }
+bitflags = { version = "2.6.0", features = ["serde"] }
 tempfile = "3.10.0"
 crc = "3.0.1"
 sha3 = "0.10.8"
