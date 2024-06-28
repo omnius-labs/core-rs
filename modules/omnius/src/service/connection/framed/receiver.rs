@@ -1,19 +1,11 @@
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
 use tokio::io::AsyncRead;
 use tokio_stream::StreamExt;
 use tokio_util::bytes::Bytes;
 
-use super::packet::Packet;
-
 #[async_trait]
 pub trait FramedRecv {
     async fn recv(&mut self) -> anyhow::Result<Bytes>;
-}
-
-#[async_trait]
-pub trait FramedRecvExt: FramedRecv {
-    async fn recv_message<T: DeserializeOwned>(&mut self) -> anyhow::Result<T>;
 }
 
 pub struct FramedReceiver<T>
@@ -50,17 +42,5 @@ where
     async fn recv(&mut self) -> anyhow::Result<Bytes> {
         let buffer = self.framed.next().await.ok_or(anyhow::anyhow!("Stream ended"))??.freeze();
         Ok(buffer)
-    }
-}
-
-#[async_trait]
-impl<T: FramedRecv> FramedRecvExt for T
-where
-    T: ?Sized + Send + Unpin,
-{
-    async fn recv_message<TItem: DeserializeOwned>(&mut self) -> anyhow::Result<TItem> {
-        let b = self.recv().await?;
-        let item = Packet::deserialize(b)?;
-        Ok(item)
     }
 }
