@@ -1,11 +1,12 @@
 use std::fmt;
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD as BASE64, Engine};
 use bitflags::bitflags;
 use ed25519_dalek::Signer;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
+
+use crate::converter::OmniBase;
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -84,7 +85,7 @@ impl fmt::Display for OmniSigner {
                 hasher.update(public_key);
                 let hash = hasher.finalize();
 
-                write!(f, "{}@{}", self.name, BASE64.encode(hash))
+                write!(f, "{}@{}", self.name, OmniBase::encode_by_base64_url(hash.as_slice()))
             }
             _ => Err(std::fmt::Error),
         }
@@ -120,7 +121,7 @@ impl fmt::Display for OmniCert {
                 hasher.update(&self.public_key);
                 let hash = hasher.finalize();
 
-                write!(f, "{}@{}", self.name, BASE64.encode(hash))
+                write!(f, "{}@{}", self.name, OmniBase::encode_by_base64_url(hash.as_slice()))
             }
             _ => {
                 write!(f, "")
@@ -135,8 +136,8 @@ mod tests {
 
     use super::{OmniSignType, OmniSigner};
 
-    #[tokio::test]
     #[ignore]
+    #[tokio::test]
     async fn simple_test() -> TestResult {
         let signer = OmniSigner::new(OmniSignType::Ed25519, "test_user")?;
         let signature = signer.sign(b"test")?;

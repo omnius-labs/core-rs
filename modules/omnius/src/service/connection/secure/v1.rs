@@ -1,6 +1,7 @@
 mod auth;
 mod encoder;
 mod message;
+mod packet;
 mod stream;
 mod util;
 
@@ -8,6 +9,7 @@ mod util;
 pub use auth::*;
 use encoder::*;
 use message::*;
+use packet::*;
 pub use stream::*;
 #[allow(unused)]
 use util::*;

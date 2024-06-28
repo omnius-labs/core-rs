@@ -1,20 +1,12 @@
 use anyhow::Context as _;
 use async_trait::async_trait;
 use futures_util::SinkExt;
-use serde::Serialize;
 use tokio::io::AsyncWrite;
 use tokio_util::bytes::Bytes;
-
-use super::packet::Packet;
 
 #[async_trait]
 pub trait FramedSend {
     async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()>;
-}
-
-#[async_trait]
-pub trait FramedSendExt: FramedSend {
-    async fn send_message<T: Serialize + Send>(&mut self, item: T) -> anyhow::Result<()>;
 }
 
 pub struct FramedSender<T>
@@ -50,18 +42,6 @@ where
 {
     async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()> {
         self.framed.send(buffer).await.with_context(|| "Failed to send")?;
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<T: FramedSend> FramedSendExt for T
-where
-    T: ?Sized + Send + Unpin,
-{
-    async fn send_message<TItem: Serialize + Send>(&mut self, item: TItem) -> anyhow::Result<()> {
-        let b = Packet::serialize(item)?;
-        self.send(b).await?;
         Ok(())
     }
 }

@@ -1,4 +1,3 @@
-mod packet;
 mod receiver;
 mod sender;
 
