@@ -1,8 +1,4 @@
 {
-    "cSpell.words": [
-        "chrono",
-        "opxs",
-        "presigning"
-    ],
-    "rust-analyzer.showUnlinkedFileNotification": false
+  "cSpell.words": ["chrono", "Omni", "opxs", "presigning"],
+  "rust-analyzer.showUnlinkedFileNotification": false
 }
