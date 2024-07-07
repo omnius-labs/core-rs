@@ -1,5 +1,5 @@
 [package]
-name = "core-omnius"
+name = "omnius-core-omnikit"
 version = "0.1.0"
 edition = { workspace = true }
 authors = { workspace = true }
@@ -8,7 +8,7 @@ authors = { workspace = true }
 stable-test = []
 
 [dependencies]
-core-base = { workspace = true }
+omnius-core-base = { workspace = true }
 
 anyhow = { workspace = true }
 async-trait = { workspace = true }

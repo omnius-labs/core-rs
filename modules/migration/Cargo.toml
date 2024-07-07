@@ -1,5 +1,5 @@
 [package]
-name = "core-migration"
+name = "omnius-core-migration"
 version = "0.1.0"
 edition = { workspace = true }
 authors = { workspace = true }
@@ -9,7 +9,7 @@ stable-test = []
 postgres = ["tokio-postgres"]
 
 [dependencies]
-core-testkit = { path = "../testkit" }
+omnius-core-testkit = { path = "../testkit" }
 
 anyhow = { workspace = true }
 chrono = { workspace = true }

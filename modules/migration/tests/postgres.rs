@@ -1,7 +1,7 @@
 #[cfg(all(test, feature = "stable-test", feature = "postgres"))]
 mod tests {
-    use core_migration::postgres::PostgresMigrator;
-    use core_testkit::containers::postgres::PostgresContainer;
+    use omnius_core_migration::postgres::PostgresMigrator;
+    use omnius_core_testkit::containers::postgres::PostgresContainer;
     use serial_test::serial;
     use testresult::TestResult;
 
