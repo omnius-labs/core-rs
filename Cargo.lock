@@ -890,52 +890,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
-name = "core-base"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "hex",
- "parking_lot 0.12.3",
- "rand",
- "rand_chacha",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "core-cloud"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "aws-config",
- "aws-sdk-s3",
- "aws-sdk-secretsmanager",
- "aws-sdk-sesv2",
- "aws-sdk-sqs",
- "chrono",
- "gcloud-sdk",
- "parking_lot 0.12.3",
- "reqwest",
- "serde",
- "serde_json",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tokio-stream",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "urlencoding",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -950,96 +904,6 @@ name = "core-foundation-sys"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06ea2b9bc92be3c2baa9334a323ebca2d6f074ff852cd1d7b11064035cd3868f"
-
-[[package]]
-name = "core-image"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "kamadak-exif",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "core-migration"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "core-testkit",
- "serial_test",
- "testcontainers",
- "testresult",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "core-omnius"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "bitflags 2.6.0",
- "chrono",
- "ciborium",
- "config",
- "core-base",
- "crc",
- "ed25519-dalek",
- "fast-socks5",
- "futures",
- "futures-util",
- "hex",
- "hkdf",
- "nom",
- "once_cell",
- "p256",
- "parking_lot 0.12.3",
- "pin-utils",
- "rand",
- "rand_chacha",
- "rand_core",
- "ring 0.17.8",
- "serde",
- "serde_json",
- "serial_test",
- "sha3",
- "sqlx",
- "tempfile",
- "testcontainers",
- "testresult",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "urlencoding",
- "uuid",
-]
-
-[[package]]
-name = "core-testkit"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "testcontainers",
- "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "cpufeatures"
@@ -2220,6 +2084,142 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "omnius-core-base"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "hex",
+ "parking_lot 0.12.3",
+ "rand",
+ "rand_chacha",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "omnius-core-cloud"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "aws-config",
+ "aws-sdk-s3",
+ "aws-sdk-secretsmanager",
+ "aws-sdk-sesv2",
+ "aws-sdk-sqs",
+ "chrono",
+ "gcloud-sdk",
+ "parking_lot 0.12.3",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "urlencoding",
+]
+
+[[package]]
+name = "omnius-core-image"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "kamadak-exif",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "omnius-core-migration"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "omnius-core-testkit",
+ "serial_test",
+ "testcontainers",
+ "testresult",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "omnius-core-omnikit"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "bitflags 2.6.0",
+ "chrono",
+ "ciborium",
+ "config",
+ "crc",
+ "ed25519-dalek",
+ "fast-socks5",
+ "futures",
+ "futures-util",
+ "hex",
+ "hkdf",
+ "nom",
+ "omnius-core-base",
+ "once_cell",
+ "p256",
+ "parking_lot 0.12.3",
+ "pin-utils",
+ "rand",
+ "rand_chacha",
+ "rand_core",
+ "ring 0.17.8",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "sha3",
+ "sqlx",
+ "tempfile",
+ "testcontainers",
+ "testresult",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "omnius-core-testkit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

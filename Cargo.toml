@@ -4,7 +4,7 @@ members = [
     "modules/cloud",
     "modules/image",
     "modules/migration",
-    "modules/omnius",
+    "modules/omnikit",
     "modules/testkit",
 ]
 resolver = "2"
@@ -14,12 +14,14 @@ edition = "2021"
 authors = ["Lyrise <lyrise1984@gmail.com>"]
 
 [workspace.dependencies]
-core-base = { path = "./modules/base" }
-core-cloud = { path = "./modules/cloud", features = ["aws"] }
-core-image = { path = "./modules/image" }
-core-migration = { path = "./modules/migration", features = ["postgres"] }
-core-omnius = { path = "./modules/omnius" }
-core-testkit = { path = "./modules/testkit" }
+omnius-core-base = { path = "./modules/base" }
+omnius-core-cloud = { path = "./modules/cloud", features = ["aws"] }
+omnius-core-image = { path = "./modules/image" }
+omnius-core-migration = { path = "./modules/migration", features = [
+    "postgres",
+] }
+omnius-core-omnikit = { path = "./modules/omnikit" }
+omnius-core-testkit = { path = "./modules/testkit" }
 
 aws-config = "0.56.1"
 aws-sdk-secretsmanager = "0.30.0"
