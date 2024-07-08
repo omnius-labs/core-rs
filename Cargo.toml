@@ -36,7 +36,7 @@ gcloud-sdk = { version = "0.24.8", features = [
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-async-trait = "0.1.80"
+async-trait = "0.1.81"
 axum = { version = "0.6.3", features = ["macros", "headers"] }
 axum-extra = "0.4.2"
 chrono = "0.4.38"
