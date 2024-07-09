@@ -1,6 +1,8 @@
+use std::io::Write as _;
+
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
-use tokio_util::bytes::Bytes;
+use tokio_util::bytes::{Buf as _, BufMut as _, Bytes, BytesMut};
 
 use crate::connection::framed::{FramedRecv, FramedSend};
 
@@ -41,13 +43,13 @@ where
 enum PacketType {
     #[allow(unused)]
     Unknown = 0,
-    V1 = 1,
+    Json = 1,
 }
 
 impl From<u8> for PacketType {
     fn from(value: u8) -> Self {
         match value {
-            1 => PacketType::V1,
+            1 => PacketType::Json,
             _ => PacketType::Unknown,
         }
     }
@@ -57,12 +59,30 @@ pub struct Packet;
 
 impl Packet {
     pub fn serialize<T: Serialize>(item: T) -> anyhow::Result<Bytes> {
-        let buf = serde_json::to_vec(&item)?;
-        Ok(Bytes::from(buf))
+        let buffer = BytesMut::new();
+        let mut writer = buffer.writer();
+
+        writer.write_all(&[PacketType::Json as u8])?;
+
+        serde_json::to_writer(&mut writer, &item)?;
+        let buffer = writer.into_inner().freeze();
+        Ok(buffer)
     }
 
     pub fn deserialize<T: DeserializeOwned>(buf: Bytes) -> anyhow::Result<T> {
-        let item = serde_json::from_slice(&buf)?;
-        Ok(item)
+        let mut buf = buf;
+
+        if buf.is_empty() {
+            return Err(anyhow::anyhow!("Invalid packet"));
+        }
+
+        match PacketType::from(buf.get_u8()) {
+            PacketType::Json => {
+                let reader = buf.reader();
+                let item = serde_json::from_reader(reader)?;
+                Ok(item)
+            }
+            _ => Err(anyhow::anyhow!("Invalid packet type")),
+        }
     }
 }
