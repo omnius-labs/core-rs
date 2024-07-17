@@ -1,6 +1,21 @@
-use std::{pin::Pin, vec};
+use std::{pin::Pin, sync::Arc, vec};
 
-use tokio::io::{AsyncRead, AsyncWrite};
+use chrono::Utc;
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::Mutex as TokioMutex,
+};
+use tracing::trace;
+
+use omnius_core_base::clock::Clock;
+
+use crate::{
+    connection::{
+        framed::{FramedReceiver, FramedSender},
+        secure::OmniSecureStreamVersion,
+    },
+    OmniSigner,
+};
 
 use super::*;
 
@@ -22,20 +37,38 @@ where
     writer: W,
     read_state: ReadState,
     write_state: WriteState,
+    sign: Option<String>,
     encoder: Aes256GcmEncoder,
+    decoder: Aes256GcmDecoder,
 }
 
+#[derive(Debug)]
 enum ReadState {
     Init,
-    Header { offset: usize, buf: [u8; HEADER_SIZE] },
-    Body { offset: usize, buf: Vec<u8> },
+    Header { header_offset: usize, header_buf: [u8; HEADER_SIZE] },
+    Body { body_offset: usize, body_buf: Vec<u8> },
 }
 
-#[allow(unused)]
+#[derive(Debug)]
 enum WriteState {
     Init,
-    Header { offset: usize, buf: [u8; HEADER_SIZE] },
-    Body { offset: usize, buf: Vec<u8> },
+    Payload {
+        header: WritePayloadHeader,
+        body: WritePayloadBody,
+        length: usize,
+    },
+}
+
+#[derive(Debug)]
+struct WritePayloadHeader {
+    offset: usize,
+    buf: [u8; HEADER_SIZE],
+}
+
+#[derive(Debug)]
+struct WritePayloadBody {
+    offset: usize,
+    buf: Vec<u8>,
 }
 
 #[allow(unused)]
@@ -44,18 +77,42 @@ where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    pub fn new(reader: R, writer: W, max_frame_length: usize) -> Self {
-        Self {
+    pub async fn new(
+        reader: R,
+        writer: W,
+        stream_type: OmniSecureStreamType,
+        max_frame_length: usize,
+        signer: Option<OmniSigner>,
+        clock: Arc<dyn Clock<Utc> + Send + Sync>,
+    ) -> anyhow::Result<Self> {
+        let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
+        let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
+        let authenticator = Authenticator::new(OmniSecureStreamVersion::V1, stream_type, receiver.clone(), sender.clone(), signer, clock).await?;
+        let auth_result = authenticator.auth().await?;
+        drop(authenticator);
+
+        let reader = Arc::try_unwrap(receiver)
+            .map_err(|_| anyhow::anyhow!("unexpected result"))?
+            .into_inner()
+            .into_inner();
+        let writer = Arc::try_unwrap(sender)
+            .map_err(|_| anyhow::anyhow!("unexpected result"))?
+            .into_inner()
+            .into_inner();
+
+        Ok(Self {
             reader,
             writer,
             read_state: ReadState::Init,
             write_state: WriteState::Init,
-            encoder: todo!(),
-        }
+            sign: auth_result.sign,
+            encoder: Aes256GcmEncoder::new(&auth_result.enc_key, &auth_result.enc_nonce),
+            decoder: Aes256GcmDecoder::new(&auth_result.dec_key, &auth_result.dec_nonce),
+        })
     }
 
-    pub fn handshake(&self) -> anyhow::Result<()> {
-        todo!()
+    pub fn sign(&self) -> Option<&str> {
+        self.sign.as_deref()
     }
 }
 
@@ -67,48 +124,57 @@ where
     fn poll_read(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
-        root_buf: &mut tokio::io::ReadBuf<'_>,
+        read_buf: &mut tokio::io::ReadBuf<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
         let this = self.get_mut();
         loop {
+            trace!("poll_read: {:?}", this.read_state);
             match this.read_state {
                 ReadState::Init => {
                     this.read_state = ReadState::Header {
-                        offset: 0,
-                        buf: [0; HEADER_SIZE],
+                        header_offset: 0,
+                        header_buf: [0; HEADER_SIZE],
                     };
                 }
-                ReadState::Header { ref mut offset, ref mut buf } => {
-                    if *offset == buf.len() {
-                        let length = u32::from_le_bytes(*buf);
-                        this.read_state = ReadState::Body {
-                            offset: 0,
-                            buf: vec![0; length as usize],
-                        };
-                        continue;
-                    }
-
-                    let mut tbuf = tokio::io::ReadBuf::new(&mut buf[*offset..]);
+                ReadState::Header {
+                    ref mut header_offset,
+                    ref mut header_buf,
+                } => {
+                    let mut tbuf = tokio::io::ReadBuf::new(&mut header_buf[*header_offset..]);
                     let n = match tokio::io::AsyncRead::poll_read(Pin::new(&mut this.reader), cx, &mut tbuf) {
                         std::task::Poll::Ready(Ok(())) => tbuf.filled().len(),
                         other => return other,
                     };
-                    *offset += n;
+                    *header_offset += n;
+
+                    if *header_offset == header_buf.len() {
+                        let length = u32::from_le_bytes(*header_buf);
+                        this.read_state = ReadState::Body {
+                            body_offset: 0,
+                            body_buf: vec![0; length as usize],
+                        };
+                    }
                 }
-                ReadState::Body { ref mut offset, ref mut buf } => {
-                    if *offset == buf.len() {
-                        let enc_buf = this.encoder.encode(buf);
-                        root_buf.put_slice(&enc_buf);
+                ReadState::Body {
+                    ref mut body_offset,
+                    ref mut body_buf,
+                } => {
+                    let mut tbuf = tokio::io::ReadBuf::new(&mut body_buf[*body_offset..]);
+                    let n = match tokio::io::AsyncRead::poll_read(Pin::new(&mut this.reader), cx, &mut tbuf) {
+                        std::task::Poll::Ready(Ok(())) => tbuf.filled().len(),
+                        other => return other,
+                    };
+                    *body_offset += n;
+
+                    if *body_offset == body_buf.len() {
+                        let dec_buf = match this.decoder.decode(body_buf) {
+                            Ok(buf) => buf,
+                            Err(e) => return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))),
+                        };
+                        read_buf.put_slice(&dec_buf);
                         this.read_state = ReadState::Init;
                         return std::task::Poll::Ready(Ok(()));
                     }
-
-                    let mut tbuf = tokio::io::ReadBuf::new(&mut buf[*offset..]);
-                    let n = match tokio::io::AsyncRead::poll_read(Pin::new(&mut this.reader), cx, &mut tbuf) {
-                        std::task::Poll::Ready(Ok(())) => tbuf.filled().len(),
-                        other => return other,
-                    };
-                    *offset += n;
                 }
             }
         }
@@ -121,15 +187,62 @@ where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, buf: &[u8]) -> std::task::Poll<Result<usize, std::io::Error>> {
-        todo!()
+    fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, write_buf: &[u8]) -> std::task::Poll<Result<usize, std::io::Error>> {
+        let this = Pin::into_inner(self);
+        loop {
+            trace!("poll_write: {:?}", this.write_state);
+            match &mut this.write_state {
+                WriteState::Init => {
+                    let enc_buf = match this.encoder.encode(write_buf) {
+                        Ok(buf) => buf,
+                        Err(e) => return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))),
+                    };
+                    this.write_state = WriteState::Payload {
+                        header: WritePayloadHeader {
+                            offset: 0,
+                            buf: (enc_buf.len() as u32).to_le_bytes(),
+                        },
+                        body: WritePayloadBody { offset: 0, buf: enc_buf },
+                        length: write_buf.len(),
+                    };
+                }
+                WriteState::Payload {
+                    ref mut header,
+                    ref mut body,
+                    length: ref plaintext_length,
+                } => {
+                    if header.offset < header.buf.len() {
+                        let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &header.buf[header.offset..]) {
+                            std::task::Poll::Ready(Ok(n)) => n,
+                            other => return other,
+                        };
+                        header.offset += n;
+                    } else {
+                        let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &body.buf[body.offset..]) {
+                            std::task::Poll::Ready(Ok(n)) => n,
+                            other => return other,
+                        };
+                        body.offset += n;
+
+                        if body.offset == body.buf.len() {
+                            let plaintext_length = *plaintext_length;
+                            this.write_state = WriteState::Init;
+
+                            return std::task::Poll::Ready(Ok(plaintext_length));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), std::io::Error>> {
-        todo!()
+        let this = Pin::into_inner(self);
+        tokio::io::AsyncWrite::poll_flush(Pin::new(&mut this.writer), cx)
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), std::io::Error>> {
-        todo!()
+        let this = Pin::into_inner(self);
+        tokio::io::AsyncWrite::poll_shutdown(Pin::new(&mut this.writer), cx)
     }
 }
