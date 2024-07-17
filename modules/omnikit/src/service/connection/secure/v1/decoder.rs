@@ -4,13 +4,13 @@ use sha3::digest::generic_array::GenericArray;
 use super::util::increment_bytes;
 
 #[allow(unused)]
-pub(crate) struct Aes256GcmEncoder {
+pub(crate) struct Aes256GcmDecoder {
     cipher: Aes256Gcm,
     nonce: Vec<u8>,
 }
 
 #[allow(unused)]
-impl Aes256GcmEncoder {
+impl Aes256GcmDecoder {
     pub fn new(key: &[u8], nonce: &[u8]) -> Self {
         Self {
             cipher: Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(key)),
@@ -18,12 +18,12 @@ impl Aes256GcmEncoder {
         }
     }
 
-    pub fn encode(&mut self, data: &[u8]) -> Result<Vec<u8>, Error> {
+    pub fn decode(&mut self, data: &[u8]) -> Result<Vec<u8>, Error> {
         let nonce = GenericArray::from_slice(self.nonce.as_slice());
-        let encrypted_payload = self.cipher.encrypt(nonce, data)?;
+        let decrypted_payload = self.cipher.decrypt(nonce, data)?;
 
         increment_bytes(&mut self.nonce);
 
-        Ok(encrypted_payload)
+        Ok(decrypted_payload)
     }
 }
