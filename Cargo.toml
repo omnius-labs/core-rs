@@ -44,13 +44,13 @@ config = "0.13.3"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0.120"
 testcontainers = "0.14.0"
-tokio = { version = "1.38.0", features = ["full"] }
-tokio-postgres = { version = "0.7.7", features = ["with-chrono-0_4"] }
+tokio = { version = "1.38.1", features = ["full"] }
+tokio-postgres = { version = "0.7.11", features = ["with-chrono-0_4"] }
 tokio-util = { version = "0.7.11", features = ["full"] }
 tokio-stream = "0.1.15"
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
-uuid = { version = "1.9.1", features = ["serde", "v4"] }
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
 sqlx = { version = "0.6.2", features = [
     "postgres",
     "chrono",
@@ -68,7 +68,7 @@ axum-aws-lambda = "0.4.0"
 lambda_http = "0.7"
 hyper = "0.14"
 tower = "0.4"
-thiserror = "1.0.61"
+thiserror = "1.0.63"
 jsonwebtoken = "8.3.0"
 validator = { version = "0.16", features = ["derive"] }
 headers = "0.3.8"
@@ -77,7 +77,7 @@ kamadak-exif = "0.5.5"
 serial_test = "2.0.0"
 proc-macro2 = "1.0.86"
 reqwest = { version = "0.11.27", features = ["json"] }
-testresult = "0.4.0"
+testresult = "0.4.1"
 base64 = "0.22.1"
 ciborium = "0.2.2"
 bitflags = { version = "2.6.0", features = ["serde"] }
