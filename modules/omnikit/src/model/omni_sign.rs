@@ -1,7 +1,8 @@
 use std::fmt;
 
 use bitflags::bitflags;
-use ed25519_dalek::Signer;
+use ed25519_dalek::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _};
+use ed25519_dalek::Signer as _;
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
@@ -12,7 +13,7 @@ bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub struct OmniSignType: u32 {
         const None = 0;
-        const Ed25519 = 1;
+        const Ed25519_Sha3_256_Base64Url = 1;
     }
 }
 
@@ -34,11 +35,10 @@ pub struct OmniCert {
 impl OmniSigner {
     pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> anyhow::Result<Self> {
         match &typ {
-            &OmniSignType::Ed25519 => {
+            &OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng);
-
                 let name = name.as_ref().to_string();
-                let key = signing_key.to_keypair_bytes().to_vec();
+                let key = signing_key.to_pkcs8_der()?.to_bytes().to_vec();
                 Ok(Self { typ, name, key })
             }
             _ => anyhow::bail!("Unsupported sign type"),
@@ -47,18 +47,12 @@ impl OmniSigner {
 
     pub fn sign(&self, msg: &[u8]) -> anyhow::Result<OmniCert> {
         match self.typ {
-            OmniSignType::Ed25519 => {
-                let signing_key_bytes = self.key.as_slice();
-                if signing_key_bytes.len() != ed25519_dalek::KEYPAIR_LENGTH {
-                    anyhow::bail!("Invalid signing_key length");
-                }
-                let signing_key_bytes = <&[u8; ed25519_dalek::KEYPAIR_LENGTH]>::try_from(signing_key_bytes)?;
-
-                let signing_key = ed25519_dalek::SigningKey::from_keypair_bytes(signing_key_bytes)?;
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
+                let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(self.key.as_slice())?;
 
                 let typ = self.typ.clone();
                 let name = self.name.clone();
-                let public_key = signing_key.verifying_key().to_bytes().to_vec();
+                let public_key = signing_key.verifying_key().to_public_key_der()?.into_vec();
                 let value = signing_key.sign(msg).to_vec();
                 Ok(OmniCert {
                     typ,
@@ -75,17 +69,15 @@ impl OmniSigner {
 impl fmt::Display for OmniSigner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.typ {
-            OmniSignType::Ed25519 => {
-                let signing_key_bytes: [u8; ed25519_dalek::KEYPAIR_LENGTH] = self.key.clone().try_into().map_err(|_| fmt::Error)?;
-
-                let signing_key = ed25519_dalek::SigningKey::from_keypair_bytes(&signing_key_bytes).map_err(|_| fmt::Error)?;
-                let public_key = signing_key.verifying_key().to_bytes();
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
+                let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(&self.key).map_err(|_| fmt::Error)?;
+                let public_key = signing_key.verifying_key().to_public_key_der().map_err(|_| fmt::Error)?.into_vec();
 
                 let mut hasher = Sha3_256::new();
                 hasher.update(public_key);
                 let hash = hasher.finalize();
 
-                write!(f, "{}@{}", self.name, OmniBase::encode_by_base64_url(hash.as_slice()))
+                write!(f, "{}@{}", self.name, OmniBase::encode_by_base64_url(&hash))
             }
             _ => Err(std::fmt::Error),
         }
@@ -95,18 +87,14 @@ impl fmt::Display for OmniSigner {
 impl OmniCert {
     pub fn verify(&self, msg: &[u8]) -> anyhow::Result<()> {
         match self.typ {
-            OmniSignType::Ed25519 => {
-                let verifying_key_bytes: [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] = self
-                    .public_key
-                    .clone()
-                    .try_into()
-                    .map_err(|_| anyhow::anyhow!("Invalid verifying_key length"))?;
-                let signature_bytes: [u8; ed25519_dalek::SIGNATURE_LENGTH] =
-                    self.value.clone().try_into().map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
+                let public_key = ed25519_dalek::VerifyingKey::from_public_key_der(&self.public_key)?;
 
-                let verifying_key = ed25519_dalek::VerifyingKey::from_bytes(&verifying_key_bytes)?;
-                let signature = ed25519_dalek::Signature::from_bytes(&signature_bytes);
-                Ok(verifying_key.verify_strict(msg, &signature)?)
+                let signature: [u8; ed25519_dalek::SIGNATURE_LENGTH] =
+                    self.value.clone().try_into().map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
+                let signature = ed25519_dalek::Signature::from_bytes(&signature);
+
+                Ok(public_key.verify_strict(msg, &signature)?)
             }
             _ => anyhow::bail!("Unsupported sign type"),
         }
@@ -116,12 +104,12 @@ impl OmniCert {
 impl fmt::Display for OmniCert {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.typ {
-            OmniSignType::Ed25519 => {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let mut hasher = Sha3_256::new();
                 hasher.update(&self.public_key);
                 let hash = hasher.finalize();
 
-                write!(f, "{}@{}", self.name, OmniBase::encode_by_base64_url(hash.as_slice()))
+                write!(f, "{}@{}", self.name, OmniBase::encode_by_base64_url(&hash))
             }
             _ => {
                 write!(f, "")
@@ -136,17 +124,17 @@ mod tests {
 
     use super::{OmniSignType, OmniSigner};
 
-    #[ignore]
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let signer = OmniSigner::new(OmniSignType::Ed25519, "test_user")?;
-        let signature = signer.sign(b"test")?;
+        let signer = OmniSigner::new(OmniSignType::Ed25519_Sha3_256_Base64Url, "test_user")?;
+        let cert = signer.sign(b"test")?;
 
-        println!("{}", signer);
-        println!("{}", signature);
+        assert_eq!(signer.to_string(), cert.to_string());
+        assert!(cert.verify(b"test").is_ok());
+        assert!(cert.verify(b"test_err").is_err());
 
-        assert!(signature.verify(b"test").is_ok());
-        assert!(signature.verify(b"test_err").is_err());
+        println!("public_key: {}", hex::encode(cert.public_key));
+        println!("value: {}", hex::encode(cert.value));
 
         Ok(())
     }

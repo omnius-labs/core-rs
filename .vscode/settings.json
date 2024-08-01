@@ -1,8 +1,22 @@
 {
-    "cSpell.words": [
-        "chrono",
-        "opxs",
-        "presigning"
-    ],
-    "rust-analyzer.showUnlinkedFileNotification": false
+  "cSpell.words": [
+    "Addrs",
+    "anychar",
+    "bitflags",
+    "chacha",
+    "chrono",
+    "dalek",
+    "diffie",
+    "hasher",
+    "Hkdf",
+    "multispace",
+    "Omni",
+    "omnius",
+    "opxs",
+    "pkcs",
+    "presigning",
+    "Seedable",
+    "testresult"
+  ],
+  "rust-analyzer.showUnlinkedFileNotification": false
 }

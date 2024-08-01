@@ -34,7 +34,6 @@ serial_test = { workspace = true }
 pin-utils = { workspace = true }
 nom = { workspace = true }
 fast-socks5 = { workspace = true }
-ed25519-dalek = { workspace = true }
 rand_core = { workspace = true }
 sha3 = { workspace = true }
 ciborium = { workspace = true }
@@ -44,10 +43,11 @@ crc = { workspace = true }
 chrono = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
-p256 = { workspace = true }
 hkdf = { workspace = true }
 aes-gcm = { workspace = true }
 parking_lot = { workspace = true }
+x25519-dalek = { workspace = true }
+ed25519-dalek = { workspace = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }

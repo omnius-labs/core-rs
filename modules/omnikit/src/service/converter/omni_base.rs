@@ -9,7 +9,7 @@ impl OmniBase {
         let mut bytes = vec![0; 1 + (data.len() * 2)];
         bytes[0] = b'f';
         hex::encode_to_slice(data, &mut bytes[1..]).unwrap();
-        String::from_utf8(bytes).unwrap()
+        String::from_utf8_lossy(&bytes).to_string()
     }
 
     pub fn encode_by_base64_url(data: &[u8]) -> String {

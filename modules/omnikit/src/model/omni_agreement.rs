@@ -7,28 +7,30 @@ bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub struct OmniAgreementAlgorithmType: u32 {
         const None = 0;
-        const EcDhP256 = 1;
+        const X25519 = 1;
     }
 }
 
 pub struct OmniAgreement {
     pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
-    pub public_key: Vec<u8>,
     pub secret_key: Vec<u8>,
+    pub public_key: Vec<u8>,
 }
 
 impl OmniAgreement {
     pub fn new(created_time: DateTime<Utc>, algorithm_type: OmniAgreementAlgorithmType) -> anyhow::Result<Self> {
-        let scalar = p256::NonZeroScalar::random(&mut OsRng);
-        let public_key = p256::PublicKey::from_secret_scalar(&scalar).to_sec1_bytes().to_vec();
-        let secret_key = p256::SecretKey::from(&scalar).to_sec1_der()?.to_vec();
+        let secret_key = x25519_dalek::StaticSecret::random_from_rng(OsRng);
+        let public_key = x25519_dalek::PublicKey::from(&secret_key);
+
+        let secret_key = secret_key.as_bytes().to_vec();
+        let public_key = public_key.as_bytes().to_vec();
 
         Ok(Self {
             created_time,
             algorithm_type,
-            public_key,
             secret_key,
+            public_key,
         })
     }
 
@@ -49,10 +51,23 @@ impl OmniAgreement {
     }
 
     pub fn gen_secret(private_key: &OmniAgreementPrivateKey, public_key: &OmniAgreementPublicKey) -> anyhow::Result<Vec<u8>> {
-        let public_key = p256::PublicKey::from_sec1_bytes(&public_key.public_key).or_else(|_| anyhow::bail!("Invalid public key"))?;
-        let secret_key = p256::SecretKey::from_sec1_der(&private_key.secret_key).or_else(|_| anyhow::bail!("Invalid private key"))?;
-        let shared_secret = p256::ecdh::diffie_hellman(secret_key.to_nonzero_scalar(), public_key.as_affine());
-        Ok(shared_secret.raw_secret_bytes().to_vec())
+        let secret_key: [u8; 32] = private_key
+            .secret_key
+            .clone()
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid secret_key length"))?;
+        let public_key: [u8; 32] = public_key
+            .public_key
+            .clone()
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("Invalid public_key length"))?;
+
+        let secret_key = x25519_dalek::StaticSecret::from(secret_key);
+        let public_key = x25519_dalek::PublicKey::from(public_key);
+
+        let shared_secret = secret_key.diffie_hellman(&public_key);
+
+        Ok(shared_secret.as_bytes().to_vec())
     }
 }
 
@@ -78,11 +93,10 @@ mod tests {
 
     use super::*;
 
-    #[ignore]
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let agreement1 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::EcDhP256).unwrap();
-        let agreement2 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::EcDhP256).unwrap();
+        let agreement1 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
+        let agreement2 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
 
         let public_key1 = agreement1.gen_agreement_public_key();
         let private_key1 = agreement1.gen_agreement_private_key();
@@ -94,7 +108,9 @@ mod tests {
 
         assert_eq!(secret1, secret2);
 
-        println!("{:?}", secret1);
+        println!("public_key1: {:?}", hex::encode(&public_key1.public_key));
+        println!("private_key2: {:?}", hex::encode(&private_key2.secret_key));
+        println!("secret2: {:?}", hex::encode(secret2));
 
         Ok(())
     }
