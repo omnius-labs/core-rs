@@ -98,7 +98,7 @@ where
         let (other_sign, secret) = match key_exchange_algorithm_type {
             KeyExchangeAlgorithmType::EcDhP521 => {
                 let now = self.clock.now();
-                let my_agreement = OmniAgreement::new(now, OmniAgreementAlgorithmType::EcDhP256)?;
+                let my_agreement = OmniAgreement::new(now, OmniAgreementAlgorithmType::X25519)?;
                 let other_agreement_public_key = {
                     self.sender.lock().await.send_message(my_agreement.gen_agreement_public_key()).await?;
                     let agreement_public_key: OmniAgreementPublicKey = self.receiver.lock().await.recv_message().await?;
