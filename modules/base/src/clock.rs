@@ -7,9 +7,9 @@ pub trait Clock<Tz: TimeZone> {
     fn now(&self) -> DateTime<Tz>;
 }
 
-pub struct RealClockUtc;
+pub struct ClockUtc;
 
-impl Clock<Utc> for RealClockUtc {
+impl Clock<Utc> for ClockUtc {
     fn now(&self) -> DateTime<Utc> {
         Utc::now()
     }

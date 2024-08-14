@@ -9,6 +9,7 @@ stable-test = []
 
 [dependencies]
 omnius-core-base = { workspace = true }
+omnius-core-rocketpack = { workspace = true }
 
 anyhow = { workspace = true }
 async-trait = { workspace = true }

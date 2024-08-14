@@ -2015,11 +2015,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
  "chrono",
  "hex",
  "parking_lot 0.12.3",
  "rand",
  "rand_chacha",
+ "serde",
+ "serde_json",
  "testcontainers",
  "tokio",
  "tokio-postgres",
@@ -2106,6 +2109,7 @@ dependencies = [
  "hkdf",
  "nom",
  "omnius-core-base",
+ "omnius-core-rocketpack",
  "once_cell",
  "parking_lot 0.12.3",
  "pin-utils",
@@ -2130,6 +2134,29 @@ dependencies = [
  "urlencoding",
  "uuid",
  "x25519-dalek",
+]
+
+[[package]]
+name = "omnius-core-rocketpack"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "hex",
+ "parking_lot 0.12.3",
+ "rand",
+ "rand_chacha",
+ "serde",
+ "serde_json",
+ "testcontainers",
+ "tokio",
+ "tokio-postgres",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

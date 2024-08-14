@@ -7,10 +7,10 @@ pub trait Sleeper {
     async fn sleep(&self, duration: Duration);
 }
 
-pub struct RealSleeper;
+pub struct SleeperImpl;
 
 #[async_trait]
-impl Sleeper for RealSleeper {
+impl Sleeper for SleeperImpl {
     async fn sleep(&self, duration: Duration) {
         tokio::time::sleep(duration).await;
     }

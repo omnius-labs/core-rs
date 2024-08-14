@@ -20,10 +20,10 @@ impl Aes256GcmDecoder {
 
     pub fn decode(&mut self, data: &[u8]) -> Result<Vec<u8>, Error> {
         let nonce = GenericArray::from_slice(self.nonce.as_slice());
-        let decrypted_payload = self.cipher.decrypt(nonce, data)?;
+        let plaintext = self.cipher.decrypt(nonce, data)?;
 
         increment_bytes(&mut self.nonce);
 
-        Ok(decrypted_payload)
+        Ok(plaintext)
     }
 }

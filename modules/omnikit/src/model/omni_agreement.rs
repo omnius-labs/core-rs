@@ -1,7 +1,14 @@
+use std::{
+    fmt::{self, Display},
+    str::FromStr,
+};
+
 use bitflags::bitflags;
 use chrono::{DateTime, Utc};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+
+use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -11,6 +18,29 @@ bitflags! {
     }
 }
 
+impl Display for OmniAgreementAlgorithmType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let typ = match self {
+            &OmniAgreementAlgorithmType::X25519 => "X25519",
+            _ => "None",
+        };
+        write!(f, "{}", typ)
+    }
+}
+
+impl FromStr for OmniAgreementAlgorithmType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let typ = match s {
+            "X25519" => OmniAgreementAlgorithmType::X25519,
+            _ => OmniAgreementAlgorithmType::None,
+        };
+        Ok(typ)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OmniAgreement {
     pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
@@ -71,7 +101,36 @@ impl OmniAgreement {
     }
 }
 
-#[allow(unused)]
+impl RocketMessage for OmniAgreement {
+    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        writer.write_timestamp64(value.created_time.into());
+        writer.write_str(value.algorithm_type.to_string().as_str());
+        writer.write_bytes(&value.secret_key);
+        writer.write_bytes(&value.public_key);
+    }
+
+    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let created_time = reader
+            .get_timestamp64()
+            .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
+            .to_date_time()
+            .ok_or(anyhow::anyhow!("Invalid timestamp"))?;
+        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
+        let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
+        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
+
+        Ok(Self {
+            created_time,
+            algorithm_type,
+            secret_key,
+            public_key,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OmniAgreementPublicKey {
     pub created_time: DateTime<Utc>,
@@ -79,12 +138,65 @@ pub struct OmniAgreementPublicKey {
     pub public_key: Vec<u8>,
 }
 
-#[allow(unused)]
+impl RocketMessage for OmniAgreementPublicKey {
+    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        writer.write_timestamp64(value.created_time.into());
+        writer.write_str(value.algorithm_type.to_string().as_str());
+        writer.write_bytes(&value.public_key);
+    }
+
+    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let created_time = reader
+            .get_timestamp64()
+            .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
+            .to_date_time()
+            .ok_or(anyhow::anyhow!("Invalid timestamp"))?;
+        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
+        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
+
+        Ok(Self {
+            created_time,
+            algorithm_type,
+            public_key,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OmniAgreementPrivateKey {
     pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
     pub secret_key: Vec<u8>,
+}
+
+impl RocketMessage for OmniAgreementPrivateKey {
+    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        writer.write_timestamp64(value.created_time.into());
+        writer.write_str(value.algorithm_type.to_string().as_str());
+        writer.write_bytes(&value.secret_key);
+    }
+
+    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let created_time = reader
+            .get_timestamp64()
+            .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
+            .to_date_time()
+            .ok_or(anyhow::anyhow!("Invalid timestamp"))?;
+        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
+        let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
+
+        Ok(Self {
+            created_time,
+            algorithm_type,
+            secret_key,
+        })
+    }
 }
 
 #[cfg(test)]
