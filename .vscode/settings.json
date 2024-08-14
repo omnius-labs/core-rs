@@ -5,18 +5,25 @@
     "bitflags",
     "chacha",
     "chrono",
+    "ciphertext",
     "dalek",
     "diffie",
     "hasher",
     "Hkdf",
     "multispace",
+    "nanos",
     "Omni",
     "omnius",
     "opxs",
     "pkcs",
     "presigning",
+    "rocketpack",
     "Seedable",
-    "testresult"
+    "subsec",
+    "tbuf",
+    "testresult",
+    "tsid",
+    "varint"
   ],
   "rust-analyzer.showUnlinkedFileNotification": false
 }

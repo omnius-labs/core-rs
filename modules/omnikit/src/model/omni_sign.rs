@@ -1,8 +1,10 @@
 use std::fmt;
+use std::str::FromStr;
 
 use bitflags::bitflags;
 use ed25519_dalek::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _};
 use ed25519_dalek::Signer as _;
+use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
@@ -17,19 +19,33 @@ bitflags! {
     }
 }
 
+impl fmt::Display for OmniSignType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let typ = match self {
+            &OmniSignType::Ed25519_Sha3_256_Base64Url => "Ed25519_Sha3_256_Base64Url",
+            _ => "None",
+        };
+        write!(f, "{}", typ)
+    }
+}
+
+impl FromStr for OmniSignType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let typ = match s {
+            "Ed25519_Sha3_256_Base64Url" => OmniSignType::Ed25519_Sha3_256_Base64Url,
+            _ => OmniSignType::None,
+        };
+        Ok(typ)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OmniSigner {
     pub typ: OmniSignType,
     pub name: String,
     pub key: Vec<u8>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OmniCert {
-    pub typ: OmniSignType,
-    pub name: String,
-    pub public_key: Vec<u8>,
-    pub value: Vec<u8>,
 }
 
 impl OmniSigner {
@@ -66,6 +82,25 @@ impl OmniSigner {
     }
 }
 
+impl RocketMessage for OmniSigner {
+    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        writer.write_str(value.typ.to_string().as_str());
+        writer.write_str(&value.name);
+        writer.write_bytes(&value.key);
+    }
+
+    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let typ: OmniSignType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?.parse()?;
+        let name = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid name"))?.parse()?;
+        let key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid key"))?.to_vec();
+
+        Ok(Self { typ, name, key })
+    }
+}
+
 impl fmt::Display for OmniSigner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.typ {
@@ -84,6 +119,14 @@ impl fmt::Display for OmniSigner {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OmniCert {
+    pub typ: OmniSignType,
+    pub name: String,
+    pub public_key: Vec<u8>,
+    pub value: Vec<u8>,
+}
+
 impl OmniCert {
     pub fn verify(&self, msg: &[u8]) -> anyhow::Result<()> {
         match self.typ {
@@ -98,6 +141,32 @@ impl OmniCert {
             }
             _ => anyhow::bail!("Unsupported sign type"),
         }
+    }
+}
+
+impl RocketMessage for OmniCert {
+    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        writer.write_str(value.typ.to_string().as_str());
+        writer.write_str(&value.name);
+        writer.write_bytes(&value.public_key);
+        writer.write_bytes(&value.value);
+    }
+
+    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let typ: OmniSignType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?.parse()?;
+        let name = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid name"))?.parse()?;
+        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid public_key"))?.to_vec();
+        let value = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid value"))?.to_vec();
+
+        Ok(Self {
+            typ,
+            name,
+            public_key,
+            value,
+        })
     }
 }
 

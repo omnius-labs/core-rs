@@ -1,55 +1,28 @@
-use std::{
-    fmt,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs},
-};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
 
 use nom::{branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*, IResult, Parser};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct OmniAddr {
-    inner: String,
+type OmniAddr = String;
+
+pub fn create_i2p<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
+    format!("i2p({})", value.as_ref())
 }
 
-impl OmniAddr {
-    pub fn new<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
-        OmniAddr {
-            inner: value.as_ref().to_string(),
-        }
-    }
-
-    pub fn create_i2p<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
-        OmniAddr::new(&format!("i2p({})", value.as_ref()))
-    }
-
-    pub fn create_tcp(ip: IpAddr, port: u16) -> OmniAddr {
-        match ip {
-            IpAddr::V4(ip) => OmniAddr::new(&format!("tcp(ip4({}), {})", ip, port)),
-            IpAddr::V6(ip) => OmniAddr::new(&format!("tcp(ip6({}), {})", ip, port)),
-        }
-    }
-
-    pub fn create_tcp_dns<S: AsRef<str> + ?Sized>(value: &S, port: u16) -> OmniAddr {
-        OmniAddr::new(&format!("tcp(dns({}), {})", value.as_ref(), port))
-    }
-
-    pub fn parse_tcp(&self, name_resolving: bool) -> anyhow::Result<(IpAddr, u16)> {
-        let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
-        let (ip, port) = ElementParser::parse_tcp(&element, name_resolving)?;
-        Ok((ip, port))
+pub fn create_tcp(ip: IpAddr, port: u16) -> OmniAddr {
+    match ip {
+        IpAddr::V4(ip) => format!("tcp(ip4({}), {})", ip, port),
+        IpAddr::V6(ip) => format!("tcp(ip6({}), {})", ip, port),
     }
 }
 
-impl fmt::Display for OmniAddr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.inner)
-    }
+pub fn create_tcp_dns<S: AsRef<str> + ?Sized>(value: &S, port: u16) -> OmniAddr {
+    format!("tcp(dns({}), {})", value.as_ref(), port)
 }
 
-impl From<String> for OmniAddr {
-    fn from(value: String) -> Self {
-        Self::new(&value)
-    }
+pub fn parse_tcp(addr: &OmniAddr, name_resolving: bool) -> anyhow::Result<(IpAddr, u16)> {
+    let (_, element) = StringParser::function_element_parser()(addr).map_err(|e| e.to_owned())?;
+    let (ip, port) = ElementParser::parse_tcp(&element, name_resolving)?;
+    Ok((ip, port))
 }
 
 #[allow(unused)]

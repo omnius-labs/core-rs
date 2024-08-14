@@ -16,8 +16,8 @@ bitflags! {
 impl fmt::Display for OmniHashAlgorithmType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let typ = match self {
-            &OmniHashAlgorithmType::Sha3_256 => "sha3-256",
-            _ => "none",
+            &OmniHashAlgorithmType::Sha3_256 => "Sha3_256",
+            _ => "None",
         };
 
         write!(f, "{}", typ)
@@ -46,7 +46,7 @@ impl FromStr for OmniHash {
         let value = iter.next().ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
 
         let typ = match typ {
-            "sha3-256" => OmniHashAlgorithmType::Sha3_256,
+            "Sha3_256" => OmniHashAlgorithmType::Sha3_256,
             _ => OmniHashAlgorithmType::None,
         };
 

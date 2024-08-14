@@ -1,6 +1,6 @@
 use anyhow::Context as _;
 use async_trait::async_trait;
-use futures_util::SinkExt;
+use futures_util::SinkExt as _;
 use tokio::io::AsyncWrite;
 use tokio_util::bytes::Bytes;
 
@@ -42,6 +42,7 @@ where
 {
     async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()> {
         self.framed.send(buffer).await.with_context(|| "Failed to send")?;
+        self.framed.flush().await.with_context(|| "Failed to flush")?;
         Ok(())
     }
 }

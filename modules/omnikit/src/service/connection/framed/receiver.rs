@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use tokio::io::AsyncRead;
-use tokio_stream::StreamExt;
+use tokio_stream::StreamExt as _;
 use tokio_util::bytes::Bytes;
 
 #[async_trait]

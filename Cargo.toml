@@ -5,6 +5,7 @@ members = [
     "modules/image",
     "modules/migration",
     "modules/omnikit",
+    "modules/rocketpack",
     "modules/testkit",
 ]
 resolver = "2"
@@ -21,6 +22,7 @@ omnius-core-migration = { path = "./modules/migration", features = [
     "postgres",
 ] }
 omnius-core-omnikit = { path = "./modules/omnikit" }
+omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
 
 aws-config = "0.56.1"

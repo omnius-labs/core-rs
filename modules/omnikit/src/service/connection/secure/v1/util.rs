@@ -1,4 +1,4 @@
-pub(crate) fn increment_bytes(bytes: &mut [u8]) {
+pub fn increment_bytes(bytes: &mut [u8]) {
     for b in bytes {
         if *b == 0xFF {
             *b = 0;
