@@ -44,9 +44,9 @@ axum-extra = "0.4.2"
 chrono = "0.4.38"
 config = "0.13.3"
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0.124"
+serde_json = "1.0.127"
 testcontainers = "0.14.0"
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.39.3", features = ["full"] }
 tokio-postgres = { version = "0.7.11", features = ["with-chrono-0_4"] }
 tokio-util = { version = "0.7.11", features = ["full"] }
 tokio-stream = "0.1.15"
