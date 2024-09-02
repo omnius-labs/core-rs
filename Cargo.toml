@@ -38,15 +38,15 @@ gcloud-sdk = { version = "0.24.8", features = [
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-async-trait = "0.1.81"
+async-trait = "0.1.82"
 axum = { version = "0.6.3", features = ["macros", "headers"] }
 axum-extra = "0.4.2"
 chrono = "0.4.38"
 config = "0.13.3"
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0.124"
+serde_json = "1.0.127"
 testcontainers = "0.14.0"
-tokio = { version = "1.39.2", features = ["full"] }
+tokio = { version = "1.40.0", features = ["full"] }
 tokio-postgres = { version = "0.7.11", features = ["with-chrono-0_4"] }
 tokio-util = { version = "0.7.11", features = ["full"] }
 tokio-stream = "0.1.15"
