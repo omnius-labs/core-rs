@@ -102,14 +102,14 @@ impl OmniAgreement {
 }
 
 impl RocketMessage for OmniAgreement {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
         writer.write_timestamp64(value.created_time.into());
         writer.write_str(value.algorithm_type.to_string().as_str());
         writer.write_bytes(&value.secret_key);
         writer.write_bytes(&value.public_key);
     }
 
-    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
@@ -139,13 +139,13 @@ pub struct OmniAgreementPublicKey {
 }
 
 impl RocketMessage for OmniAgreementPublicKey {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
         writer.write_timestamp64(value.created_time.into());
         writer.write_str(value.algorithm_type.to_string().as_str());
         writer.write_bytes(&value.public_key);
     }
 
-    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
@@ -173,13 +173,13 @@ pub struct OmniAgreementPrivateKey {
 }
 
 impl RocketMessage for OmniAgreementPrivateKey {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
         writer.write_timestamp64(value.created_time.into());
         writer.write_str(value.algorithm_type.to_string().as_str());
         writer.write_bytes(&value.secret_key);
     }
 
-    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

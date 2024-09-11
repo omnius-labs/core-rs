@@ -3,9 +3,9 @@ use tokio_util::bytes::{Bytes, BytesMut};
 use crate::{RocketMessageReader, RocketMessageWriter};
 
 pub trait RocketMessage {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, depth: u32);
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32);
 
-    fn deserialize(reader: &mut RocketMessageReader, depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized;
 
@@ -14,13 +14,13 @@ pub trait RocketMessage {
         Self: Sized,
     {
         let mut reader = RocketMessageReader::new(bytes);
-        Self::deserialize(&mut reader, 0)
+        Self::unpack(&mut reader, 0)
     }
 
     fn export(&self) -> Bytes {
         let mut bytes = BytesMut::new();
         let mut writer = RocketMessageWriter::new(&mut bytes);
-        Self::serialize(&mut writer, self, 0);
+        Self::pack(&mut writer, self, 0);
         bytes.freeze()
     }
 }

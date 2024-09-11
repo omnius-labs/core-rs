@@ -169,7 +169,7 @@ pub(crate) struct ProfileMessage {
 }
 
 impl RocketMessage for ProfileMessage {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
         writer.write_bytes(&value.session_id);
         writer.write_str(value.auth_type.to_string().as_str());
         writer.write_str(value.key_exchange_algorithm_type.to_string().as_str());
@@ -178,7 +178,7 @@ impl RocketMessage for ProfileMessage {
         writer.write_str(value.hash_algorithm_type.to_string().as_str());
     }
 
-    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
