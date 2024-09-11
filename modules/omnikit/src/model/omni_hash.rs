@@ -1,6 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use bitflags::bitflags;
+use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use serde::{Deserialize, Serialize};
 
 use crate::converter::OmniBase;
@@ -53,5 +54,23 @@ impl FromStr for OmniHash {
         let value = OmniBase::decode(value)?;
 
         Ok(OmniHash { typ, value })
+    }
+}
+
+impl RocketMessage for OmniHash {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        writer.write_u32(value.typ.bits());
+        writer.write_bytes(&value.value);
+    }
+
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32().map_err(|_| anyhow::anyhow!("invalid typ"))?)
+            .ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
+        let value = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid value"))?.to_vec();
+
+        Ok(Self { typ, value })
     }
 }

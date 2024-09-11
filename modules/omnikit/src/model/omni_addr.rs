@@ -1,28 +1,67 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
+use std::{
+    fmt,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    str::FromStr,
+};
 
 use nom::{branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*, IResult, Parser};
 
-type OmniAddr = String;
-
-pub fn create_i2p<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
-    format!("i2p({})", value.as_ref())
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct OmniAddr {
+    inner: String,
 }
 
-pub fn create_tcp(ip: IpAddr, port: u16) -> OmniAddr {
-    match ip {
-        IpAddr::V4(ip) => format!("tcp(ip4({}), {})", ip, port),
-        IpAddr::V6(ip) => format!("tcp(ip6({}), {})", ip, port),
+impl OmniAddr {
+    pub fn new<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
+        OmniAddr {
+            inner: value.as_ref().to_string(),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
+
+    pub fn create_i2p<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
+        Self::new(format!("i2p({})", value.as_ref()).as_str())
+    }
+
+    pub fn create_tcp(ip: IpAddr, port: u16) -> OmniAddr {
+        match ip {
+            IpAddr::V4(ip) => Self::new(format!("tcp(ip4({}),{})", ip, port).as_str()),
+            IpAddr::V6(ip) => Self::new(format!("tcp(ip6({}),{})", ip, port).as_str()),
+        }
+    }
+
+    pub fn create_tcp_dns<S: AsRef<str> + ?Sized>(value: &S, port: u16) -> OmniAddr {
+        Self::new(format!("tcp(dns({}),{})", value.as_ref(), port).as_str())
+    }
+
+    pub fn parse_tcp_ip(&self) -> anyhow::Result<SocketAddr> {
+        let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
+        let addr = ElementParser::parse_tcp_ip(&element)?;
+        Ok(addr)
+    }
+
+    pub fn parse_tcp_host(&self) -> anyhow::Result<(String, u16)> {
+        let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
+        let (ip, port) = ElementParser::parse_tcp_host(&element)?;
+        Ok((ip, port))
     }
 }
 
-pub fn create_tcp_dns<S: AsRef<str> + ?Sized>(value: &S, port: u16) -> OmniAddr {
-    format!("tcp(dns({}), {})", value.as_ref(), port)
+impl FromStr for OmniAddr {
+    type Err = Box<dyn std::error::Error>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(OmniAddr::new(s))
+    }
 }
 
-pub fn parse_tcp(addr: &OmniAddr, name_resolving: bool) -> anyhow::Result<(IpAddr, u16)> {
-    let (_, element) = StringParser::function_element_parser()(addr).map_err(|e| e.to_owned())?;
-    let (ip, port) = ElementParser::parse_tcp(&element, name_resolving)?;
-    Ok((ip, port))
+impl fmt::Display for OmniAddr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.inner)
+    }
 }
 
 #[allow(unused)]
@@ -44,26 +83,47 @@ impl ElementParser {
         }
     }
 
-    pub fn parse_tcp(element: &Element, name_resolving: bool) -> anyhow::Result<(IpAddr, u16)> {
+    pub fn parse_tcp_ip(element: &Element) -> anyhow::Result<SocketAddr> {
         match element {
             Element::Function(f) => {
                 if f.name == "tcp" {
                     if let [Element::Function(f2), Element::Constant(v)] = f.args.as_slice() {
-                        let mut ip: Option<IpAddr> = None;
-
-                        ip = Self::parse_ip4(&Element::Function(f2.clone())).ok();
-
-                        if ip.is_none() {
-                            ip = Self::parse_ip6(&Element::Function(f2.clone())).ok();
+                        if let Ok(ip) = Self::parse_ip4(&Element::Function(f2.clone())) {
+                            let port = v.parse::<u16>()?;
+                            return Ok(SocketAddr::new(ip, port));
                         }
 
-                        if ip.is_none() && name_resolving {
-                            ip = Self::parse_dns(&Element::Function(f2.clone())).ok();
+                        if let Ok(ip) = Self::parse_ip6(&Element::Function(f2.clone())) {
+                            let port = v.parse::<u16>()?;
+                            return Ok(SocketAddr::new(ip, port));
+                        }
+                    };
+                }
+                Err(anyhow::anyhow!("Invalid tcp element"))
+            }
+            _ => Err(anyhow::anyhow!("Invalid element")),
+        }
+    }
+
+    pub fn parse_tcp_host(element: &Element) -> anyhow::Result<(String, u16)> {
+        match element {
+            Element::Function(f) => {
+                if f.name == "tcp" {
+                    if let [Element::Function(f2), Element::Constant(v)] = f.args.as_slice() {
+                        if let Ok(ip) = Self::parse_ip4(&Element::Function(f2.clone())) {
+                            let port = v.parse::<u16>()?;
+                            return Ok((ip.to_string(), port));
                         }
 
-                        let ip = ip.ok_or_else(|| anyhow::anyhow!("Failed to parse ip element"))?;
-                        let port = v.parse::<u16>()?;
-                        return Ok((ip, port));
+                        if let Ok(ip) = Self::parse_ip6(&Element::Function(f2.clone())) {
+                            let port = v.parse::<u16>()?;
+                            return Ok((ip.to_string(), port));
+                        }
+
+                        if let Ok(host) = Self::parse_dns(&Element::Function(f2.clone())) {
+                            let port = v.parse::<u16>()?;
+                            return Ok((host, port));
+                        }
                     };
                 }
                 Err(anyhow::anyhow!("Invalid tcp element"))
@@ -110,19 +170,12 @@ impl ElementParser {
         }
     }
 
-    pub fn parse_dns(element: &Element) -> anyhow::Result<IpAddr> {
+    pub fn parse_dns(element: &Element) -> anyhow::Result<String> {
         match element {
             Element::Function(f) => {
                 if f.name == "dns" {
                     if let [Element::Constant(v)] = f.args.as_slice() {
-                        match ToSocketAddrs::to_socket_addrs(v) {
-                            Ok(mut addrs) => {
-                                if let Some(addr) = addrs.next() {
-                                    return Ok(addr.ip());
-                                }
-                            }
-                            Err(e) => return Err(anyhow::anyhow!("Failed to parse dns element: {}", e)),
-                        }
+                        return Ok(v.clone());
                     }
                 }
                 Err(anyhow::anyhow!("Invalid dns element"))
