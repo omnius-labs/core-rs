@@ -12,7 +12,7 @@ use tracing::trace;
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
 use crate::{
-    connection::framed::{FramedReceiver, FramedSender},
+    connection::codec::{FramedReceiver, FramedSender},
     OmniSigner,
 };
 
