@@ -6,9 +6,9 @@ use crate::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 pub struct EmptyRocketMessage;
 
 impl RocketMessage for EmptyRocketMessage {
-    fn serialize(_writer: &mut RocketMessageWriter, _value: &Self, _depth: u32) {}
+    fn pack(_writer: &mut RocketMessageWriter, _value: &Self, _depth: u32) {}
 
-    fn deserialize(_reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(_reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

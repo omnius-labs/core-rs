@@ -6,12 +6,11 @@ use std::{
 use bitflags::bitflags;
 use chrono::{DateTime, Utc};
 use rand_core::OsRng;
-use serde::{Deserialize, Serialize};
 
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 
 bitflags! {
-    #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     pub struct OmniAgreementAlgorithmType: u32 {
         const None = 0;
         const X25519 = 1;
@@ -40,7 +39,7 @@ impl FromStr for OmniAgreementAlgorithmType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniAgreement {
     pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
@@ -131,7 +130,7 @@ impl RocketMessage for OmniAgreement {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniAgreementPublicKey {
     pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
@@ -165,7 +164,7 @@ impl RocketMessage for OmniAgreementPublicKey {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniAgreementPrivateKey {
     pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,

@@ -1,31 +1,37 @@
-use testcontainers::{clients::Cli, core::WaitFor, images::generic::GenericImage, Container};
+use testcontainers::{core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt as _};
 
-pub struct PostgresContainer<'a> {
+pub struct PostgresContainer {
     #[allow(unused)]
-    pub container: Container<'a, GenericImage>,
+    pub container: ContainerAsync<GenericImage>,
     pub connection_string: String,
 }
 
-impl<'a> PostgresContainer<'a> {
+impl PostgresContainer {
     #[allow(unused)]
-    pub fn new(docker: &'a Cli, tag: &str) -> Self {
+    pub async fn new(tag: &str) -> anyhow::Result<Self> {
         let db = "postgres-db-test";
         let user = "postgres-user-test";
         let password = "postgres-password-test";
 
-        let generic_postgres = GenericImage::new("postgres", tag)
+        let container = GenericImage::new("postgres", tag)
             .with_wait_for(WaitFor::message_on_stderr("database system is ready to accept connections"))
             .with_env_var("POSTGRES_DB", db)
             .with_env_var("POSTGRES_USER", user)
-            .with_env_var("POSTGRES_PASSWORD", password);
+            .with_env_var("POSTGRES_PASSWORD", password)
+            .start()
+            .await?;
 
-        let container: Container<'a, GenericImage> = docker.run(generic_postgres);
+        let connection_string = format!(
+            "postgres://{}:{}@127.0.0.1:{}/{}",
+            user,
+            password,
+            container.get_host_port_ipv4(5432).await?,
+            db
+        );
 
-        let connection_string = format!("postgres://{}:{}@127.0.0.1:{}/{}", user, password, container.get_host_port_ipv4(5432), db);
-
-        Self {
+        Ok(Self {
             container,
             connection_string,
-        }
+        })
     }
 }

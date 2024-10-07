@@ -38,12 +38,12 @@ pub struct HelloMessage {
 }
 
 impl RocketMessage for HelloMessage {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
         writer.write_str(&value.version.to_string());
         writer.write_u32(value.function_id);
     }
 
-    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
