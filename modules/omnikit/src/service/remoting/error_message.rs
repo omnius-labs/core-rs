@@ -12,13 +12,13 @@ pub struct OmniRemotingDefaultErrorMessage {
 }
 
 impl RocketMessage for OmniRemotingDefaultErrorMessage {
-    fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
         writer.write_str(&value.typ);
         writer.write_str(&value.message);
         writer.write_str(&value.stack_trace);
     }
 
-    fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {

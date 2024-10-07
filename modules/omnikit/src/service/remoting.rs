@@ -44,11 +44,11 @@ mod tests {
     }
 
     impl RocketMessage for TestMessage {
-        fn serialize(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
             writer.write_i32(value.value);
         }
 
-        fn deserialize(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
         where
             Self: Sized,
         {

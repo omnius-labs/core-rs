@@ -2,12 +2,11 @@ use std::{fmt, str::FromStr};
 
 use bitflags::bitflags;
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
-use serde::{Deserialize, Serialize};
 
 use crate::converter::OmniBase;
 
 bitflags! {
-    #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     pub struct OmniHashAlgorithmType: u32 {
         const None = 0;
         const Sha3_256 = 1;
@@ -25,7 +24,7 @@ impl fmt::Display for OmniHashAlgorithmType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OmniHash {
     pub typ: OmniHashAlgorithmType,
     pub value: Vec<u8>,
