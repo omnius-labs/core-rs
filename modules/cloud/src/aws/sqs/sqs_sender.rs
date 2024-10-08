@@ -29,12 +29,14 @@ impl SqsSender for SqsSenderImpl {
 
 #[cfg(test)]
 mod tests {
+    use aws_config::BehaviorVersion;
+
     use super::*;
 
     #[ignore]
     #[tokio::test]
     async fn send_test() {
-        let sdk_config = aws_config::from_env().load().await;
+        let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let sqs_sender = SqsSenderImpl {
             client: aws_sdk_sqs::Client::new(&sdk_config),
             queue_url: "opxs-batch-email-send-sqs".to_string(),

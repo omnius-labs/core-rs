@@ -23,8 +23,8 @@ impl SesSender for SesSenderImpl {
                 EmailContent::builder()
                     .simple(
                         Message::builder()
-                            .subject(Content::builder().data(subject).build())
-                            .body(Body::builder().text(Content::builder().data(text_body).build()).build())
+                            .subject(Content::builder().data(subject).build()?)
+                            .body(Body::builder().text(Content::builder().data(text_body).build()?).build())
                             .build(),
                     )
                     .build(),
@@ -39,12 +39,14 @@ impl SesSender for SesSenderImpl {
 
 #[cfg(test)]
 mod tests {
+    use aws_config::BehaviorVersion;
+
     use super::*;
 
     #[ignore]
     #[tokio::test]
     async fn secret_reader_test() {
-        let sdk_config = aws_config::from_env().load().await;
+        let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let sender = SesSenderImpl {
             client: aws_sdk_sesv2::Client::new(&sdk_config),
             configuration_set_name: None,

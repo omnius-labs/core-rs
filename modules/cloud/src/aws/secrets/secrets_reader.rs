@@ -22,12 +22,14 @@ impl SecretsReader for SecretsReaderImpl {
 
 #[cfg(test)]
 mod tests {
+    use aws_config::BehaviorVersion;
+
     use super::*;
 
     #[ignore]
     #[tokio::test]
     async fn secrets_reader_test() {
-        let sdk_config = aws_config::from_env().load().await;
+        let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let secret_reader = SecretsReaderImpl {
             client: aws_sdk_secretsmanager::Client::new(&sdk_config),
         };
