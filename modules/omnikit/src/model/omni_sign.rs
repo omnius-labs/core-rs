@@ -6,13 +6,12 @@ use ed25519_dalek::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePr
 use ed25519_dalek::Signer as _;
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use rand_core::OsRng;
-use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 
 use crate::converter::OmniBase;
 
 bitflags! {
-    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct OmniSignType: u32 {
         const None = 0;
         const Ed25519_Sha3_256_Base64Url = 1;
@@ -41,7 +40,7 @@ impl FromStr for OmniSignType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniSigner {
     pub typ: OmniSignType,
     pub name: String,
@@ -119,7 +118,7 @@ impl fmt::Display for OmniSigner {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniCert {
     pub typ: OmniSignType,
     pub name: String,
