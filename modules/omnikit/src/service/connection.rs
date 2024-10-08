@@ -1,2 +1,2 @@
-pub mod framed;
+pub mod codec;
 pub mod secure;

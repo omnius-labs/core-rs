@@ -10,8 +10,7 @@ mod tests {
     #[serial(migrate)]
     #[tokio::test]
     async fn simple_create_table_test() -> TestResult {
-        let docker = testcontainers::clients::Cli::default();
-        let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
+        let container = PostgresContainer::new(POSTGRES_VERSION).await?;
 
         let migrator = PostgresMigrator::new(
             &container.connection_string,
@@ -29,8 +28,7 @@ mod tests {
     #[serial(migrate)]
     #[tokio::test]
     async fn create_table_syntax_error_test() -> TestResult {
-        let docker = testcontainers::clients::Cli::default();
-        let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
+        let container = PostgresContainer::new(POSTGRES_VERSION).await?;
 
         let migrator = PostgresMigrator::new(
             &container.connection_string,
@@ -48,8 +46,7 @@ mod tests {
     #[serial(migrate)]
     #[tokio::test]
     async fn migrate_twice_test() -> TestResult {
-        let docker = testcontainers::clients::Cli::default();
-        let container = PostgresContainer::new(&docker, POSTGRES_VERSION);
+        let container = PostgresContainer::new(POSTGRES_VERSION).await?;
 
         let migrator1 = PostgresMigrator::new(
             &container.connection_string,

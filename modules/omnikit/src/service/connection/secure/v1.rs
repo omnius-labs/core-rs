@@ -5,14 +5,11 @@ mod message;
 mod stream;
 mod util;
 
-#[allow(unused)]
 use auth::*;
 use decoder::*;
 use encoder::*;
 use message::*;
 pub use stream::*;
-#[allow(unused)]
-use util::*;
 
 #[cfg(test)]
 mod tests {
@@ -35,7 +32,7 @@ mod tests {
     };
     use tokio_util::bytes::Bytes;
 
-    use crate::connection::framed::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
+    use crate::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
 
     use super::*;
 
