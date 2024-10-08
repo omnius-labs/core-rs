@@ -31,12 +31,14 @@ impl SqsReceiver for SqsReceiverImpl {
 
 #[cfg(test)]
 mod tests {
+    use aws_config::BehaviorVersion;
+
     use super::*;
 
     #[ignore]
     #[tokio::test]
     async fn receive_test() {
-        let sdk_config = aws_config::from_env().load().await;
+        let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let secret_reader = SqsReceiverImpl {
             client: aws_sdk_sqs::Client::new(&sdk_config),
             queue_url: "opxs-batch-email-send-sqs".to_string(),
