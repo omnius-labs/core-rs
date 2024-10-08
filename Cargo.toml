@@ -25,13 +25,13 @@ omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
 
-aws-config = "1.5.7"
-aws-sdk-secretsmanager = "1.48.0"
-aws-sdk-s3 = "1.52.0"
-aws-sdk-sqs = "1.44.0"
-aws-sdk-sesv2 = "1.48.0"
+aws-config = "1.5.8"
+aws-sdk-secretsmanager = "1.49.0"
+aws-sdk-s3 = "1.54.0"
+aws-sdk-sqs = "1.45.0"
+aws-sdk-sesv2 = "1.49.0"
 
-gcloud-sdk = { version = "0.25.6", features = [
+gcloud-sdk = { version = "0.25.7", features = [
     "google-cloud-secretmanager-v1",
 ] }
 
@@ -74,11 +74,11 @@ thiserror = "1.0.64"
 jsonwebtoken = "9.3.0"
 validator = { version = "0.18.1", features = ["derive"] }
 headers = "0.4.0"
-once_cell = "1.19.0"
+once_cell = "1.20.2"
 kamadak-exif = "0.5.5"
 serial_test = "3.1.1"
-proc-macro2 = "1.0.86"
-reqwest = { version = "0.12.7", features = ["json"] }
+proc-macro2 = "1.0.87"
+reqwest = { version = "0.12.8", features = ["json"] }
 testresult = "0.4.1"
 base64 = "0.22.1"
 ciborium = "0.2.2"
@@ -89,7 +89,7 @@ sha3 = "0.10.8"
 rand_core = "0.6.4"
 nom = "7.1.3"
 fast-socks5 = "0.9.6"
-futures = "0.3.30"
+futures = "0.3.31"
 futures-util = "0.3.30"
 local-ip-address = "0.6.3"
 pin-utils = "0.1.0"
