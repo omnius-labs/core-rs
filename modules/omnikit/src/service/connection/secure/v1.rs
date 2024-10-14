@@ -113,7 +113,7 @@ mod tests {
                 .new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);
 
-            let buffer = framed.next().await.ok_or(anyhow::anyhow!("Stream ended"))??;
+            let buffer = framed.next().await.ok_or_else(||anyhow::anyhow!("Stream ended"))??;
 
             let s = str::from_utf8(buffer.as_ref())?.to_string();
             println!("{}", s);
