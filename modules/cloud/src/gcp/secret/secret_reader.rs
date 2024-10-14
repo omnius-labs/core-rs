@@ -25,7 +25,7 @@ impl SecretReader for SecretReaderImpl {
             .payload
             .as_ref()
             .map(|p| p.data.as_sensitive_str())
-            .ok_or(anyhow::anyhow!("No data found"))?;
+            .ok_or_else(|| anyhow::anyhow!("No data found"))?;
 
         Ok(result.to_string())
     }
