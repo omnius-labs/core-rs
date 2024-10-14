@@ -57,18 +57,19 @@ impl FromStr for OmniHash {
 }
 
 impl RocketMessage for OmniHash {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
         writer.write_u32(value.typ.bits());
         writer.write_bytes(&value.value);
+
+        Ok(())
     }
 
     fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
-        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32().map_err(|_| anyhow::anyhow!("invalid typ"))?)
-            .ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
-        let value = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid value"))?.to_vec();
+        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?).ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
+        let value = reader.get_bytes(1024)?.to_vec();
 
         Ok(Self { typ, value })
     }

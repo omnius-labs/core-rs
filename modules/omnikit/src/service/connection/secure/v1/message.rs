@@ -169,13 +169,15 @@ pub(crate) struct ProfileMessage {
 }
 
 impl RocketMessage for ProfileMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
         writer.write_bytes(&value.session_id);
         writer.write_str(value.auth_type.to_string().as_str());
         writer.write_str(value.key_exchange_algorithm_type.to_string().as_str());
         writer.write_str(value.key_derivation_algorithm_type.to_string().as_str());
         writer.write_str(value.cipher_algorithm_type.to_string().as_str());
         writer.write_str(value.hash_algorithm_type.to_string().as_str());
+
+        Ok(())
     }
 
     fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
@@ -231,7 +233,7 @@ mod tests {
             hash_algorithm_type: HashAlgorithmType::Sha3_256,
         };
 
-        let b = p.export();
+        let b = p.export()?;
         let p2 = ProfileMessage::import(&mut b.clone())?;
 
         assert_eq!(p, p2);

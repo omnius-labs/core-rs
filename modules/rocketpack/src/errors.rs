@@ -1,12 +1,16 @@
-use std::{error::Error, fmt};
+use std::fmt;
 
 #[derive(Debug)]
-pub struct FormatError;
+pub enum Error {
+    UnexpectedVarintFormat,
+    InvalidUtf8,
+    TooLarge,
+}
 
-impl fmt::Display for FormatError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Format error")
+        write!(f, "Error: {:?}", self)
     }
 }
 
-impl Error for FormatError {}
+impl std::error::Error for Error {}

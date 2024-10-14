@@ -83,7 +83,9 @@ where
             PacketMessage::Continue(_) => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
             PacketMessage::Completed(param) => match callback(param).await {
                 Ok(sending_result) => {
-                    let sending_result = PacketMessage::<TResult, TErrorMessage>::Completed(sending_result).export();
+                    let sending_result = PacketMessage::<TResult, TErrorMessage>::Completed(sending_result)
+                        .export()
+                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?;
                     self.sender
                         .lock()
                         .await
@@ -93,7 +95,9 @@ where
                     Ok(())
                 }
                 Err(sending_error_message) => {
-                    let sending_error_message = PacketMessage::<TResult, TErrorMessage>::Error(sending_error_message).export();
+                    let sending_error_message = PacketMessage::<TResult, TErrorMessage>::Error(sending_error_message)
+                        .export()
+                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?;
                     self.sender
                         .lock()
                         .await

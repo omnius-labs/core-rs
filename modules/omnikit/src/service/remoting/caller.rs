@@ -50,7 +50,11 @@ where
         self.sender
             .lock()
             .await
-            .send(hello_message.export())
+            .send(
+                hello_message
+                    .export()
+                    .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?,
+            )
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
 
@@ -62,7 +66,9 @@ where
         TParam: RocketMessage + Send + Sync + 'static,
         TResult: RocketMessage + Send + Sync + 'static,
     {
-        let sending_param = PacketMessage::<TParam, EmptyRocketMessage>::Completed(param).export();
+        let sending_param = PacketMessage::<TParam, EmptyRocketMessage>::Completed(param)
+            .export()
+            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?;
         self.sender
             .lock()
             .await

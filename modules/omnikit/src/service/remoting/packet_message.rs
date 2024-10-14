@@ -16,19 +16,21 @@ where
     T: RocketMessage + Send + Sync + 'static,
     E: RocketMessage + Send + Sync + 'static,
 {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> anyhow::Result<()> {
         if let PacketMessage::Unknown = value {
             writer.write_u8(0);
         } else if let PacketMessage::Continue(value) = value {
             writer.write_u8(1);
-            T::pack(writer, value, depth + 1);
+            T::pack(writer, value, depth + 1)?;
         } else if let PacketMessage::Completed(value) = value {
             writer.write_u8(2);
-            T::pack(writer, value, depth + 1);
+            T::pack(writer, value, depth + 1)?;
         } else if let PacketMessage::Error(value) = value {
             writer.write_u8(3);
-            E::pack(writer, value, depth + 1);
+            E::pack(writer, value, depth + 1)?;
         }
+
+        Ok(())
     }
 
     fn unpack(reader: &mut RocketMessageReader, depth: u32) -> anyhow::Result<Self>
