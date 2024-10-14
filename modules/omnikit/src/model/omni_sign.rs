@@ -82,10 +82,12 @@ impl OmniSigner {
 }
 
 impl RocketMessage for OmniSigner {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
         writer.write_str(value.typ.to_string().as_str());
         writer.write_str(&value.name);
         writer.write_bytes(&value.key);
+
+        Ok(())
     }
 
     fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
@@ -144,11 +146,13 @@ impl OmniCert {
 }
 
 impl RocketMessage for OmniCert {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
         writer.write_str(value.typ.to_string().as_str());
         writer.write_str(&value.name);
         writer.write_bytes(&value.public_key);
         writer.write_bytes(&value.value);
+
+        Ok(())
     }
 
     fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>

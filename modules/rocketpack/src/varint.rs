@@ -1,8 +1,4 @@
-use std::error::Error;
-
 use tokio_util::bytes::{Buf, BufMut};
-
-use crate::FormatError;
 
 pub struct Varint;
 
@@ -85,18 +81,18 @@ impl Varint {
         Self::put_u64(((value << 1) ^ (value >> 63)) as u64, writer);
     }
 
-    pub fn get_u8(reader: &mut impl Buf) -> Result<u8, Box<dyn Error>> {
+    pub fn get_u8(reader: &mut impl Buf) -> Result<u8, super::Error> {
         let head = reader.get_u8();
         if reader.remaining() >= 1 && (head & 0x80) == 0 {
             Ok(head)
         } else if reader.remaining() >= 2 && head == Self::INT8_CODE {
             Ok(reader.get_u8())
         } else {
-            Err(Box::new(FormatError))
+            Err(super::Error::UnexpectedVarintFormat)
         }
     }
 
-    pub fn get_u16(reader: &mut impl Buf) -> Result<u16, Box<dyn Error>> {
+    pub fn get_u16(reader: &mut impl Buf) -> Result<u16, super::Error> {
         let head = reader.get_u8();
         if reader.remaining() >= 1 && (head & 0x80) == 0 {
             Ok(head as u16)
@@ -105,11 +101,11 @@ impl Varint {
         } else if reader.remaining() >= 3 && head == Self::INT16_CODE {
             Ok(reader.get_u16_le())
         } else {
-            Err(Box::new(FormatError))
+            Err(super::Error::UnexpectedVarintFormat)
         }
     }
 
-    pub fn get_u32(reader: &mut impl Buf) -> Result<u32, Box<dyn Error>> {
+    pub fn get_u32(reader: &mut impl Buf) -> Result<u32, super::Error> {
         let head = reader.get_u8();
         if reader.remaining() >= 1 && (head & 0x80) == 0 {
             Ok(head as u32)
@@ -120,11 +116,11 @@ impl Varint {
         } else if reader.remaining() >= 5 && head == Self::INT32_CODE {
             Ok(reader.get_u32_le())
         } else {
-            Err(Box::new(FormatError))
+            Err(super::Error::UnexpectedVarintFormat)
         }
     }
 
-    pub fn get_u64(reader: &mut impl Buf) -> Result<u64, Box<dyn Error>> {
+    pub fn get_u64(reader: &mut impl Buf) -> Result<u64, super::Error> {
         let head = reader.get_u8();
         if reader.remaining() >= 1 && (head & 0x80) == 0 {
             Ok(head as u64)
@@ -137,23 +133,23 @@ impl Varint {
         } else if reader.remaining() >= 9 && head == Self::INT64_CODE {
             Ok(reader.get_u64_le())
         } else {
-            Err(Box::new(FormatError))
+            Err(super::Error::UnexpectedVarintFormat)
         }
     }
 
-    pub fn get_i8(reader: &mut impl Buf) -> Result<i8, Box<dyn Error>> {
+    pub fn get_i8(reader: &mut impl Buf) -> Result<i8, super::Error> {
         Self::get_u8(reader).map(|value| (value as i8 >> 1) ^ (-(value as i8 & 1)))
     }
 
-    pub fn get_i16(reader: &mut impl Buf) -> Result<i16, Box<dyn Error>> {
+    pub fn get_i16(reader: &mut impl Buf) -> Result<i16, super::Error> {
         Self::get_u16(reader).map(|value| (value as i16 >> 1) ^ (-(value as i16 & 1)))
     }
 
-    pub fn get_i32(reader: &mut impl Buf) -> Result<i32, Box<dyn Error>> {
+    pub fn get_i32(reader: &mut impl Buf) -> Result<i32, super::Error> {
         Self::get_u32(reader).map(|value| (value as i32 >> 1) ^ (-(value as i32 & 1)))
     }
 
-    pub fn get_i64(reader: &mut impl Buf) -> Result<i64, Box<dyn Error>> {
+    pub fn get_i64(reader: &mut impl Buf) -> Result<i64, super::Error> {
         Self::get_u64(reader).map(|value| (value as i64 >> 1) ^ (-(value as i64 & 1)))
     }
 }

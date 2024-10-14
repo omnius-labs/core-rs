@@ -12,10 +12,12 @@ pub struct OmniRemotingDefaultErrorMessage {
 }
 
 impl RocketMessage for OmniRemotingDefaultErrorMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
         writer.write_str(&value.typ);
         writer.write_str(&value.message);
         writer.write_str(&value.stack_trace);
+
+        Ok(())
     }
 
     fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>

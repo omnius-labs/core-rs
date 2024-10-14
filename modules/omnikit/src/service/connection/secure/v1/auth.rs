@@ -80,7 +80,7 @@ where
             hash_algorithm_type: HashAlgorithmType::Sha3_256,
         };
         let other_profile = {
-            self.sender.lock().await.send(my_profile.export()).await?;
+            self.sender.lock().await.send(my_profile.export()?).await?;
             ProfileMessage::import(&mut self.receiver.lock().await.recv().await?)?
         };
 
@@ -94,14 +94,14 @@ where
                 let now = self.clock.now();
                 let my_agreement = OmniAgreement::new(now, OmniAgreementAlgorithmType::X25519)?;
                 let other_agreement_public_key = {
-                    self.sender.lock().await.send(my_agreement.gen_agreement_public_key().export()).await?;
+                    self.sender.lock().await.send(my_agreement.gen_agreement_public_key().export()?).await?;
                     OmniAgreementPublicKey::import(&mut self.receiver.lock().await.recv().await?)?
                 };
 
                 if let Some(my_signer) = self.signer.as_ref() {
                     let my_hash = Self::gen_hash(&my_profile, &my_agreement.gen_agreement_public_key(), &hash_algorithm_type)?;
                     let my_sign = my_signer.sign(&my_hash)?;
-                    self.sender.lock().await.send(my_sign.export()).await?;
+                    self.sender.lock().await.send(my_sign.export()?).await?;
                 }
 
                 let other_sign = if other_profile.auth_type == AuthType::Sign {
