@@ -33,7 +33,7 @@ impl SesSender for SesSenderImpl {
             .send()
             .await?;
 
-        Ok(res.message_id.ok_or(anyhow::anyhow!("message_id is None"))?)
+        Ok(res.message_id.ok_or_else(|| anyhow::anyhow!("message_id is None"))?)
     }
 }
 

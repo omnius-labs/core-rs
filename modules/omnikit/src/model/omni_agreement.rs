@@ -118,7 +118,7 @@ impl RocketMessage for OmniAgreement {
             .get_timestamp64()
             .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
             .to_date_time()
-            .ok_or(anyhow::anyhow!("Invalid timestamp"))?;
+            .ok_or_else(||anyhow::anyhow!("Invalid timestamp"))?;
         let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
         let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
         let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
@@ -156,7 +156,7 @@ impl RocketMessage for OmniAgreementPublicKey {
             .get_timestamp64()
             .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
             .to_date_time()
-            .ok_or(anyhow::anyhow!("Invalid timestamp"))?;
+            .ok_or_else(||anyhow::anyhow!("Invalid timestamp"))?;
         let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
         let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
 
@@ -192,7 +192,7 @@ impl RocketMessage for OmniAgreementPrivateKey {
             .get_timestamp64()
             .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
             .to_date_time()
-            .ok_or(anyhow::anyhow!("Invalid timestamp"))?;
+            .ok_or_else(||anyhow::anyhow!("Invalid timestamp"))?;
         let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
         let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?.to_vec();
 
