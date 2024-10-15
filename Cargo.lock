@@ -2494,6 +2494,7 @@ dependencies = [
  "serde",
  "serde_json",
  "testcontainers",
+ "testresult",
  "tokio",
  "tokio-postgres",
  "tokio-util",
