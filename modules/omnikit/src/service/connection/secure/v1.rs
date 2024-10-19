@@ -32,7 +32,7 @@ mod tests {
     };
     use tokio_util::bytes::Bytes;
 
-    use crate::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
+    use crate::service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
 
     use super::*;
 

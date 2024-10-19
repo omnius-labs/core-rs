@@ -7,7 +7,7 @@ use tokio::{
 
 use omnius_core_rocketpack::{EmptyRocketMessage, RocketMessage};
 
-use crate::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
+use crate::service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
 
 use super::{HelloMessage, OmniRemotingVersion, PacketMessage, ProtocolErrorCode};
 
