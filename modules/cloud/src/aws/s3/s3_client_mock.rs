@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::{
+    collections::VecDeque,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
@@ -34,13 +38,13 @@ pub struct GenPutPresignedUriInput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GetObject {
     pub key: String,
-    pub destination: String,
+    pub destination: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PutObject {
     pub key: String,
-    pub source: String,
+    pub source: PathBuf,
 }
 
 #[async_trait]
@@ -68,18 +72,18 @@ impl S3Client for S3ClientMock {
         Ok(output)
     }
 
-    async fn get_object(&self, key: &str, destination: &str) -> anyhow::Result<()> {
+    async fn get_object(&self, key: &str, destination: &Path) -> anyhow::Result<()> {
         self.get_object_inputs.lock().push(GetObject {
             key: key.to_string(),
-            destination: destination.to_string(),
+            destination: destination.to_path_buf(),
         });
         Ok(())
     }
 
-    async fn put_object(&self, key: &str, source: &str) -> anyhow::Result<()> {
+    async fn put_object(&self, key: &str, source: &Path) -> anyhow::Result<()> {
         self.put_object_inputs.lock().push(PutObject {
             key: key.to_string(),
-            source: source.to_string(),
+            source: source.to_path_buf(),
         });
         Ok(())
     }

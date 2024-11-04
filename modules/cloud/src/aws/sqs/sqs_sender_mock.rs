@@ -6,20 +6,13 @@ use parking_lot::Mutex;
 use super::SqsSender;
 
 pub struct SqsSenderMock {
-    pub send_message_inputs: Arc<Mutex<Vec<SendMessageInput>>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SendMessageInput {
-    pub message_body: String,
+    pub send_message_inputs: Arc<Mutex<Vec<String>>>,
 }
 
 #[async_trait]
 impl SqsSender for SqsSenderMock {
-    async fn send_message(&self, message_body: &str) -> anyhow::Result<()> {
-        self.send_message_inputs.lock().push(SendMessageInput {
-            message_body: message_body.to_string(),
-        });
+    async fn send_message(&self, message: &str) -> anyhow::Result<()> {
+        self.send_message_inputs.lock().push(message.to_string());
         Ok(())
     }
 }
