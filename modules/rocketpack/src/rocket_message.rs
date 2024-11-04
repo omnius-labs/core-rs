@@ -24,3 +24,37 @@ pub trait RocketMessage {
         Ok(bytes.freeze())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use testresult::TestResult;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn simple_test() -> TestResult {
+        Ok(())
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct TestMessage {
+        pub value: i32,
+    }
+
+    impl RocketMessage for TestMessage {
+        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+            writer.write_i32(value.value);
+
+            Ok(())
+        }
+
+        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+        where
+            Self: Sized,
+        {
+            let value = reader.get_i32().map_err(|_| anyhow::anyhow!("invalid typ"))?;
+
+            Ok(Self { value })
+        }
+    }
+}
