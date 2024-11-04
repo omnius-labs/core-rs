@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait SqsSender {
-    async fn send_message(&self, message_body: &str) -> anyhow::Result<()>;
+    async fn send_message(&self, message: &str) -> anyhow::Result<()>;
 }
 
 pub struct SqsSenderImpl {
@@ -13,13 +13,13 @@ pub struct SqsSenderImpl {
 
 #[async_trait]
 impl SqsSender for SqsSenderImpl {
-    async fn send_message(&self, message_body: &str) -> anyhow::Result<()> {
+    async fn send_message(&self, message: &str) -> anyhow::Result<()> {
         let _ = self
             .client
             .send_message()
             .queue_url(&self.queue_url)
             .set_delay_seconds(self.delay_seconds)
-            .set_message_body(Some(message_body.to_string()))
+            .set_message_body(Some(message.to_string()))
             .send()
             .await?;
 

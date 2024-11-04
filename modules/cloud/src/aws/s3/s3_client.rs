@@ -6,14 +6,13 @@ use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Duration, Utc};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
-use urlencoding::encode;
 
 #[async_trait]
 pub trait S3Client {
     async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String>;
     async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String>;
-    async fn get_object(&self, key: &str, destination: &str) -> anyhow::Result<()>;
-    async fn put_object(&self, key: &str, source: &str) -> anyhow::Result<()>;
+    async fn get_object(&self, key: &str, destination: &Path) -> anyhow::Result<()>;
+    async fn put_object(&self, key: &str, source: &Path) -> anyhow::Result<()>;
 }
 pub struct S3ClientImpl {
     pub client: aws_sdk_s3::Client,
@@ -28,7 +27,7 @@ impl S3Client for S3ClientImpl {
             .expires_in(expires_in.to_std()?)
             .build()?;
 
-        let encoded_file_name = encode(file_name).to_string();
+        let encoded_file_name = urlencoding::encode(file_name).to_string();
 
         let request = self
             .client
@@ -57,7 +56,7 @@ impl S3Client for S3ClientImpl {
         Ok(request.uri().to_string())
     }
 
-    async fn get_object(&self, key: &str, destination: &str) -> anyhow::Result<()> {
+    async fn get_object(&self, key: &str, destination: &Path) -> anyhow::Result<()> {
         let mut file = File::create(destination).await?;
 
         let mut object = self.client.get_object().bucket(self.bucket.as_str()).key(key).send().await?;
@@ -69,8 +68,8 @@ impl S3Client for S3ClientImpl {
         Ok(())
     }
 
-    async fn put_object(&self, key: &str, source: &str) -> anyhow::Result<()> {
-        let body = ByteStream::from_path(Path::new(source)).await?;
+    async fn put_object(&self, key: &str, source: &Path) -> anyhow::Result<()> {
+        let body = ByteStream::from_path(source).await?;
         self.client.put_object().bucket(self.bucket.as_str()).key(key).body(body).send().await?;
 
         Ok(())
