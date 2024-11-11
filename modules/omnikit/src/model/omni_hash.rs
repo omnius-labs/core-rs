@@ -3,7 +3,7 @@ use std::{fmt, str::FromStr};
 use bitflags::bitflags;
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 
-use crate::converter::OmniBase;
+use crate::service::converter::OmniBase;
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
