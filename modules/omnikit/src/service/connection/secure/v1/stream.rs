@@ -12,8 +12,8 @@ use tracing::trace;
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
 use crate::{
-    connection::codec::{FramedReceiver, FramedSender},
-    OmniSigner,
+    model::OmniSigner,
+    service::connection::codec::{FramedReceiver, FramedSender},
 };
 
 use super::*;

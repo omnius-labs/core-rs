@@ -2,7 +2,7 @@ use core::fmt;
 
 use omnius_core_rocketpack::RocketMessage;
 
-#[derive(Debug, Clone)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum Error<TErrorMessage>
 where
     TErrorMessage: RocketMessage + Send + Sync + 'static,
@@ -17,8 +17,9 @@ pub enum ProtocolErrorCode {
     UnsupportedVersion,
     SendFailed,
     ReceiveFailed,
-    SerializeFailed,
-    DeserializeFailed,
+    SerializationFailed,
+    DeserializationFailed,
+    HandshakeNotFinished,
 }
 
 impl<TErrorMessage> fmt::Display for Error<TErrorMessage>

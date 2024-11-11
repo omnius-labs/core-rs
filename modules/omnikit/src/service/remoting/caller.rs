@@ -53,7 +53,7 @@ where
             .send(
                 hello_message
                     .export()
-                    .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?,
+                    .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?,
             )
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
@@ -68,7 +68,7 @@ where
     {
         let sending_param = PacketMessage::<TParam, EmptyRocketMessage>::Completed(param)
             .export()
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?;
+            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
         self.sender
             .lock()
             .await
@@ -84,7 +84,7 @@ where
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
         let received_result = PacketMessage::<TResult, TErrorMessage>::import(&mut received_result)
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializeFailed))?;
+            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
 
         match received_result {
             PacketMessage::Unknown => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),

@@ -13,8 +13,8 @@ use tokio::{
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
 use crate::{
-    connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
-    OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner,
+    model::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner},
+    service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 
 use super::*;

@@ -43,6 +43,11 @@ where
         }
     }
 
+    pub fn function_id(&self) -> Result<u32, super::Error<TErrorMessage>> {
+        let v = *self.function_id.lock();
+        v.ok_or_else(|| super::Error::ProtocolError(super::ProtocolErrorCode::HandshakeNotFinished))
+    }
+
     pub async fn handshake(&mut self) -> Result<(), super::Error<TErrorMessage>> {
         let mut v = self
             .receiver
@@ -51,7 +56,7 @@ where
             .recv()
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
-        let hello_message = HelloMessage::import(&mut v).map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializeFailed))?;
+        let hello_message = HelloMessage::import(&mut v).map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
 
         if hello_message.version == OmniRemotingVersion::V1 {
             *self.function_id.lock() = Some(hello_message.function_id);
@@ -76,7 +81,7 @@ where
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
         let received_param = PacketMessage::<TParam, TErrorMessage>::import(&mut received_param)
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializeFailed))?;
+            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
 
         match received_param {
             PacketMessage::Unknown => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
@@ -85,7 +90,7 @@ where
                 Ok(sending_result) => {
                     let sending_result = PacketMessage::<TResult, TErrorMessage>::Completed(sending_result)
                         .export()
-                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?;
+                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
                     self.sender
                         .lock()
                         .await
@@ -97,7 +102,7 @@ where
                 Err(sending_error_message) => {
                     let sending_error_message = PacketMessage::<TResult, TErrorMessage>::Error(sending_error_message)
                         .export()
-                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializeFailed))?;
+                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
                     self.sender
                         .lock()
                         .await
