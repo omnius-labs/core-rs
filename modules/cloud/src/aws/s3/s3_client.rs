@@ -92,7 +92,7 @@ mod tests {
         let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let s3 = S3ClientImpl {
             client: aws_sdk_s3::Client::new(&sdk_config),
-            bucket: "opxs.v1.dev.image-convert".to_string(),
+            bucket: "opxs.v1.dev.file-convert".to_string(),
         };
         let uri = s3.gen_put_presigned_uri("in/test.txt", Utc::now(), Duration::minutes(5)).await.unwrap();
         println!("{:?}", uri);
