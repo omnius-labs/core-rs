@@ -3,7 +3,13 @@ use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 
 #[async_trait]
 pub trait SesSender {
-    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, body: &str) -> anyhow::Result<String>;
+    async fn send_mail_simple_text(
+        &self,
+        to_address: &str,
+        from_address: &str,
+        subject: &str,
+        body: &str,
+    ) -> anyhow::Result<String>;
 }
 
 pub struct SesSenderImpl {
@@ -13,7 +19,13 @@ pub struct SesSenderImpl {
 
 #[async_trait]
 impl SesSender for SesSenderImpl {
-    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> anyhow::Result<String> {
+    async fn send_mail_simple_text(
+        &self,
+        to_address: &str,
+        from_address: &str,
+        subject: &str,
+        text_body: &str,
+    ) -> anyhow::Result<String> {
         let res = self
             .client
             .send_email()
@@ -24,7 +36,11 @@ impl SesSender for SesSenderImpl {
                     .simple(
                         Message::builder()
                             .subject(Content::builder().data(subject).build()?)
-                            .body(Body::builder().text(Content::builder().data(text_body).build()?).build())
+                            .body(
+                                Body::builder()
+                                    .text(Content::builder().data(text_body).build()?)
+                                    .build(),
+                            )
                             .build(),
                     )
                     .build(),
@@ -33,7 +49,9 @@ impl SesSender for SesSenderImpl {
             .send()
             .await?;
 
-        Ok(res.message_id.ok_or_else(|| anyhow::anyhow!("message_id is None"))?)
+        Ok(res
+            .message_id
+            .ok_or_else(|| anyhow::anyhow!("message_id is None"))?)
     }
 }
 
@@ -52,7 +70,12 @@ mod tests {
             configuration_set_name: None,
         };
         let r = sender
-            .send_mail_simple_text("lyrise1984@gmail.com", "no-reply@opxs-dev.omnius-labs.com", "test subject", "test body")
+            .send_mail_simple_text(
+                "lyrise1984@gmail.com",
+                "no-reply@opxs-dev.omnius-labs.com",
+                "test subject",
+                "test body",
+            )
             .await;
         if let Err(e) = r {
             println!("{:?}", e);
