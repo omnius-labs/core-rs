@@ -20,15 +20,27 @@ pub struct SendMailSimpleTextInput {
 
 #[async_trait]
 impl SesSender for SesSenderMock {
-    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> anyhow::Result<String> {
-        self.send_mail_simple_text_inputs.lock().push(SendMailSimpleTextInput {
-            to_address: to_address.to_string(),
-            from_address: from_address.to_string(),
-            subject: subject.to_string(),
-            text_body: text_body.to_string(),
-        });
+    async fn send_mail_simple_text(
+        &self,
+        to_address: &str,
+        from_address: &str,
+        subject: &str,
+        text_body: &str,
+    ) -> anyhow::Result<String> {
+        self.send_mail_simple_text_inputs
+            .lock()
+            .push(SendMailSimpleTextInput {
+                to_address: to_address.to_string(),
+                from_address: from_address.to_string(),
+                subject: subject.to_string(),
+                text_body: text_body.to_string(),
+            });
 
-        let output = self.send_mail_simple_text_outputs.lock().pop_front().unwrap_or_default();
+        let output = self
+            .send_mail_simple_text_outputs
+            .lock()
+            .pop_front()
+            .unwrap_or_default();
         Ok(output)
     }
 }

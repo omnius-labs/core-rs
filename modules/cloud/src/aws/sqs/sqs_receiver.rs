@@ -24,7 +24,9 @@ impl SqsReceiver for SqsReceiverImpl {
             .send()
             .await?;
 
-        let res: Option<Vec<String>> = output.messages.map(|n| n.into_iter().flat_map(|m| m.body).collect::<Vec<_>>());
+        let res: Option<Vec<String>> = output
+            .messages
+            .map(|n| n.into_iter().flat_map(|m| m.body).collect::<Vec<_>>());
         Ok(res)
     }
 }
