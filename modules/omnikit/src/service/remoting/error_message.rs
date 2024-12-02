@@ -24,11 +24,21 @@ impl RocketMessage for OmniRemotingDefaultErrorMessage {
     where
         Self: Sized,
     {
-        let typ = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?;
-        let message = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid message"))?;
-        let stack_trace = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid stack_trace"))?;
+        let typ = reader
+            .get_string(1024)
+            .map_err(|_| anyhow::anyhow!("invalid typ"))?;
+        let message = reader
+            .get_string(1024)
+            .map_err(|_| anyhow::anyhow!("invalid message"))?;
+        let stack_trace = reader
+            .get_string(1024)
+            .map_err(|_| anyhow::anyhow!("invalid stack_trace"))?;
 
-        Ok(Self { typ, message, stack_trace })
+        Ok(Self {
+            typ,
+            message,
+            stack_trace,
+        })
     }
 }
 

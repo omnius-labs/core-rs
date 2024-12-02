@@ -49,9 +49,17 @@ impl RocketMessage for HelloMessage {
     where
         Self: Sized,
     {
-        let version: OmniRemotingVersion = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid version"))?.parse()?;
-        let function_id = reader.get_u32().map_err(|_| anyhow::anyhow!("invalid function_id"))?;
+        let version: OmniRemotingVersion = reader
+            .get_string(1024)
+            .map_err(|_| anyhow::anyhow!("invalid version"))?
+            .parse()?;
+        let function_id = reader
+            .get_u32()
+            .map_err(|_| anyhow::anyhow!("invalid function_id"))?;
 
-        Ok(Self { version, function_id })
+        Ok(Self {
+            version,
+            function_id,
+        })
     }
 }

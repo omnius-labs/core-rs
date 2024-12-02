@@ -263,31 +263,43 @@ mod tests {
         // 16
         {
             let mut buf = buf.clone().freeze();
-            assert!(Varint::get_u16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput));
+            assert!(
+                Varint::get_u16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput)
+            );
         }
         {
             let mut buf = buf.clone().freeze();
-            assert!(Varint::get_i16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput));
+            assert!(
+                Varint::get_i16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput)
+            );
         }
 
         // 32
         {
             let mut buf = buf.clone().freeze();
-            assert!(Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput));
+            assert!(
+                Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput)
+            );
         }
         {
             let mut buf = buf.clone().freeze();
-            assert!(Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput));
+            assert!(
+                Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput)
+            );
         }
 
         // 64
         {
             let mut buf = buf.clone().freeze();
-            assert!(Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput));
+            assert!(
+                Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput)
+            );
         }
         {
             let mut buf = buf.clone().freeze();
-            assert!(Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput));
+            assert!(
+                Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedEndOfInput)
+            );
         }
 
         Ok(())
@@ -317,11 +329,15 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader));
+                assert!(
+                    Varint::get_u16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader)
+                );
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader));
+                assert!(
+                    Varint::get_i16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader)
+                );
             }
         }
 
@@ -332,11 +348,15 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader));
+                assert!(
+                    Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader)
+                );
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader));
+                assert!(
+                    Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader)
+                );
             }
         }
 
@@ -347,11 +367,15 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader));
+                assert!(
+                    Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader)
+                );
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader));
+                assert!(
+                    Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedHeader)
+                );
             }
         }
 
@@ -368,41 +392,49 @@ mod tests {
             // 8
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u8(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u8(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i8(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i8(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
 
             // 16
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u16(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i16(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
 
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u32(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i32(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
         }
 
@@ -415,31 +447,37 @@ mod tests {
             // 16
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u16(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i16(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i16(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
 
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u32(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i32(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
         }
 
@@ -452,21 +490,25 @@ mod tests {
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u32(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i32(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i32(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
         }
 
@@ -479,11 +521,13 @@ mod tests {
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_u64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_u64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert!(Varint::get_i64(&mut buf).is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
+                assert!(Varint::get_i64(&mut buf)
+                    .is_err_and(|x| x == VarintError::UnexpectedTooSmallBody));
             }
         }
 

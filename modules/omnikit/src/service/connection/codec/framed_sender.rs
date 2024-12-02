@@ -41,8 +41,14 @@ where
     T: AsyncWrite + Send + Unpin,
 {
     async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()> {
-        self.framed.send(buffer).await.with_context(|| "Failed to send")?;
-        self.framed.flush().await.with_context(|| "Failed to flush")?;
+        self.framed
+            .send(buffer)
+            .await
+            .with_context(|| "Failed to send")?;
+        self.framed
+            .flush()
+            .await
+            .with_context(|| "Failed to flush")?;
         Ok(())
     }
 }

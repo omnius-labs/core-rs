@@ -16,7 +16,9 @@ impl Timestamp64 {
 
 impl From<DateTime<Utc>> for Timestamp64 {
     fn from(t: DateTime<Utc>) -> Timestamp64 {
-        Timestamp64 { seconds: t.timestamp() }
+        Timestamp64 {
+            seconds: t.timestamp(),
+        }
     }
 }
 

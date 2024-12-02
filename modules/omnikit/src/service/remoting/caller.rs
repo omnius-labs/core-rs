@@ -7,7 +7,9 @@ use tokio::{
 
 use omnius_core_rocketpack::{EmptyRocketMessage, RocketMessage};
 
-use crate::service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
+use crate::service::connection::codec::{
+    FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender,
+};
 
 use super::{HelloMessage, OmniRemotingVersion, PacketMessage, ProtocolErrorCode};
 
@@ -31,7 +33,10 @@ where
     TErrorMessage: RocketMessage + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize, function_id: u32) -> Self {
-        let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
+        let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(
+            reader,
+            max_frame_length,
+        )));
         let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
 
         OmniRemotingCaller {
@@ -50,25 +55,28 @@ where
         self.sender
             .lock()
             .await
-            .send(
-                hello_message
-                    .export()
-                    .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?,
-            )
+            .send(hello_message.export().map_err(|_| {
+                super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed)
+            })?)
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
 
         Ok(())
     }
 
-    pub async fn call<TParam, TResult>(&self, param: TParam) -> Result<TResult, super::Error<TErrorMessage>>
+    pub async fn call<TParam, TResult>(
+        &self,
+        param: TParam,
+    ) -> Result<TResult, super::Error<TErrorMessage>>
     where
         TParam: RocketMessage + Send + Sync + 'static,
         TResult: RocketMessage + Send + Sync + 'static,
     {
         let sending_param = PacketMessage::<TParam, EmptyRocketMessage>::Completed(param)
             .export()
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
+            .map_err(|_| {
+                super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed)
+            })?;
         self.sender
             .lock()
             .await
@@ -76,21 +84,26 @@ where
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
 
-        let mut received_result = self
-            .receiver
-            .lock()
-            .await
-            .recv()
-            .await
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
+        let mut received_result =
+            self.receiver.lock().await.recv().await.map_err(|_| {
+                super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed)
+            })?;
         let received_result = PacketMessage::<TResult, TErrorMessage>::import(&mut received_result)
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
+            .map_err(|_| {
+                super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed)
+            })?;
 
         match received_result {
-            PacketMessage::Unknown => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
-            PacketMessage::Continue(_) => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
+            PacketMessage::Unknown => Err(super::Error::ProtocolError(
+                ProtocolErrorCode::UnexpectedProtocol,
+            )),
+            PacketMessage::Continue(_) => Err(super::Error::ProtocolError(
+                ProtocolErrorCode::UnexpectedProtocol,
+            )),
             PacketMessage::Completed(received_result) => Ok(received_result),
-            PacketMessage::Error(received_error_message) => Err(super::Error::ApplicationError(received_error_message)),
+            PacketMessage::Error(received_error_message) => {
+                Err(super::Error::ApplicationError(received_error_message))
+            }
         }
     }
 }

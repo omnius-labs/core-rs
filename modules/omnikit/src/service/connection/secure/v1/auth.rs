@@ -13,7 +13,9 @@ use tokio::{
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
 use crate::{
-    model::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner},
+    model::{
+        OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner,
+    },
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 
@@ -84,29 +86,46 @@ where
             ProfileMessage::import(&mut self.receiver.lock().await.recv().await?)?
         };
 
-        let key_exchange_algorithm_type = my_profile.key_exchange_algorithm_type.clone() & other_profile.key_exchange_algorithm_type.clone();
-        let key_derivation_algorithm_type = my_profile.key_derivation_algorithm_type.clone() & other_profile.key_derivation_algorithm_type.clone();
-        let cipher_algorithm_type = my_profile.cipher_algorithm_type.clone() & other_profile.cipher_algorithm_type.clone();
-        let hash_algorithm_type = my_profile.hash_algorithm_type.clone() & other_profile.hash_algorithm_type.clone();
+        let key_exchange_algorithm_type = my_profile.key_exchange_algorithm_type.clone()
+            & other_profile.key_exchange_algorithm_type.clone();
+        let key_derivation_algorithm_type = my_profile.key_derivation_algorithm_type.clone()
+            & other_profile.key_derivation_algorithm_type.clone();
+        let cipher_algorithm_type =
+            my_profile.cipher_algorithm_type.clone() & other_profile.cipher_algorithm_type.clone();
+        let hash_algorithm_type =
+            my_profile.hash_algorithm_type.clone() & other_profile.hash_algorithm_type.clone();
 
         let (other_sign, secret) = match key_exchange_algorithm_type {
             KeyExchangeAlgorithmType::X25519 => {
                 let now = self.clock.now();
                 let my_agreement = OmniAgreement::new(now, OmniAgreementAlgorithmType::X25519)?;
                 let other_agreement_public_key = {
-                    self.sender.lock().await.send(my_agreement.gen_agreement_public_key().export()?).await?;
+                    self.sender
+                        .lock()
+                        .await
+                        .send(my_agreement.gen_agreement_public_key().export()?)
+                        .await?;
                     OmniAgreementPublicKey::import(&mut self.receiver.lock().await.recv().await?)?
                 };
 
                 if let Some(my_signer) = self.signer.as_ref() {
-                    let my_hash = Self::gen_hash(&my_profile, &my_agreement.gen_agreement_public_key(), &hash_algorithm_type)?;
+                    let my_hash = Self::gen_hash(
+                        &my_profile,
+                        &my_agreement.gen_agreement_public_key(),
+                        &hash_algorithm_type,
+                    )?;
                     let my_sign = my_signer.sign(&my_hash)?;
                     self.sender.lock().await.send(my_sign.export()?).await?;
                 }
 
                 let other_sign = if other_profile.auth_type == AuthType::Sign {
-                    let other_cert = OmniCert::import(&mut self.receiver.lock().await.recv().await?)?;
-                    let other_hash = Self::gen_hash(&other_profile, &other_agreement_public_key, &hash_algorithm_type)?;
+                    let other_cert =
+                        OmniCert::import(&mut self.receiver.lock().await.recv().await?)?;
+                    let other_hash = Self::gen_hash(
+                        &other_profile,
+                        &other_agreement_public_key,
+                        &hash_algorithm_type,
+                    )?;
                     other_cert.verify(&other_hash)?;
 
                     Some(other_cert.to_string())
@@ -114,7 +133,10 @@ where
                     None
                 };
 
-                let secret = OmniAgreement::gen_secret(&my_agreement.gen_agreement_private_key(), &other_agreement_public_key)?;
+                let secret = OmniAgreement::gen_secret(
+                    &my_agreement.gen_agreement_private_key(),
+                    &other_agreement_public_key,
+                )?;
 
                 (other_sign, secret)
             }
@@ -139,7 +161,8 @@ where
                     HashAlgorithmType::Sha3_256 => {
                         let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
                         let kdf = Hkdf::<Sha3_256>::new(Some(&salt), &secret);
-                        kdf.expand(&[], &mut okm).or_else(|_| anyhow::bail!("Failed to expand key"))?;
+                        kdf.expand(&[], &mut okm)
+                            .or_else(|_| anyhow::bail!("Failed to expand key"))?;
 
                         okm
                     }
@@ -152,9 +175,11 @@ where
                 };
 
                 let enc_key = okm[enc_offset..(enc_offset + key_len)].to_vec();
-                let enc_nonce = okm[(enc_offset + key_len)..(enc_offset + key_len + nonce_len)].to_vec();
+                let enc_nonce =
+                    okm[(enc_offset + key_len)..(enc_offset + key_len + nonce_len)].to_vec();
                 let dec_key = okm[dec_offset..(dec_offset + key_len)].to_vec();
-                let dec_nonce = okm[(dec_offset + key_len)..(dec_offset + key_len + nonce_len)].to_vec();
+                let dec_nonce =
+                    okm[(dec_offset + key_len)..(dec_offset + key_len + nonce_len)].to_vec();
 
                 (enc_key, enc_nonce, dec_key, dec_nonce)
             }
@@ -181,8 +206,18 @@ where
                 let mut hasher = Sha3_256::new();
                 hasher.update(&profile_message.session_id);
                 hasher.update(profile_message.auth_type.bits().to_le_bytes());
-                hasher.update(profile_message.key_exchange_algorithm_type.bits().to_le_bytes());
-                hasher.update(profile_message.key_derivation_algorithm_type.bits().to_le_bytes());
+                hasher.update(
+                    profile_message
+                        .key_exchange_algorithm_type
+                        .bits()
+                        .to_le_bytes(),
+                );
+                hasher.update(
+                    profile_message
+                        .key_derivation_algorithm_type
+                        .bits()
+                        .to_le_bytes(),
+                );
                 hasher.update(profile_message.cipher_algorithm_type.bits().to_le_bytes());
                 hasher.update(profile_message.hash_algorithm_type.bits().to_le_bytes());
                 hasher.update(agreement_public_key.created_time.timestamp().to_be_bytes());

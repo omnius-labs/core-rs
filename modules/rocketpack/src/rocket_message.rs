@@ -52,7 +52,9 @@ mod tests {
         where
             Self: Sized,
         {
-            let value = reader.get_i32().map_err(|_| anyhow::anyhow!("invalid typ"))?;
+            let value = reader
+                .get_i32()
+                .map_err(|_| anyhow::anyhow!("invalid typ"))?;
 
             Ok(Self { value })
         }
