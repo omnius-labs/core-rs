@@ -40,7 +40,12 @@ where
     T: AsyncRead + Send + Unpin,
 {
     async fn recv(&mut self) -> anyhow::Result<Bytes> {
-        let buffer = self.framed.next().await.ok_or_else(|| anyhow::anyhow!("Stream ended"))??.freeze();
+        let buffer = self
+            .framed
+            .next()
+            .await
+            .ok_or_else(|| anyhow::anyhow!("Stream ended"))??
+            .freeze();
         Ok(buffer)
     }
 }
