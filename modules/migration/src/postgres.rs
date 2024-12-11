@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use chrono::NaiveDateTime;
+use tracing::info;
 
 pub struct PostgresMigrator {
     client: tokio_postgres::Client,
@@ -128,6 +129,7 @@ SELECT file_name, executed_at FROM _migrations
             self.client.batch_execute(&f.queries).await?;
             self.insert_migration_history(&f.file_name, &f.queries)
                 .await?;
+            info!({ f.file_name }, "processed migration file")
         }
 
         Ok(())
