@@ -52,7 +52,8 @@ impl S3Client for S3ClientImpl {
             .bucket(self.bucket.as_str())
             .key(key)
             .set_response_content_disposition(Some(format!(
-                "attachment; filename*=UTF-8''\"{encoded_file_name}\""
+                "attachment; filename=\"{}\"; filename*=UTF-8''{}",
+                file_name, encoded_file_name
             )))
             .presigned(presigning_config)
             .await?;
