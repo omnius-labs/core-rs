@@ -53,7 +53,7 @@ impl S3Client for S3ClientImpl {
             .key(key)
             .set_response_content_disposition(Some(format!(
                 "attachment; filename=\"{}\"; filename*=UTF-8''{}",
-                file_name, encoded_file_name
+                encoded_file_name, encoded_file_name
             )))
             .presigned(presigning_config)
             .await?;
