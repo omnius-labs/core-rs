@@ -11,6 +11,17 @@ impl<'a> RocketMessageReader<'a> {
         RocketMessageReader { reader }
     }
 
+    pub fn get_vec8(&mut self) -> Result<Vec<u8>, super::RocketMessageError> {
+        let length = self.get_u32()?;
+        if length == 0 {
+            return Ok(Vec::new());
+        }
+
+        let mut result = vec![0u8; length as usize];
+        self.reader.copy_to_slice(&mut result);
+        Ok(result)
+    }
+
     pub fn get_bytes(&mut self, limit: usize) -> Result<Bytes, super::RocketMessageError> {
         let length = self.get_u32()?;
         if length > limit as u32 {
@@ -22,7 +33,7 @@ impl<'a> RocketMessageReader<'a> {
         }
 
         if self.reader.remaining() < length as usize {
-            return Err(super::RocketMessageError::UnexpectedEndOfInput);
+            return Err(super::RocketMessageError::EndOfInput);
         }
 
         let mut result = vec![0u8; length as usize];
@@ -41,7 +52,7 @@ impl<'a> RocketMessageReader<'a> {
         }
 
         if self.reader.remaining() < length as usize {
-            return Err(super::RocketMessageError::UnexpectedEndOfInput);
+            return Err(super::RocketMessageError::EndOfInput);
         }
 
         let mut result = vec![0u8; length as usize];
@@ -101,7 +112,7 @@ impl<'a> RocketMessageReader<'a> {
         const SIZE: usize = 4;
 
         if self.reader.remaining() < SIZE {
-            return Err(super::RocketMessageError::UnexpectedEndOfInput);
+            return Err(super::RocketMessageError::EndOfInput);
         }
 
         let mut buffer = [0u8; SIZE];
@@ -113,11 +124,45 @@ impl<'a> RocketMessageReader<'a> {
         const SIZE: usize = 8;
 
         if self.reader.remaining() < SIZE {
-            return Err(super::RocketMessageError::UnexpectedEndOfInput);
+            return Err(super::RocketMessageError::EndOfInput);
         }
 
         let mut buffer = [0u8; SIZE];
         self.reader.copy_to_slice(&mut buffer);
         Ok(f64::from_le_bytes(buffer))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use testresult::TestResult;
+
+    use crate::RocketMessageError;
+
+    use super::*;
+
+    #[test]
+    fn get_bytes_err_too_large_test() -> TestResult {
+        let mut bytes = Bytes::from(hex::decode("02")?);
+        let mut reader = RocketMessageReader::new(&mut bytes);
+
+        assert!(reader
+            .get_bytes(1)
+            .is_err_and(|x| x == RocketMessageError::TooLarge));
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_bytes_err_end_of_input_test() -> TestResult {
+        let mut bytes = Bytes::from(hex::decode("01")?);
+        let mut reader = RocketMessageReader::new(&mut bytes);
+
+        assert!(reader
+            .get_bytes(1)
+            .is_err_and(|x| x == RocketMessageError::EndOfInput));
+
+        Ok(())
     }
 }

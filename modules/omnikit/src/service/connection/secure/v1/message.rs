@@ -170,12 +170,12 @@ pub(crate) struct ProfileMessage {
 
 impl RocketMessage for ProfileMessage {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-        writer.write_bytes(&value.session_id);
-        writer.write_str(value.auth_type.to_string().as_str());
-        writer.write_str(value.key_exchange_algorithm_type.to_string().as_str());
-        writer.write_str(value.key_derivation_algorithm_type.to_string().as_str());
-        writer.write_str(value.cipher_algorithm_type.to_string().as_str());
-        writer.write_str(value.hash_algorithm_type.to_string().as_str());
+        writer.put_bytes(&value.session_id);
+        writer.put_str(value.auth_type.to_string().as_str());
+        writer.put_str(value.key_exchange_algorithm_type.to_string().as_str());
+        writer.put_str(value.key_derivation_algorithm_type.to_string().as_str());
+        writer.put_str(value.cipher_algorithm_type.to_string().as_str());
+        writer.put_str(value.hash_algorithm_type.to_string().as_str());
 
         Ok(())
     }

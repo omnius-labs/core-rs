@@ -108,10 +108,10 @@ impl OmniAgreement {
 
 impl RocketMessage for OmniAgreement {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-        writer.write_timestamp64(value.created_time.into());
-        writer.write_str(value.algorithm_type.to_string().as_str());
-        writer.write_bytes(&value.secret_key);
-        writer.write_bytes(&value.public_key);
+        writer.put_timestamp64(value.created_time.into());
+        writer.put_str(value.algorithm_type.to_string().as_str());
+        writer.put_bytes(&value.secret_key);
+        writer.put_bytes(&value.public_key);
 
         Ok(())
     }
@@ -156,9 +156,9 @@ pub struct OmniAgreementPublicKey {
 
 impl RocketMessage for OmniAgreementPublicKey {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-        writer.write_timestamp64(value.created_time.into());
-        writer.write_str(value.algorithm_type.to_string().as_str());
-        writer.write_bytes(&value.public_key);
+        writer.put_timestamp64(value.created_time.into());
+        writer.put_str(value.algorithm_type.to_string().as_str());
+        writer.put_bytes(&value.public_key);
 
         Ok(())
     }
@@ -198,9 +198,9 @@ pub struct OmniAgreementPrivateKey {
 
 impl RocketMessage for OmniAgreementPrivateKey {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-        writer.write_timestamp64(value.created_time.into());
-        writer.write_str(value.algorithm_type.to_string().as_str());
-        writer.write_bytes(&value.secret_key);
+        writer.put_timestamp64(value.created_time.into());
+        writer.put_str(value.algorithm_type.to_string().as_str());
+        writer.put_bytes(&value.secret_key);
 
         Ok(())
     }

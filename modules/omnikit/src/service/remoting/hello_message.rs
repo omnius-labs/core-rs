@@ -39,8 +39,8 @@ pub struct HelloMessage {
 
 impl RocketMessage for HelloMessage {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-        writer.write_str(&value.version.to_string());
-        writer.write_u32(value.function_id);
+        writer.put_str(&value.version.to_string());
+        writer.put_u32(value.function_id);
 
         Ok(())
     }
