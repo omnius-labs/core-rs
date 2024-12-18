@@ -67,8 +67,8 @@ impl FromStr for OmniHash {
 
 impl RocketMessage for OmniHash {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-        writer.write_u32(value.typ.bits());
-        writer.write_bytes(&value.value);
+        writer.put_u32(value.typ.bits());
+        writer.put_bytes(&value.value);
 
         Ok(())
     }

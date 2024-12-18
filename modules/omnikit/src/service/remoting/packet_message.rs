@@ -18,15 +18,15 @@ where
 {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> anyhow::Result<()> {
         if let PacketMessage::Unknown = value {
-            writer.write_u8(0);
+            writer.put_u8(0);
         } else if let PacketMessage::Continue(value) = value {
-            writer.write_u8(1);
+            writer.put_u8(1);
             T::pack(writer, value, depth + 1)?;
         } else if let PacketMessage::Completed(value) = value {
-            writer.write_u8(2);
+            writer.put_u8(2);
             T::pack(writer, value, depth + 1)?;
         } else if let PacketMessage::Error(value) = value {
-            writer.write_u8(3);
+            writer.put_u8(3);
             E::pack(writer, value, depth + 1)?;
         }
 

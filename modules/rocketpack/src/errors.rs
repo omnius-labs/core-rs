@@ -3,7 +3,7 @@ use std::fmt;
 #[derive(Debug, PartialEq, Eq)]
 pub enum RocketMessageError {
     VarintError(VarintError),
-    UnexpectedEndOfInput,
+    EndOfInput,
     InvalidUtf8,
     TooLarge,
 }
@@ -18,9 +18,9 @@ impl std::error::Error for RocketMessageError {}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum VarintError {
-    UnexpectedHeader,
-    UnexpectedEndOfInput,
-    UnexpectedTooSmallBody,
+    InvalidHeader,
+    EndOfInput,
+    TooSmallBody,
 }
 
 impl fmt::Display for VarintError {

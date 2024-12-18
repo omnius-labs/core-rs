@@ -53,7 +53,7 @@ mod tests {
 
     impl RocketMessage for TestMessage {
         fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
-            writer.write_i32(value.value);
+            writer.put_i32(value.value);
 
             Ok(())
         }
