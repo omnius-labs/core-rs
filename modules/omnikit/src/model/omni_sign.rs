@@ -106,8 +106,7 @@ impl RocketMessage for OmniSigner {
             .parse()?;
         let key = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid key"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid key"))?;
 
         Ok(Self { typ, name, key })
     }
@@ -189,12 +188,10 @@ impl RocketMessage for OmniCert {
             .parse()?;
         let public_key = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid public_key"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid public_key"))?;
         let value = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid value"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid value"))?;
 
         Ok(Self {
             typ,

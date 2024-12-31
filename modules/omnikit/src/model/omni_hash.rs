@@ -79,7 +79,7 @@ impl RocketMessage for OmniHash {
     {
         let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?)
             .ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
-        let value = reader.get_bytes(1024)?.to_vec();
+        let value = reader.get_bytes(1024)?;
 
         Ok(Self { typ, value })
     }

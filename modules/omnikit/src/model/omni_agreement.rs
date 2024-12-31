@@ -131,12 +131,10 @@ impl RocketMessage for OmniAgreement {
             .parse()?;
         let secret_key = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
         let public_key = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
 
         Ok(Self {
             created_time,
@@ -178,8 +176,7 @@ impl RocketMessage for OmniAgreementPublicKey {
             .parse()?;
         let public_key = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
 
         Ok(Self {
             created_time,
@@ -220,8 +217,7 @@ impl RocketMessage for OmniAgreementPrivateKey {
             .parse()?;
         let secret_key = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
 
         Ok(Self {
             created_time,

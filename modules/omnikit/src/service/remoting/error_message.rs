@@ -1,10 +1,8 @@
-use core::fmt;
-
-use serde::{Deserialize, Serialize};
+use std::fmt;
 
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniRemotingDefaultErrorMessage {
     pub typ: String,
     pub message: String,

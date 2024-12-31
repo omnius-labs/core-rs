@@ -186,8 +186,7 @@ impl RocketMessage for ProfileMessage {
     {
         let session_id = reader
             .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid session_id"))?
-            .to_vec();
+            .map_err(|_| anyhow::anyhow!("invalid session_id"))?;
         let auth_type: AuthType = reader
             .get_string(1024)
             .map_err(|_| anyhow::anyhow!("invalid auth_type"))?

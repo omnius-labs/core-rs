@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use tokio::{
     io::{AsyncRead, AsyncWrite},
@@ -18,7 +18,7 @@ pub struct OmniRemotingCaller<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
@@ -30,7 +30,7 @@ impl<R, W, TErrorMessage> OmniRemotingCaller<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + fmt::Display + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize, function_id: u32) -> Self {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(

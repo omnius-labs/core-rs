@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::{fmt, future::Future, sync::Arc};
 
 use parking_lot::Mutex;
 use tokio::{
@@ -19,7 +19,7 @@ pub struct OmniRemotingListener<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
@@ -31,7 +31,7 @@ impl<R, W, TErrorMessage> OmniRemotingListener<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + fmt::Display + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize) -> Self {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(
