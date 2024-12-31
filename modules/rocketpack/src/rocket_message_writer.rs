@@ -11,14 +11,14 @@ impl<'a> RocketMessageWriter<'a> {
         Self { writer }
     }
 
-    pub fn put_str(&mut self, value: &str) {
-        Varint::put_u32(value.len() as u32, self.writer);
-        self.writer.put_slice(value.as_bytes());
-    }
-
     pub fn put_bytes(&mut self, value: &[u8]) {
         Varint::put_u32(value.len() as u32, self.writer);
         self.writer.put_slice(value);
+    }
+
+    pub fn put_str(&mut self, value: &str) {
+        Varint::put_u32(value.len() as u32, self.writer);
+        self.writer.put_slice(value.as_bytes());
     }
 
     pub fn put_timestamp64(&mut self, value: Timestamp64) {

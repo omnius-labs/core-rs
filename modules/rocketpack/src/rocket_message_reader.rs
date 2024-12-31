@@ -11,10 +11,18 @@ impl<'a> RocketMessageReader<'a> {
         RocketMessageReader { reader }
     }
 
-    pub fn get_vec8(&mut self) -> Result<Vec<u8>, super::RocketMessageError> {
+    pub fn get_bytes(&mut self, limit: usize) -> Result<Vec<u8>, super::RocketMessageError> {
         let length = self.get_u32()?;
+        if length > limit as u32 {
+            return Err(super::RocketMessageError::TooLarge);
+        }
+
         if length == 0 {
             return Ok(Vec::new());
+        }
+
+        if self.reader.remaining() < length as usize {
+            return Err(super::RocketMessageError::EndOfInput);
         }
 
         let mut result = vec![0u8; length as usize];
@@ -22,41 +30,8 @@ impl<'a> RocketMessageReader<'a> {
         Ok(result)
     }
 
-    pub fn get_bytes(&mut self, limit: usize) -> Result<Bytes, super::RocketMessageError> {
-        let length = self.get_u32()?;
-        if length > limit as u32 {
-            return Err(super::RocketMessageError::TooLarge);
-        }
-
-        if length == 0 {
-            return Ok(Bytes::new());
-        }
-
-        if self.reader.remaining() < length as usize {
-            return Err(super::RocketMessageError::EndOfInput);
-        }
-
-        let mut result = vec![0u8; length as usize];
-        self.reader.copy_to_slice(&mut result);
-        Ok(Bytes::from(result))
-    }
-
     pub fn get_string(&mut self, limit: usize) -> Result<String, super::RocketMessageError> {
-        let length = self.get_u32()?;
-        if length > limit as u32 {
-            return Err(super::RocketMessageError::TooLarge);
-        }
-
-        if length == 0 {
-            return Ok(String::new());
-        }
-
-        if self.reader.remaining() < length as usize {
-            return Err(super::RocketMessageError::EndOfInput);
-        }
-
-        let mut result = vec![0u8; length as usize];
-        self.reader.copy_to_slice(&mut result);
+        let result = self.get_bytes(limit)?;
         String::from_utf8(result).map_err(|_| super::RocketMessageError::InvalidUtf8)
     }
 
