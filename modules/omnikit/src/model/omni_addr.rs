@@ -4,10 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use nom::{
-    branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*,
-    IResult, Parser,
-};
+use nom::{branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*, IResult, Parser};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OmniAddr {
@@ -41,15 +38,13 @@ impl OmniAddr {
     }
 
     pub fn parse_tcp_ip(&self) -> anyhow::Result<SocketAddr> {
-        let (_, element) =
-            StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
+        let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
         let addr = ElementParser::parse_tcp_ip(&element)?;
         Ok(addr)
     }
 
     pub fn parse_tcp_host(&self) -> anyhow::Result<(String, u16)> {
-        let (_, element) =
-            StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
+        let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
         let (ip, port) = ElementParser::parse_tcp_host(&element)?;
         Ok((ip, port))
     }
@@ -146,9 +141,7 @@ impl ElementParser {
                             Ok(addr) => {
                                 return Ok(IpAddr::V4(addr));
                             }
-                            Err(e) => {
-                                return Err(anyhow::anyhow!("Failed to parse ip4 element: {}", e))
-                            }
+                            Err(e) => return Err(anyhow::anyhow!("Failed to parse ip4 element: {}", e)),
                         }
                     }
                 }
@@ -167,9 +160,7 @@ impl ElementParser {
                             Ok(addr) => {
                                 return Ok(IpAddr::V6(addr));
                             }
-                            Err(e) => {
-                                return Err(anyhow::anyhow!("Failed to parse ip6 element: {}", e))
-                            }
+                            Err(e) => return Err(anyhow::anyhow!("Failed to parse ip6 element: {}", e)),
                         }
                     }
                 }
@@ -210,10 +201,8 @@ impl StringParser {
     pub fn quoted_string_literal_parser<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, String> {
         move |input: &'a str| {
             let (input, _) = char('"')(input)?;
-            let (input, fragments) = many0(
-                map(preceded(char('\\'), anychar), |c| format!("\\{}", c))
-                    .or(map(is_not("\\\""), |s: &str| s.to_string())),
-            )(input)?;
+            let (input, fragments) =
+                many0(map(preceded(char('\\'), anychar), |c| format!("\\{}", c)).or(map(is_not("\\\""), |s: &str| s.to_string())))(input)?;
             let (input, _) = char('"')(input)?;
             let result: String = fragments.concat().replace("\\\"", "\"");
             Ok((input, result))
@@ -224,10 +213,7 @@ impl StringParser {
         move |input: &'a str| {
             let (input, text) = delimited(
                 multispace0,
-                alt((
-                    Self::quoted_string_literal_parser(),
-                    Self::string_literal_parser(),
-                )),
+                alt((Self::quoted_string_literal_parser(), Self::string_literal_parser())),
                 multispace0,
             )(input)?;
             let (input, _) = opt(delimited(multispace0, char(','), multispace0))(input)?;
@@ -238,15 +224,11 @@ impl StringParser {
 
     pub fn function_element_parser<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Element> {
         move |input: &'a str| {
-            let (input, name) =
-                delimited(multispace0, Self::string_literal_parser(), multispace0)(input)?;
+            let (input, name) = delimited(multispace0, Self::string_literal_parser(), multispace0)(input)?;
             let (input, _) = delimited(multispace0, char('('), multispace0)(input)?;
             let (input, args) = many0(delimited(
                 multispace0,
-                alt((
-                    Self::function_element_parser(),
-                    Self::constant_element_parser(),
-                )),
+                alt((Self::function_element_parser(), Self::constant_element_parser())),
                 multispace0,
             ))(input)?;
             let (input, _) = delimited(multispace0, char(')'), multispace0)(input)?;
@@ -292,13 +274,7 @@ mod tests {
         let (_, res) = StringParser::function_element_parser()("ghi(a,b)")?;
         if let Element::Function(f) = res {
             assert_eq!(f.name, "ghi");
-            assert_eq!(
-                f.args,
-                vec![
-                    Element::Constant("a".to_string()),
-                    Element::Constant("b".to_string())
-                ]
-            );
+            assert_eq!(f.args, vec![Element::Constant("a".to_string()), Element::Constant("b".to_string())]);
         }
 
         Ok(())

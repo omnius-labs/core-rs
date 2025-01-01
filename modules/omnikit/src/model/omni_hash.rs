@@ -32,12 +32,7 @@ pub struct OmniHash {
 
 impl fmt::Display for OmniHash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}:{}",
-            self.typ,
-            OmniBase::encode_by_base64_url(&self.value)
-        )
+        write!(f, "{}:{}", self.typ, OmniBase::encode_by_base64_url(&self.value))
     }
 }
 
@@ -47,12 +42,8 @@ impl FromStr for OmniHash {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut iter = s.split(':');
 
-        let typ = iter
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
-        let value = iter
-            .next()
-            .ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
+        let typ = iter.next().ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
+        let value = iter.next().ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
 
         let typ = match typ {
             "Sha3_256" => OmniHashAlgorithmType::Sha3_256,
@@ -77,8 +68,7 @@ impl RocketMessage for OmniHash {
     where
         Self: Sized,
     {
-        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?)
-            .ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
+        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?).ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
         let value = reader.get_bytes(1024)?;
 
         Ok(Self { typ, value })

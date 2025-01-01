@@ -16,9 +16,7 @@ impl Timestamp64 {
 
 impl From<DateTime<Utc>> for Timestamp64 {
     fn from(t: DateTime<Utc>) -> Timestamp64 {
-        Timestamp64 {
-            seconds: t.timestamp(),
-        }
+        Timestamp64 { seconds: t.timestamp() }
     }
 }
 
@@ -54,9 +52,7 @@ mod tests {
 
     #[test]
     fn timestamp64_test() {
-        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")
-            .unwrap()
-            .into();
+        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into();
 
         let ts1 = Timestamp64::new(946684800);
         assert_eq!(ts1.seconds, 946684800);
@@ -69,12 +65,8 @@ mod tests {
 
     #[test]
     fn timestamp96_test() {
-        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")
-            .unwrap()
-            .into();
-        let t = t
-            .checked_add_signed(Duration::nanoseconds(123456789))
-            .unwrap();
+        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into();
+        let t = t.checked_add_signed(Duration::nanoseconds(123456789)).unwrap();
 
         let ts1 = Timestamp96::new(946684800, 123456789);
         assert_eq!(ts1.seconds, 946684800);

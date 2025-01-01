@@ -7,6 +7,7 @@ use tokio_util::bytes::Bytes;
 #[async_trait]
 pub trait FramedSend {
     async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()>;
+    async fn close(&mut self) -> anyhow::Result<()>;
 }
 
 pub struct FramedSender<T>
@@ -41,14 +42,14 @@ where
     T: AsyncWrite + Send + Unpin,
 {
     async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()> {
-        self.framed
-            .send(buffer)
-            .await
-            .with_context(|| "Failed to send")?;
-        self.framed
-            .flush()
-            .await
-            .with_context(|| "Failed to flush")?;
+        self.framed.send(buffer).await.with_context(|| "Failed to send")?;
+        self.framed.flush().await.with_context(|| "Failed to flush")?;
+        Ok(())
+    }
+
+    async fn close(&mut self) -> anyhow::Result<()> {
+        self.framed.flush().await.with_context(|| "Failed to flush")?;
+        self.framed.close().await.with_context(|| "Failed to close")?;
         Ok(())
     }
 }

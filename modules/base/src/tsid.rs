@@ -30,11 +30,7 @@ where
     TSystemClock: Clock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
 {
-    pub fn new(
-        clock: TSystemClock,
-        random_bytes_provider: TRandomBytesProvider,
-        random_byte_count: usize,
-    ) -> Self {
+    pub fn new(clock: TSystemClock, random_bytes_provider: TRandomBytesProvider, random_byte_count: usize) -> Self {
         Self {
             clock,
             random_bytes_provider,
@@ -43,8 +39,7 @@ where
     }
 }
 
-impl<TSystemClock, TRandomBytesProvider> TsidProvider
-    for TsidProviderImpl<TSystemClock, TRandomBytesProvider>
+impl<TSystemClock, TRandomBytesProvider> TsidProvider for TsidProviderImpl<TSystemClock, TRandomBytesProvider>
 where
     TSystemClock: Clock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
@@ -52,10 +47,7 @@ where
     fn gen(&mut self) -> Tsid {
         let timestamp = self.clock.now();
         let random_bytes = self.random_bytes_provider.get_bytes(self.random_byte_count);
-        Tsid {
-            timestamp,
-            random_bytes,
-        }
+        Tsid { timestamp, random_bytes }
     }
 }
 

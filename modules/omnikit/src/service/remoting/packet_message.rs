@@ -37,9 +37,7 @@ where
     where
         Self: Sized,
     {
-        let typ = reader
-            .get_u8()
-            .map_err(|_| anyhow::anyhow!("invalid type"))?;
+        let typ = reader.get_u8().map_err(|_| anyhow::anyhow!("invalid type"))?;
 
         if typ == 0 {
             Ok(PacketMessage::Unknown)

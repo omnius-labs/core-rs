@@ -122,9 +122,7 @@ mod tests {
         let mut bytes = Bytes::from(hex::decode("02")?);
         let mut reader = RocketMessageReader::new(&mut bytes);
 
-        assert!(reader
-            .get_bytes(1)
-            .is_err_and(|x| x == RocketMessageError::TooLarge));
+        assert!(reader.get_bytes(1).is_err_and(|x| x == RocketMessageError::TooLarge));
 
         Ok(())
     }
@@ -134,9 +132,7 @@ mod tests {
         let mut bytes = Bytes::from(hex::decode("01")?);
         let mut reader = RocketMessageReader::new(&mut bytes);
 
-        assert!(reader
-            .get_bytes(1)
-            .is_err_and(|x| x == RocketMessageError::EndOfInput));
+        assert!(reader.get_bytes(1).is_err_and(|x| x == RocketMessageError::EndOfInput));
 
         Ok(())
     }

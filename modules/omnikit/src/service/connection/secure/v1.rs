@@ -32,20 +32,14 @@ mod tests {
     };
     use tokio_util::bytes::Bytes;
 
-    use crate::service::connection::codec::{
-        FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender,
-    };
+    use crate::service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
 
     use super::*;
 
     #[ignore]
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let clock = Arc::new(FakeClockUtc::new(
-            DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")
-                .unwrap()
-                .into(),
-        ));
+        let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into()));
         let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
 
         let addr = "127.0.0.1:50001";
@@ -95,11 +89,7 @@ mod tests {
     #[tokio::test]
     async fn server_echo_test() -> TestResult {
         loop {
-            let clock = Arc::new(FakeClockUtc::new(
-                DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")
-                    .unwrap()
-                    .into(),
-            ));
+            let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into()));
             let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
 
             let addr = "0.0.0.0:50000";
@@ -123,10 +113,7 @@ mod tests {
                 .new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);
 
-            let buffer = framed
-                .next()
-                .await
-                .ok_or_else(|| anyhow::anyhow!("Stream ended"))??;
+            let buffer = framed.next().await.ok_or_else(|| anyhow::anyhow!("Stream ended"))??;
 
             let s = str::from_utf8(buffer.as_ref())?.to_string();
             println!("{}", s);
