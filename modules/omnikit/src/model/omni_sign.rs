@@ -2,9 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use bitflags::bitflags;
-use ed25519_dalek::pkcs8::{
-    DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _,
-};
+use ed25519_dalek::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _};
 use ed25519_dalek::Signer as _;
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use rand_core::OsRng;
@@ -96,17 +94,9 @@ impl RocketMessage for OmniSigner {
     where
         Self: Sized,
     {
-        let typ: OmniSignType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid typ"))?
-            .parse()?;
-        let name = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid name"))?
-            .parse()?;
-        let key = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid key"))?;
+        let typ: OmniSignType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?.parse()?;
+        let name = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid name"))?.parse()?;
+        let key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid key"))?;
 
         Ok(Self { typ, name, key })
     }
@@ -116,13 +106,8 @@ impl fmt::Display for OmniSigner {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
-                let signing_key =
-                    ed25519_dalek::SigningKey::from_pkcs8_der(&self.key).map_err(|_| fmt::Error)?;
-                let public_key = signing_key
-                    .verifying_key()
-                    .to_public_key_der()
-                    .map_err(|_| fmt::Error)?
-                    .into_vec();
+                let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(&self.key).map_err(|_| fmt::Error)?;
+                let public_key = signing_key.verifying_key().to_public_key_der().map_err(|_| fmt::Error)?.into_vec();
 
                 let mut hasher = Sha3_256::new();
                 hasher.update(public_key);
@@ -147,14 +132,10 @@ impl OmniCert {
     pub fn verify(&self, msg: &[u8]) -> anyhow::Result<()> {
         match self.typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
-                let public_key =
-                    ed25519_dalek::VerifyingKey::from_public_key_der(&self.public_key)?;
+                let public_key = ed25519_dalek::VerifyingKey::from_public_key_der(&self.public_key)?;
 
-                let signature: [u8; ed25519_dalek::SIGNATURE_LENGTH] = self
-                    .value
-                    .clone()
-                    .try_into()
-                    .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
+                let signature: [u8; ed25519_dalek::SIGNATURE_LENGTH] =
+                    self.value.clone().try_into().map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
                 let signature = ed25519_dalek::Signature::from_bytes(&signature);
 
                 Ok(public_key.verify_strict(msg, &signature)?)
@@ -178,20 +159,10 @@ impl RocketMessage for OmniCert {
     where
         Self: Sized,
     {
-        let typ: OmniSignType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid typ"))?
-            .parse()?;
-        let name = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid name"))?
-            .parse()?;
-        let public_key = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid public_key"))?;
-        let value = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid value"))?;
+        let typ: OmniSignType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?.parse()?;
+        let name = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid name"))?.parse()?;
+        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid public_key"))?;
+        let value = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid value"))?;
 
         Ok(Self {
             typ,

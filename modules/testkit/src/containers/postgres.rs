@@ -1,6 +1,4 @@
-use testcontainers::{
-    core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt as _,
-};
+use testcontainers::{core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt as _};
 
 pub struct PostgresContainer {
     #[allow(unused)]
@@ -16,9 +14,7 @@ impl PostgresContainer {
         let password = "postgres-password-test";
 
         let container = GenericImage::new("postgres", tag)
-            .with_wait_for(WaitFor::message_on_stderr(
-                "database system is ready to accept connections",
-            ))
+            .with_wait_for(WaitFor::message_on_stderr("database system is ready to accept connections"))
             .with_env_var("POSTGRES_DB", db)
             .with_env_var("POSTGRES_USER", user)
             .with_env_var("POSTGRES_PASSWORD", password)

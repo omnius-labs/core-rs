@@ -27,19 +27,11 @@ mod tests {
         let listener = TcpListener::bind(addr).await?;
         let (reader, writer) = listener.accept().await?.0.into_split();
 
-        let mut listener = OmniRemotingListener::<_, _, OmniRemotingDefaultErrorMessage>::new(
-            reader,
-            writer,
-            1024 * 1024,
-        );
+        let mut listener = OmniRemotingListener::<_, _, OmniRemotingDefaultErrorMessage>::new(reader, writer, 1024 * 1024);
         listener.handshake().await?;
 
-        async fn callback(
-            param: TestMessage,
-        ) -> Result<TestMessage, OmniRemotingDefaultErrorMessage> {
-            Ok(TestMessage {
-                value: param.value + 1,
-            })
+        async fn callback(param: TestMessage) -> Result<TestMessage, OmniRemotingDefaultErrorMessage> {
+            Ok(TestMessage { value: param.value + 1 })
         }
         listener.listen(callback).await?;
 
@@ -62,9 +54,7 @@ mod tests {
         where
             Self: Sized,
         {
-            let value = reader
-                .get_i32()
-                .map_err(|_| anyhow::anyhow!("invalid typ"))?;
+            let value = reader.get_i32().map_err(|_| anyhow::anyhow!("invalid typ"))?;
 
             Ok(Self { value })
         }

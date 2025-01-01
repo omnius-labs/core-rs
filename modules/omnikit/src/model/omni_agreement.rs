@@ -48,10 +48,7 @@ pub struct OmniAgreement {
 }
 
 impl OmniAgreement {
-    pub fn new(
-        created_time: DateTime<Utc>,
-        algorithm_type: OmniAgreementAlgorithmType,
-    ) -> anyhow::Result<Self> {
+    pub fn new(created_time: DateTime<Utc>, algorithm_type: OmniAgreementAlgorithmType) -> anyhow::Result<Self> {
         let secret_key = x25519_dalek::StaticSecret::random_from_rng(OsRng);
         let public_key = x25519_dalek::PublicKey::from(&secret_key);
 
@@ -82,10 +79,7 @@ impl OmniAgreement {
         }
     }
 
-    pub fn gen_secret(
-        private_key: &OmniAgreementPrivateKey,
-        public_key: &OmniAgreementPublicKey,
-    ) -> anyhow::Result<Vec<u8>> {
+    pub fn gen_secret(private_key: &OmniAgreementPrivateKey, public_key: &OmniAgreementPublicKey) -> anyhow::Result<Vec<u8>> {
         let secret_key: [u8; 32] = private_key
             .secret_key
             .clone()
@@ -125,16 +119,9 @@ impl RocketMessage for OmniAgreement {
             .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
             .to_date_time()
             .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
-        let algorithm_type: OmniAgreementAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?
-            .parse()?;
-        let secret_key = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
-        let public_key = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
+        let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
 
         Ok(Self {
             created_time,
@@ -170,13 +157,8 @@ impl RocketMessage for OmniAgreementPublicKey {
             .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
             .to_date_time()
             .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
-        let algorithm_type: OmniAgreementAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?
-            .parse()?;
-        let public_key = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
+        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
 
         Ok(Self {
             created_time,
@@ -211,13 +193,8 @@ impl RocketMessage for OmniAgreementPrivateKey {
             .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
             .to_date_time()
             .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
-        let algorithm_type: OmniAgreementAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?
-            .parse()?;
-        let secret_key = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
+        let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
 
         Ok(Self {
             created_time,
@@ -235,10 +212,8 @@ mod tests {
 
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let agreement1 =
-            OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
-        let agreement2 =
-            OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
+        let agreement1 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
+        let agreement2 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
 
         let public_key1 = agreement1.gen_agreement_public_key();
         let private_key1 = agreement1.gen_agreement_private_key();

@@ -184,13 +184,8 @@ impl RocketMessage for ProfileMessage {
     where
         Self: Sized,
     {
-        let session_id = reader
-            .get_bytes(1024)
-            .map_err(|_| anyhow::anyhow!("invalid session_id"))?;
-        let auth_type: AuthType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid auth_type"))?
-            .parse()?;
+        let session_id = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid session_id"))?;
+        let auth_type: AuthType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid auth_type"))?.parse()?;
         let key_exchange_algorithm_type: KeyExchangeAlgorithmType = reader
             .get_string(1024)
             .map_err(|_| anyhow::anyhow!("invalid key_exchange_algorithm_type"))?
