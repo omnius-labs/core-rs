@@ -11,12 +11,7 @@ pub struct PostgresMigrator {
 }
 
 impl PostgresMigrator {
-    pub async fn new(
-        url: &str,
-        path: &str,
-        username: &str,
-        description: &str,
-    ) -> anyhow::Result<PostgresMigrator> {
+    pub async fn new(url: &str, path: &str, username: &str, description: &str) -> anyhow::Result<PostgresMigrator> {
         // Get DB client and connection
         let (client, connection) = tokio_postgres::connect(url, tokio_postgres::NoTls).await?;
 
@@ -42,10 +37,7 @@ impl PostgresMigrator {
         let ignore_set: HashSet<String> = histories.iter().map(|n| n.file_name.clone()).collect();
 
         let files: Vec<MigrationFile> = self.load_migration_files().await?;
-        let files: Vec<MigrationFile> = files
-            .into_iter()
-            .filter(|x| !ignore_set.contains(x.file_name.as_str()))
-            .collect();
+        let files: Vec<MigrationFile> = files.into_iter().filter(|x| !ignore_set.contains(x.file_name.as_str())).collect();
 
         if files.is_empty() {
             return Ok(());
@@ -92,10 +84,7 @@ CREATE TABLE IF NOT EXISTS _semaphores (
 
             let name: String = path.file_name().unwrap().to_str().unwrap().to_string();
             let queries: String = std::fs::read_to_string(path)?;
-            let result = MigrationFile {
-                file_name: name,
-                queries,
-            };
+            let result = MigrationFile { file_name: name, queries };
 
             results.push(result);
         }
@@ -127,8 +116,7 @@ SELECT file_name, executed_at FROM _migrations
     async fn execute_migration_queries(&self, files: Vec<MigrationFile>) -> anyhow::Result<()> {
         for f in files {
             self.client.batch_execute(&f.queries).await?;
-            self.insert_migration_history(&f.file_name, &f.queries)
-                .await?;
+            self.insert_migration_history(&f.file_name, &f.queries).await?;
             info!({ f.file_name }, "processed migration file")
         }
 
@@ -139,9 +127,7 @@ SELECT file_name, executed_at FROM _migrations
         let statement = "\
 INSERT INTO _migrations (file_name, queries) VALUES ($1, $2)
 ";
-        self.client
-            .execute(statement, &[&file_name, &queries])
-            .await?;
+        self.client.execute(statement, &[&file_name, &queries]).await?;
 
         Ok(())
     }
@@ -150,9 +136,7 @@ INSERT INTO _migrations (file_name, queries) VALUES ($1, $2)
         let query = "\
 INSERT INTO _semaphores (username, description) VALUES ($1, $2)
 ";
-        self.client
-            .execute(query, &[&self.username, &self.description])
-            .await?;
+        self.client.execute(query, &[&self.username, &self.description]).await?;
 
         Ok(())
     }

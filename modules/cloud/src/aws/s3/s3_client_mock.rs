@@ -49,49 +49,26 @@ pub struct PutObject {
 
 #[async_trait]
 impl S3Client for S3ClientMock {
-    async fn gen_get_presigned_uri(
-        &self,
-        key: &str,
-        start_time: DateTime<Utc>,
-        expires_in: Duration,
-        file_name: &str,
-    ) -> anyhow::Result<String> {
-        self.gen_get_presigned_uri_inputs
-            .lock()
-            .push(GenGetPresignedUriInput {
-                key: key.to_string(),
-                start_time,
-                expires_in,
-                file_name: file_name.to_string(),
-            });
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String> {
+        self.gen_get_presigned_uri_inputs.lock().push(GenGetPresignedUriInput {
+            key: key.to_string(),
+            start_time,
+            expires_in,
+            file_name: file_name.to_string(),
+        });
 
-        let output = self
-            .gen_get_presigned_uri_outputs
-            .lock()
-            .pop_front()
-            .unwrap_or_default();
+        let output = self.gen_get_presigned_uri_outputs.lock().pop_front().unwrap_or_default();
         Ok(output)
     }
 
-    async fn gen_put_presigned_uri(
-        &self,
-        key: &str,
-        start_time: DateTime<Utc>,
-        expires_in: Duration,
-    ) -> anyhow::Result<String> {
-        self.gen_put_presigned_uri_inputs
-            .lock()
-            .push(GenPutPresignedUriInput {
-                key: key.to_string(),
-                start_time,
-                expires_in,
-            });
+    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String> {
+        self.gen_put_presigned_uri_inputs.lock().push(GenPutPresignedUriInput {
+            key: key.to_string(),
+            start_time,
+            expires_in,
+        });
 
-        let output = self
-            .gen_put_presigned_uri_outputs
-            .lock()
-            .pop_front()
-            .unwrap_or_default();
+        let output = self.gen_put_presigned_uri_outputs.lock().pop_front().unwrap_or_default();
         Ok(output)
     }
 
