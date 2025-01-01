@@ -14,16 +14,9 @@ pub struct SecretReaderImpl {}
 impl SecretReader for SecretReaderImpl {
     async fn read_value(&self, secret_id: &str) -> anyhow::Result<String> {
         let client: GoogleApi<SecretManagerServiceClient<GoogleAuthMiddleware>> =
-            GoogleApi::from_function(
-                SecretManagerServiceClient::new,
-                "https://secretmanager.googleapis.com",
-                None,
-            )
-            .await?;
+            GoogleApi::from_function(SecretManagerServiceClient::new, "https://secretmanager.googleapis.com", None).await?;
 
-        let request = AccessSecretVersionRequest {
-            name: secret_id.to_string(),
-        };
+        let request = AccessSecretVersionRequest { name: secret_id.to_string() };
 
         let response = client.get().access_secret_version(request).await?;
 
