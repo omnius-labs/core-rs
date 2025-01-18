@@ -117,7 +117,7 @@ SELECT file_name, executed_at FROM _migrations
         for f in files {
             self.client.batch_execute(&f.queries).await?;
             self.insert_migration_history(&f.file_name, &f.queries).await?;
-            info!({ f.file_name }, "processed migration file")
+            info!(file_name = f.file_name, "processed migration file")
         }
 
         Ok(())
