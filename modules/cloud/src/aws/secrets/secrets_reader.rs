@@ -13,12 +13,7 @@ pub struct SecretsReaderImpl {
 #[async_trait]
 impl SecretsReader for SecretsReaderImpl {
     async fn read_value(&self, secret_id: &str) -> anyhow::Result<String> {
-        let output = self
-            .client
-            .get_secret_value()
-            .secret_id(secret_id)
-            .send()
-            .await?;
+        let output = self.client.get_secret_value().secret_id(secret_id).send().await?;
 
         let res = output.secret_string().ok_or_else(|| anyhow!("not found"))?;
         Ok(res.to_string())
