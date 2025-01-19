@@ -2,5 +2,6 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait Terminable {
-    async fn terminate(&self) -> anyhow::Result<()>;
+    type Result;
+    async fn terminate(&self) -> Self::Result;
 }
