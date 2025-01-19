@@ -2,6 +2,7 @@ use std::{fmt, str::FromStr};
 
 use bitflags::bitflags;
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
+use sha3::{Digest, Sha3_256};
 
 use crate::service::converter::OmniBase;
 
@@ -30,9 +31,27 @@ pub struct OmniHash {
     pub value: Vec<u8>,
 }
 
+impl OmniHash {
+    pub fn compute_hash(typ: OmniHashAlgorithmType, bytes: &[u8]) -> Self {
+        let mut hasher = Sha3_256::new();
+        hasher.update(bytes);
+        let value = hasher.finalize().to_vec();
+        Self { typ, value }
+    }
+}
+
 impl fmt::Display for OmniHash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}:{}", self.typ, OmniBase::encode_by_base64_url(&self.value))
+    }
+}
+
+impl Default for OmniHash {
+    fn default() -> Self {
+        Self {
+            typ: OmniHashAlgorithmType::None,
+            value: Vec::new(),
+        }
     }
 }
 
