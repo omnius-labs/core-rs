@@ -3,15 +3,15 @@ debug = 1
 
 [workspace]
 members = [
-    "modules/base",
-    "modules/cloud",
-    "modules/image",
-    "modules/migration",
-    "modules/omnikit",
-    "modules/rocketpack",
-    "modules/testkit",
+  "modules/base",
+  "modules/cloud",
+  "modules/image",
+  "modules/migration",
+  "modules/omnikit",
+  "modules/rocketpack",
+  "modules/testkit",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 edition = "2021"
@@ -22,7 +22,7 @@ omnius-core-base = { path = "./modules/base" }
 omnius-core-cloud = { path = "./modules/cloud", features = ["aws"] }
 omnius-core-image = { path = "./modules/image" }
 omnius-core-migration = { path = "./modules/migration", features = [
-    "postgres",
+  "postgres",
 ] }
 omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
@@ -35,7 +35,7 @@ aws-sdk-sqs = "1.45.0"
 aws-sdk-sesv2 = "1.49.0"
 
 gcloud-sdk = { version = "0.25.7", features = [
-    "google-cloud-secretmanager-v1",
+  "google-cloud-secretmanager-v1",
 ] }
 
 rand = "0.8.5"
@@ -57,11 +57,11 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 uuid = { version = "1.11.0", features = ["serde", "v4"] }
 sqlx = { version = "0.8.2", features = [
-    "postgres",
-    "chrono",
-    "json",
-    "macros",
-    "runtime-tokio-rustls",
+  "postgres",
+  "chrono",
+  "json",
+  "macros",
+  "runtime-tokio-rustls",
 ] }
 tower-http = { version = "0.6.1", features = ["cors"] }
 utoipa = "4.2.3"
@@ -101,7 +101,7 @@ aes-gcm = "0.10.3"
 parking_lot = "0.12.3"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 ed25519-dalek = { version = "2.1.1", features = [
-    "rand_core",
-    "serde",
-    "pkcs8",
+  "rand_core",
+  "serde",
+  "pkcs8",
 ] }
