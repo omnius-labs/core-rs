@@ -51,7 +51,7 @@ where
             let value = E::unpack(reader, depth + 1)?;
             Ok(PacketMessage::Error(value))
         } else {
-            Err(anyhow::anyhow!("invalid type"))
+            Ok(PacketMessage::Unknown)
         }
     }
 }

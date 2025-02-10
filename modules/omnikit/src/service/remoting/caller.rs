@@ -12,23 +12,23 @@ use crate::service::connection::codec::{FramedReceiver, FramedRecv as _, FramedS
 use super::{HelloMessage, OmniRemotingVersion, PacketMessage, ProtocolErrorCode};
 
 #[allow(unused)]
-pub struct OmniRemotingCaller<R, W, TErrorMessage>
+pub struct OmniRemotingCaller<R, W, TError>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + fmt::Display + Send + Sync + 'static,
+    TError: RocketMessage + fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
     function_id: u32,
-    _phantom: std::marker::PhantomData<TErrorMessage>,
+    _phantom: std::marker::PhantomData<TError>,
 }
 
-impl<R, W, TErrorMessage> OmniRemotingCaller<R, W, TErrorMessage>
+impl<R, W, TError> OmniRemotingCaller<R, W, TError>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + fmt::Display + Send + Sync + 'static,
+    TError: RocketMessage + fmt::Display + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize, function_id: u32) -> Self {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
@@ -42,7 +42,7 @@ where
         }
     }
 
-    pub async fn handshake(&self) -> Result<(), super::Error<TErrorMessage>> {
+    pub async fn handshake(&self) -> Result<(), super::Error<TError>> {
         let hello_message = HelloMessage {
             version: OmniRemotingVersion::V1,
             function_id: self.function_id,
@@ -61,36 +61,36 @@ where
         Ok(())
     }
 
-    pub async fn call<TParam, TResult>(&self, param: TParam) -> Result<TResult, super::Error<TErrorMessage>>
+    pub async fn call<TParam, TResult>(&self, param: TParam) -> Result<TResult, super::Error<TError>>
     where
         TParam: RocketMessage + Send + Sync + 'static,
         TResult: RocketMessage + Send + Sync + 'static,
     {
-        let sending_param = PacketMessage::<TParam, EmptyRocketMessage>::Completed(param)
+        let param = PacketMessage::<TParam, EmptyRocketMessage>::Completed(param)
             .export()
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
         self.sender
             .lock()
             .await
-            .send(sending_param)
+            .send(param)
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
 
-        let mut received_result = self
+        let mut result = self
             .receiver
             .lock()
             .await
             .recv()
             .await
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
-        let received_result = PacketMessage::<TResult, TErrorMessage>::import(&mut received_result)
+        let result = PacketMessage::<TResult, TError>::import(&mut result)
             .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
 
-        match received_result {
+        match result {
             PacketMessage::Unknown => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
             PacketMessage::Continue(_) => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
-            PacketMessage::Completed(received_result) => Ok(received_result),
-            PacketMessage::Error(received_error_message) => Err(super::Error::ApplicationError(received_error_message)),
+            PacketMessage::Completed(result) => Ok(result),
+            PacketMessage::Error(error) => Err(super::Error::ApplicationError(error)),
         }
     }
 
