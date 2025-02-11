@@ -122,3 +122,63 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use omnius_core_rocketpack::{RocketMessageReader, RocketMessageWriter};
+    use testresult::TestResult;
+    use tokio::{io::AsyncWriteExt, net::TcpListener};
+    use tracing::{info, warn};
+
+    use crate::service::remoting::OmniRemotingDefaultErrorMessage;
+
+    use super::*;
+
+    #[ignore]
+    #[tokio::test]
+    async fn multi_language_communication_listener_test() -> TestResult {
+        let tcp_listener = TcpListener::bind("0.0.0.0:50000").await?;
+
+        loop {
+            let (tcp_stream, _) = tcp_listener.accept().await?;
+            let (reader, writer) = tokio::io::split(tcp_stream);
+
+            info!("listen start");
+
+            let mut remoting_listener = OmniRemotingListener::<_, _, OmniRemotingDefaultErrorMessage>::new(reader, writer, 1024 * 1024);
+            remoting_listener.handshake().await?;
+
+            match remoting_listener.function_id()? {
+                1 => remoting_listener.listen(callback).await?,
+                _ => warn!("not supported"),
+            }
+
+            remoting_listener.close().await?;
+        }
+    }
+
+    pub async fn callback(m: TextMessage) -> Result<TextMessage, OmniRemotingDefaultErrorMessage> {
+        Ok(m)
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct TextMessage {
+        pub text: String,
+    }
+
+    impl RocketMessage for TextMessage {
+        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+            writer.put_str(&value.text);
+
+            Ok(())
+        }
+
+        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+        where
+            Self: Sized,
+        {
+            let text = reader.get_string(1024)?;
+            Ok(Self { text })
+        }
+    }
+}
