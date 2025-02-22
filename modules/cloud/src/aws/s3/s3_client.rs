@@ -90,8 +90,11 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn simple_test() {
-        env::set_var("AWS_PROFILE", "opxs-dev");
-        env::set_var("AWS_REGION", "us-east-1");
+        unsafe {
+            env::set_var("AWS_PROFILE", "opxs-dev");
+            env::set_var("AWS_REGION", "us-east-1");
+        }
+
         let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let s3 = S3ClientImpl {
             client: aws_sdk_s3::Client::new(&sdk_config),

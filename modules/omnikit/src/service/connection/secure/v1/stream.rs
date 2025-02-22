@@ -212,7 +212,7 @@ where
                 WriteState::Init => {
                     this.write_state = WriteState::WritePlaintext { plaintext: BytesMut::new() };
                 }
-                WriteState::WritePlaintext { ref mut plaintext } => {
+                WriteState::WritePlaintext { plaintext } => {
                     let size = std::cmp::min(MAX_FRAME_LENGTH - plaintext.len(), write_buf.len());
                     plaintext.extend_from_slice(&write_buf[..size]);
 
@@ -232,10 +232,7 @@ where
 
                     return std::task::Poll::Ready(Ok(size));
                 }
-                WriteState::SendPayload {
-                    ref mut header,
-                    ref mut body,
-                } => {
+                WriteState::SendPayload { header, body } => {
                     if header.offset < header.buf.len() {
                         let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &header.buf[header.offset..]) {
                             std::task::Poll::Ready(Ok(n)) => n,
@@ -268,7 +265,7 @@ where
                 WriteState::Init => {
                     return tokio::io::AsyncWrite::poll_flush(Pin::new(&mut this.writer), cx);
                 }
-                WriteState::WritePlaintext { ref mut plaintext } => {
+                WriteState::WritePlaintext { plaintext } => {
                     let enc_buf = match this.encoder.encode(plaintext) {
                         Ok(buf) => buf,
                         Err(e) => return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))),
@@ -281,10 +278,7 @@ where
                         body: SendBody { offset: 0, buf: enc_buf },
                     };
                 }
-                WriteState::SendPayload {
-                    ref mut header,
-                    ref mut body,
-                } => {
+                WriteState::SendPayload { header, body } => {
                     if header.offset < header.buf.len() {
                         let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &header.buf[header.offset..]) {
                             std::task::Poll::Ready(Ok(n)) => n,

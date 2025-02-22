@@ -1,4 +1,4 @@
-use aes_gcm::{aead::Aead, Aes256Gcm, Error, Key, KeyInit as _};
+use aes_gcm::{Aes256Gcm, Error, Key, KeyInit as _, aead::Aead};
 use sha3::digest::generic_array::GenericArray;
 
 use super::util::increment_bytes;
