@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use nom::{branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*, IResult, Parser};
+use nom::{IResult, Parser, branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OmniAddr {

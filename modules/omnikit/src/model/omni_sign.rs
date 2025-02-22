@@ -2,8 +2,10 @@ use std::fmt;
 use std::str::FromStr;
 
 use bitflags::bitflags;
-use ed25519_dalek::pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _};
-use ed25519_dalek::Signer as _;
+use ed25519_dalek::{
+    Signer as _,
+    pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _},
+};
 use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};

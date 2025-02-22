@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use crate::{clock::Clock, random_bytes::RandomBytesProvider};
 
 pub trait TsidProvider {
-    fn gen(&mut self) -> Tsid;
+    fn create(&mut self) -> Tsid;
 }
 
 pub struct TsidProviderImpl<TClock, TRandomBytesProvider>
@@ -44,7 +44,7 @@ where
     TSystemClock: Clock<Utc>,
     TRandomBytesProvider: RandomBytesProvider,
 {
-    fn gen(&mut self) -> Tsid {
+    fn create(&mut self) -> Tsid {
         let timestamp = self.clock.now();
         let random_bytes = self.random_bytes_provider.get_bytes(self.random_byte_count);
         Tsid { timestamp, random_bytes }
@@ -70,6 +70,6 @@ mod tests {
     #[tokio::test]
     async fn print_test() {
         let mut p = TsidProviderImpl::new(ClockUtc, FakeRandomBytesProvider::new(), 16);
-        println!("{:}", p.gen());
+        println!("{:}", p.create());
     }
 }

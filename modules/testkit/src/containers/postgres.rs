@@ -1,4 +1,4 @@
-use testcontainers::{core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt as _};
+use testcontainers::{ContainerAsync, GenericImage, ImageExt as _, core::WaitFor, runners::AsyncRunner};
 
 pub struct PostgresContainer {
     #[allow(unused)]

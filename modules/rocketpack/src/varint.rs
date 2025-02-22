@@ -496,14 +496,14 @@ mod tests {
 
         // 8
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_u8(v, &mut buf);
             let mut buf = buf.clone().freeze();
             assert_eq!(Varint::get_u8(&mut buf)?, v);
         }
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_i8(v, &mut buf);
             let mut buf = buf.clone().freeze();
@@ -512,14 +512,14 @@ mod tests {
 
         // 16
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_u16(v, &mut buf);
             let mut buf = buf.clone().freeze();
             assert_eq!(Varint::get_u16(&mut buf)?, v);
         }
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_i16(v, &mut buf);
             let mut buf = buf.clone().freeze();
@@ -528,14 +528,14 @@ mod tests {
 
         // 32
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_u32(v, &mut buf);
             let mut buf = buf.clone().freeze();
             assert_eq!(Varint::get_u32(&mut buf)?, v);
         }
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_i32(v, &mut buf);
             let mut buf = buf.clone().freeze();
@@ -544,14 +544,14 @@ mod tests {
 
         // 64
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_u64(v, &mut buf);
             let mut buf = buf.clone().freeze();
             assert_eq!(Varint::get_u64(&mut buf)?, v);
         }
         for _ in 0..32 {
-            let v = rng.gen();
+            let v = rng.r#gen();
             let mut buf = BytesMut::new();
             Varint::put_i64(v, &mut buf);
             let mut buf = buf.clone().freeze();

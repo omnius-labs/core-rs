@@ -216,7 +216,7 @@ impl RocketMessage for ProfileMessage {
 
 #[cfg(test)]
 mod tests {
-    use base64::{engine::general_purpose::URL_SAFE_NO_PAD as BASE64_URL, Engine};
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as BASE64_URL};
     use testresult::TestResult;
 
     use super::*;
