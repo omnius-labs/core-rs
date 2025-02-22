@@ -1,4 +1,4 @@
-use std::{fmt, future::Future, sync::Arc};
+use std::{fmt, sync::Arc};
 
 use parking_lot::Mutex;
 use tokio::{
@@ -66,12 +66,11 @@ where
         v.ok_or_else(|| super::Error::ProtocolError(super::ProtocolErrorCode::HandshakeNotFinished))
     }
 
-    pub async fn listen<TParam, TResult, F, Fut>(&self, callback: F) -> Result<(), super::Error<TError>>
+    pub async fn listen<TParam, TResult, F>(&self, callback: F) -> Result<(), super::Error<TError>>
     where
         TParam: RocketMessage + Send + Sync + 'static,
         TResult: RocketMessage + Send + Sync + 'static,
-        F: FnOnce(TParam) -> Fut,
-        Fut: Future<Output = Result<TResult, TError>>,
+        F: AsyncFnOnce(TParam) -> Result<TResult, TError>,
     {
         let mut param = self
             .receiver
@@ -127,7 +126,7 @@ where
 mod tests {
     use omnius_core_rocketpack::{RocketMessageReader, RocketMessageWriter};
     use testresult::TestResult;
-    use tokio::{io::AsyncWriteExt, net::TcpListener};
+    use tokio::net::TcpListener;
     use tracing::{info, warn};
 
     use crate::service::remoting::OmniRemotingDefaultErrorMessage;
