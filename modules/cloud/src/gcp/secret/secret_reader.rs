@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use gcloud_sdk::google::cloud::secretmanager::v1::secret_manager_service_client::SecretManagerServiceClient;
-use gcloud_sdk::google::cloud::secretmanager::v1::AccessSecretVersionRequest;
+use gcloud_sdk::google::cloud::secretmanager::v1::{AccessSecretVersionRequest, secret_manager_service_client::SecretManagerServiceClient};
 use gcloud_sdk::{GoogleApi, GoogleAuthMiddleware};
 
 #[async_trait]
