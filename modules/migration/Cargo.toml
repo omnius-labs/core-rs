@@ -9,17 +9,15 @@ stable-test = []
 postgres = ["tokio-postgres"]
 
 [dependencies]
-omnius-core-testkit = { path = "../testkit" }
-
 anyhow = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serial_test = { workspace = true }
-
 tokio-postgres = { workspace = true, optional = true }
 
 [dev-dependencies]
+omnius-core-testkit = { workspace = true }
 testcontainers = { workspace = true }
 testresult = { workspace = true }
