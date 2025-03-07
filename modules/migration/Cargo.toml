@@ -7,19 +7,20 @@ authors = { workspace = true }
 [features]
 stable-test = []
 postgres = ["tokio-postgres"]
+sqlite = []
 
 [dependencies]
-omnius-core-testkit = { path = "../testkit" }
-
 anyhow = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serial_test = { workspace = true }
+sqlx = { workspace = true }
 
 tokio-postgres = { workspace = true, optional = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }
 testresult = { workspace = true }
+omnius-core-testkit = { workspace = true }
