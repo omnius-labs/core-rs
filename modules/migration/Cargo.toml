@@ -17,10 +17,9 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serial_test = { workspace = true }
 sqlx = { workspace = true }
-
 tokio-postgres = { workspace = true, optional = true }
 
 [dev-dependencies]
+omnius-core-testkit = { workspace = true }
 testcontainers = { workspace = true }
 testresult = { workspace = true }
-omnius-core-testkit = { workspace = true }
