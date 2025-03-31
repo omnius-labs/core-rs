@@ -41,23 +41,23 @@ gcloud-sdk = { version = "0.25.7", features = [
 
 rand = "0.8.5"
 rand_chacha = "0.3.1"
-anyhow = { version = "1.0.95", features = ["backtrace"] }
-async-trait = "0.1.83"
+anyhow = { version = "1.0.97", features = ["backtrace"] }
+async-trait = "0.1.88"
 axum = { version = "0.7.9", features = ["macros", "headers"] }
 axum-extra = "0.9.4"
-chrono = "0.4.39"
+chrono = "0.4.40"
 config = "0.14.1"
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0.134"
-testcontainers = "0.23.1"
-tokio = { version = "1.42.0", features = ["full"] }
-tokio-postgres = { version = "0.7.12", features = ["with-chrono-0_4"] }
-tokio-util = { version = "0.7.13", features = ["full"] }
+serde_json = "1.0.140"
+testcontainers = "0.23.3"
+tokio = { version = "1.44.1", features = ["full"] }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
+tokio-util = { version = "0.7.14", features = ["full"] }
 tokio-stream = "0.1.17"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
-uuid = { version = "1.11.0", features = ["serde", "v4"] }
-sqlx = { version = "0.8.2", features = [
+uuid = { version = "1.16.0", features = ["serde", "v4"] }
+sqlx = { version = "0.8.3", features = [
   "postgres",
   "sqlite",
   "chrono",
@@ -68,30 +68,30 @@ sqlx = { version = "0.8.2", features = [
 tower-http = { version = "0.6.1", features = ["cors"] }
 utoipa = "4.2.3"
 utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
-ring = "0.17.8"
+ring = "0.17.14"
 hex = "0.4.3"
 urlencoding = "2.1.3"
 axum-aws-lambda = "0.8.0"
 lambda_http = "0.13"
-hyper = "1.5.2"
+hyper = "1.6.0"
 tower = "0.5.2"
-thiserror = "1.0.69"
-jsonwebtoken = "9.3.0"
+thiserror = "2.0.12"
+jsonwebtoken = "9.3.1"
 validator = { version = "0.18.1", features = ["derive"] }
 headers = "0.4.0"
-once_cell = "1.20.2"
+once_cell = "1.21.3"
 kamadak-exif = "0.5.5"
 serial_test = "3.2.0"
 proc-macro2 = "1.0.87"
-reqwest = { version = "0.12.11", features = ["json"] }
+reqwest = { version = "0.12.15", features = ["json"] }
 testresult = "0.4.1"
 base64 = "0.22.1"
 ciborium = "0.2.2"
-bitflags = { version = "2.6.0", features = ["serde"] }
-tempfile = "3.14.0"
+bitflags = { version = "2.9.0", features = ["serde"] }
+tempfile = "3.19.1"
 crc = "3.2.1"
 sha3 = "0.10.8"
-rand_core = "0.6.4"
+rand_core = "0.9.3"
 nom = "7.1.3"
 fast-socks5 = "0.9.6"
 futures = "0.3.31"
