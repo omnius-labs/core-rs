@@ -1,5 +1,22 @@
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
+    InvalidFormat,
+    IoError,
+    DatabaseError,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+            ErrorKind::IoError => write!(fmt, "I/O error"),
+            ErrorKind::DatabaseError => write!(fmt, "database error"),
+        }
+    }
+}
+
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
@@ -52,12 +69,6 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error::new(kind)
-    }
-}
-
 impl From<std::convert::Infallible> for Error {
     fn from(e: std::convert::Infallible) -> Self {
         Error::new(ErrorKind::InvalidFormat).message("convert failed").source(e)
@@ -79,22 +90,5 @@ impl From<tokio_postgres::Error> for Error {
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
         Error::new(ErrorKind::DatabaseError).message("Database operation failed").source(e)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ErrorKind {
-    InvalidFormat,
-    IoError,
-    DatabaseError,
-}
-
-impl std::fmt::Display for ErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-            ErrorKind::IoError => write!(fmt, "I/O error"),
-            ErrorKind::DatabaseError => write!(fmt, "database error"),
-        }
     }
 }

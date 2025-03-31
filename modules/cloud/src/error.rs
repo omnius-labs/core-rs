@@ -1,5 +1,30 @@
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
+    InvalidFormat,
+    NotFound,
+    IoError,
+    AwsClientError,
+    AwsS3Error,
+    GcpError,
+    TimeError,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+            ErrorKind::NotFound => write!(fmt, "not found"),
+            ErrorKind::IoError => write!(fmt, "I/O error"),
+            ErrorKind::AwsClientError => write!(fmt, "AWS client error"),
+            ErrorKind::AwsS3Error => write!(fmt, "AWS S3 error"),
+            ErrorKind::GcpError => write!(fmt, "GCP error"),
+            ErrorKind::TimeError => write!(fmt, "time conversion error"),
+        }
+    }
+}
+
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
@@ -52,46 +77,21 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error::new(kind)
-    }
-}
-
 impl From<std::convert::Infallible> for Error {
     fn from(e: std::convert::Infallible) -> Self {
         Error::new(ErrorKind::InvalidFormat).message("convert failed").source(e)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ErrorKind {
-    InvalidFormat,
-    NotFound,
-    IoError,
-    AwsClientError,
-    AwsS3Error,
-    GcpError,
-    TimeError,
-}
-
-impl std::fmt::Display for ErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-            ErrorKind::NotFound => write!(fmt, "not found"),
-            ErrorKind::IoError => write!(fmt, "I/O error"),
-            ErrorKind::AwsClientError => write!(fmt, "AWS client error"),
-            ErrorKind::AwsS3Error => write!(fmt, "AWS S3 error"),
-            ErrorKind::GcpError => write!(fmt, "GCP error"),
-            ErrorKind::TimeError => write!(fmt, "time conversion error"),
-        }
-    }
-}
-
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Error::new(ErrorKind::IoError).message("I/O operation failed").source(e)
+    }
+}
+
+impl From<chrono::OutOfRangeError> for Error {
+    fn from(e: chrono::OutOfRangeError) -> Self {
+        Error::new(ErrorKind::TimeError).message("Time conversion failed").source(e)
     }
 }
 
@@ -138,11 +138,5 @@ impl From<gcloud_sdk::error::Error> for Error {
 impl From<gcloud_sdk::tonic::Status> for Error {
     fn from(e: gcloud_sdk::tonic::Status) -> Self {
         Error::new(ErrorKind::GcpError).message("GCP operation failed").source(e)
-    }
-}
-
-impl From<chrono::OutOfRangeError> for Error {
-    fn from(e: chrono::OutOfRangeError) -> Self {
-        Error::new(ErrorKind::TimeError).message("Time conversion failed").source(e)
     }
 }

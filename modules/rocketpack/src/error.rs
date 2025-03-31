@@ -2,6 +2,27 @@ use crate::varint;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
+    VarintError,
+    EndOfStream,
+    TooLarge,
+    TooDepth,
+    InvalidFormat,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::VarintError => write!(fmt, "varint error"),
+            ErrorKind::EndOfStream => write!(fmt, "end of stream"),
+            ErrorKind::TooLarge => write!(fmt, "too large"),
+            ErrorKind::TooDepth => write!(fmt, "too depth"),
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+        }
+    }
+}
+
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
@@ -54,12 +75,6 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error::new(kind)
-    }
-}
-
 impl From<std::convert::Infallible> for Error {
     fn from(e: std::convert::Infallible) -> Self {
         Error::new(ErrorKind::InvalidFormat).message("convert failed").source(e)
@@ -69,26 +84,5 @@ impl From<std::convert::Infallible> for Error {
 impl From<varint::Error> for Error {
     fn from(e: varint::Error) -> Self {
         Error::new(ErrorKind::VarintError).message("varint error").source(e)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ErrorKind {
-    VarintError,
-    EndOfStream,
-    TooLarge,
-    TooDepth,
-    InvalidFormat,
-}
-
-impl std::fmt::Display for ErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::VarintError => write!(fmt, "varint error"),
-            ErrorKind::EndOfStream => write!(fmt, "end of stream"),
-            ErrorKind::TooLarge => write!(fmt, "too large"),
-            ErrorKind::TooDepth => write!(fmt, "too depth"),
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-        }
     }
 }

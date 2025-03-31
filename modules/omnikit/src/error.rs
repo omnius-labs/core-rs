@@ -2,6 +2,31 @@ use omnius_core_rocketpack::Error as RocketPackError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
+    RocketPackError,
+    IoError,
+    EndOfStream,
+    InvalidFormat,
+    UnsupportedVersion,
+    UnsupportedType,
+    UnexpectedError,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::RocketPackError => write!(fmt, "rocket pack error"),
+            ErrorKind::IoError => write!(fmt, "io error"),
+            ErrorKind::EndOfStream => write!(fmt, "end of stream"),
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+            ErrorKind::UnsupportedVersion => write!(fmt, "unsupported version"),
+            ErrorKind::UnsupportedType => write!(fmt, "unsupported type"),
+            ErrorKind::UnexpectedError => write!(fmt, "unexpected error"),
+        }
+    }
+}
+
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
@@ -51,12 +76,6 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         self.source.as_ref().map(|s| &**s as &(dyn std::error::Error + 'static))
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error::new(kind)
     }
 }
 
@@ -115,30 +134,5 @@ impl From<hex::FromHexError> for Error {
 impl From<base64::DecodeError> for Error {
     fn from(e: base64::DecodeError) -> Self {
         Error::new(ErrorKind::InvalidFormat).message("base64 decode error").source(e)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ErrorKind {
-    RocketPackError,
-    IoError,
-    EndOfStream,
-    InvalidFormat,
-    UnsupportedVersion,
-    UnsupportedType,
-    UnexpectedError,
-}
-
-impl std::fmt::Display for ErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::RocketPackError => write!(fmt, "rocket pack error"),
-            ErrorKind::IoError => write!(fmt, "io error"),
-            ErrorKind::EndOfStream => write!(fmt, "end of stream"),
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-            ErrorKind::UnsupportedVersion => write!(fmt, "unsupported version"),
-            ErrorKind::UnsupportedType => write!(fmt, "unsupported type"),
-            ErrorKind::UnexpectedError => write!(fmt, "unexpected error"),
-        }
     }
 }
