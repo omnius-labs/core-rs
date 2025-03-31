@@ -1,22 +1,23 @@
 mod caller;
-mod error;
 mod error_message;
 mod hello_message;
 mod listener;
 mod packet_message;
+mod result;
 
 pub use caller::*;
-pub use error::*;
 pub use error_message::*;
 use hello_message::*;
 pub use listener::*;
 use packet_message::*;
+pub use result::*;
 
 #[cfg(test)]
 mod tests {
-    use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
     use testresult::TestResult;
     use tokio::net::TcpListener;
+
+    use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
 
     use super::*;
 
@@ -44,17 +45,17 @@ mod tests {
     }
 
     impl RocketMessage for TestMessage {
-        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
             writer.put_i32(value.value);
 
             Ok(())
         }
 
-        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
         where
             Self: Sized,
         {
-            let value = reader.get_i32().map_err(|_| anyhow::anyhow!("invalid typ"))?;
+            let value = reader.get_i32()?;
 
             Ok(Self { value })
         }

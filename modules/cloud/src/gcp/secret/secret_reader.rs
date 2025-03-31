@@ -1,17 +1,21 @@
 use async_trait::async_trait;
-use gcloud_sdk::google::cloud::secretmanager::v1::{AccessSecretVersionRequest, secret_manager_service_client::SecretManagerServiceClient};
-use gcloud_sdk::{GoogleApi, GoogleAuthMiddleware};
+use gcloud_sdk::{
+    GoogleApi, GoogleAuthMiddleware,
+    google::cloud::secretmanager::v1::{AccessSecretVersionRequest, secret_manager_service_client::SecretManagerServiceClient},
+};
+
+use crate::{Error, ErrorKind, Result};
 
 #[async_trait]
 pub trait SecretReader {
-    async fn read_value(&self, secret_id: &str) -> anyhow::Result<String>;
+    async fn read_value(&self, secret_id: &str) -> Result<String>;
 }
 
 pub struct SecretReaderImpl {}
 
 #[async_trait]
 impl SecretReader for SecretReaderImpl {
-    async fn read_value(&self, secret_id: &str) -> anyhow::Result<String> {
+    async fn read_value(&self, secret_id: &str) -> Result<String> {
         let client: GoogleApi<SecretManagerServiceClient<GoogleAuthMiddleware>> =
             GoogleApi::from_function(SecretManagerServiceClient::new, "https://secretmanager.googleapis.com", None).await?;
 
@@ -24,7 +28,7 @@ impl SecretReader for SecretReaderImpl {
             .payload
             .as_ref()
             .map(|p| p.data.as_sensitive_str())
-            .ok_or_else(|| anyhow::anyhow!("No data found"))?;
+            .ok_or_else(|| Error::new(ErrorKind::NotFound))?;
 
         Ok(result.to_string())
     }

@@ -1,4 +1,4 @@
-use std::{fmt, sync::Arc};
+use std::sync::Arc;
 
 use parking_lot::Mutex;
 use tokio::{
@@ -8,16 +8,19 @@ use tokio::{
 
 use omnius_core_rocketpack::RocketMessage;
 
-use crate::service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender};
+use crate::{
+    Error, ErrorKind, Result,
+    service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
+};
 
-use super::{HelloMessage, OmniRemotingVersion, PacketMessage, ProtocolErrorCode};
+use super::{HelloMessage, OmniRemotingVersion, PacketMessage};
 
 #[allow(unused)]
 pub struct OmniRemotingListener<R, W, TError>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TError: RocketMessage + fmt::Display + Send + Sync + 'static,
+    TError: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
@@ -25,11 +28,11 @@ where
     _phantom: std::marker::PhantomData<TError>,
 }
 
-impl<R, W, TError> OmniRemotingListener<R, W, TError>
+impl<R, W, TErrorMessage> OmniRemotingListener<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TError: RocketMessage + fmt::Display + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize) -> Self {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
@@ -43,79 +46,52 @@ where
         }
     }
 
-    pub async fn handshake(&mut self) -> Result<(), super::Error<TError>> {
-        let mut v = self
-            .receiver
-            .lock()
-            .await
-            .recv()
-            .await
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
-        let hello_message = HelloMessage::import(&mut v).map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
+    pub async fn handshake(&mut self) -> Result<()> {
+        let mut v = self.receiver.lock().await.recv().await?;
+        let hello_message = HelloMessage::import(&mut v)?;
 
         if hello_message.version == OmniRemotingVersion::V1 {
             *self.function_id.lock() = Some(hello_message.function_id);
             return Ok(());
         }
 
-        Err(super::Error::ProtocolError(super::ProtocolErrorCode::UnsupportedVersion))
+        Err(Error::new(ErrorKind::UnsupportedVersion).message(format!("unsupported version: {}", hello_message.version)))
     }
 
-    pub fn function_id(&self) -> Result<u32, super::Error<TError>> {
+    pub fn function_id(&self) -> Result<u32> {
         let v = *self.function_id.lock();
-        v.ok_or_else(|| super::Error::ProtocolError(super::ProtocolErrorCode::HandshakeNotFinished))
+        Ok(v.ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotConnected))?)
     }
 
-    pub async fn listen<TParam, TResult, F>(&self, callback: F) -> Result<(), super::Error<TError>>
+    pub async fn listen<TParamMessage, TSuccessMessage, F>(&self, callback: F) -> Result<()>
     where
-        TParam: RocketMessage + Send + Sync + 'static,
-        TResult: RocketMessage + Send + Sync + 'static,
-        F: AsyncFnOnce(TParam) -> Result<TResult, TError>,
+        TParamMessage: RocketMessage + Send + Sync + 'static,
+        TSuccessMessage: RocketMessage + Send + Sync + 'static,
+        F: AsyncFnOnce(TParamMessage) -> std::result::Result<TSuccessMessage, TErrorMessage>,
     {
-        let mut param = self
-            .receiver
-            .lock()
-            .await
-            .recv()
-            .await
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::ReceiveFailed))?;
-        let param = PacketMessage::<TParam, TError>::import(&mut param)
-            .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::DeserializationFailed))?;
+        let mut param = self.receiver.lock().await.recv().await?;
+        let param = PacketMessage::<TParamMessage, TErrorMessage>::import(&mut param)?;
 
         match param {
-            PacketMessage::Unknown => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
-            PacketMessage::Continue(_) => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
+            PacketMessage::Unknown => Err(Error::new(ErrorKind::UnsupportedType).message("type unknown")),
+            PacketMessage::Continue(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type continue")),
             PacketMessage::Completed(param) => match callback(param).await {
-                Ok(result) => {
-                    let result = PacketMessage::<TResult, TError>::Completed(result)
-                        .export()
-                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
-                    self.sender
-                        .lock()
-                        .await
-                        .send(result)
-                        .await
-                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
+                Ok(success) => {
+                    let result = PacketMessage::<TSuccessMessage, TErrorMessage>::Completed(success).export()?;
+                    self.sender.lock().await.send(result).await?;
                     Ok(())
                 }
                 Err(error) => {
-                    let error = PacketMessage::<TResult, TError>::Error(error)
-                        .export()
-                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SerializationFailed))?;
-                    self.sender
-                        .lock()
-                        .await
-                        .send(error)
-                        .await
-                        .map_err(|_| super::Error::ProtocolError(super::ProtocolErrorCode::SendFailed))?;
+                    let error = PacketMessage::<TSuccessMessage, TErrorMessage>::Error(error).export()?;
+                    self.sender.lock().await.send(error).await?;
                     Ok(())
                 }
             },
-            PacketMessage::Error(_) => Err(super::Error::ProtocolError(ProtocolErrorCode::UnexpectedProtocol)),
+            PacketMessage::Error(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type error")),
         }
     }
 
-    pub async fn close(&self) -> anyhow::Result<()> {
+    pub async fn close(&self) -> Result<()> {
         self.receiver.lock().await.close().await?;
         self.sender.lock().await.close().await?;
         Ok(())
@@ -124,7 +100,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use omnius_core_rocketpack::{RocketMessageReader, RocketMessageWriter};
+    use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessageReader, RocketMessageWriter};
     use testresult::TestResult;
     use tokio::net::TcpListener;
     use tracing::{info, warn};
@@ -156,7 +132,7 @@ mod tests {
         }
     }
 
-    pub async fn callback(m: TextMessage) -> Result<TextMessage, OmniRemotingDefaultErrorMessage> {
+    pub async fn callback(m: TextMessage) -> std::result::Result<TextMessage, OmniRemotingDefaultErrorMessage> {
         Ok(m)
     }
 
@@ -166,13 +142,13 @@ mod tests {
     }
 
     impl RocketMessage for TextMessage {
-        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
             writer.put_str(&value.text);
 
             Ok(())
         }
 
-        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
         where
             Self: Sized,
         {

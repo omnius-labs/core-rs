@@ -1,16 +1,14 @@
-use std::fmt;
-use std::str::FromStr;
-
 use bitflags::bitflags;
 use ed25519_dalek::{
     Signer as _,
     pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _},
 };
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};
 
-use crate::service::converter::OmniBase;
+use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
+
+use crate::{Error, ErrorKind, Result, service::converter::OmniBase};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,8 +18,8 @@ bitflags! {
     }
 }
 
-impl fmt::Display for OmniSignType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniSignType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &OmniSignType::Ed25519_Sha3_256_Base64Url => "Ed25519_Sha3_256_Base64Url",
             _ => "None",
@@ -30,15 +28,12 @@ impl fmt::Display for OmniSignType {
     }
 }
 
-impl FromStr for OmniSignType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for OmniSignType {
+    fn from(value: &str) -> Self {
+        match value {
             "Ed25519_Sha3_256_Base64Url" => OmniSignType::Ed25519_Sha3_256_Base64Url,
             _ => OmniSignType::None,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -50,7 +45,7 @@ pub struct OmniSigner {
 }
 
 impl OmniSigner {
-    pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> anyhow::Result<Self> {
+    pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> Result<Self> {
         match &typ {
             &OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng);
@@ -58,11 +53,11 @@ impl OmniSigner {
                 let key = signing_key.to_pkcs8_der()?.to_bytes().to_vec();
                 Ok(Self { typ, name, key })
             }
-            _ => anyhow::bail!("Unsupported sign type"),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).message("sign type")),
         }
     }
 
-    pub fn sign(&self, msg: &[u8]) -> anyhow::Result<OmniCert> {
+    pub fn sign(&self, msg: &[u8]) -> Result<OmniCert> {
         match self.typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(self.key.as_slice())?;
@@ -78,13 +73,13 @@ impl OmniSigner {
                     value,
                 })
             }
-            _ => anyhow::bail!("Unsupported sign type"),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).message("sign type")),
         }
     }
 }
 
 impl RocketMessage for OmniSigner {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_str(value.typ.to_string().as_str());
         writer.put_str(&value.name);
         writer.put_bytes(&value.key);
@@ -92,24 +87,24 @@ impl RocketMessage for OmniSigner {
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let typ: OmniSignType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?.parse()?;
-        let name = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid name"))?.parse()?;
-        let key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid key"))?;
+        let typ = OmniSignType::from(reader.get_string(1024)?.as_str());
+        let name = reader.get_string(1024)?.parse()?;
+        let key = reader.get_bytes(1024)?;
 
         Ok(Self { typ, name, key })
     }
 }
 
-impl fmt::Display for OmniSigner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniSigner {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self.typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
-                let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(&self.key).map_err(|_| fmt::Error)?;
-                let public_key = signing_key.verifying_key().to_public_key_der().map_err(|_| fmt::Error)?.into_vec();
+                let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(&self.key).map_err(|_| std::fmt::Error)?;
+                let public_key = signing_key.verifying_key().to_public_key_der().map_err(|_| std::fmt::Error)?.into_vec();
 
                 let mut hasher = Sha3_256::new();
                 hasher.update(public_key);
@@ -131,24 +126,29 @@ pub struct OmniCert {
 }
 
 impl OmniCert {
-    pub fn verify(&self, msg: &[u8]) -> anyhow::Result<()> {
+    pub fn verify(&self, msg: &[u8]) -> Result<()> {
         match self.typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let public_key = ed25519_dalek::VerifyingKey::from_public_key_der(&self.public_key)?;
 
-                let signature: [u8; ed25519_dalek::SIGNATURE_LENGTH] =
-                    self.value.clone().try_into().map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
+                let signature: [u8; ed25519_dalek::SIGNATURE_LENGTH] = self
+                    .value
+                    .clone()
+                    .try_into()
+                    .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("invalid public_key"))?;
                 let signature = ed25519_dalek::Signature::from_bytes(&signature);
 
-                Ok(public_key.verify_strict(msg, &signature)?)
+                Ok(public_key
+                    .verify_strict(msg, &signature)
+                    .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("failed to verify"))?)
             }
-            _ => anyhow::bail!("Unsupported sign type"),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).message("sign type")),
         }
     }
 }
 
 impl RocketMessage for OmniCert {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_str(value.typ.to_string().as_str());
         writer.put_str(&value.name);
         writer.put_bytes(&value.public_key);
@@ -157,14 +157,14 @@ impl RocketMessage for OmniCert {
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let typ: OmniSignType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?.parse()?;
-        let name = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid name"))?.parse()?;
-        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid public_key"))?;
-        let value = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid value"))?;
+        let typ = OmniSignType::from(reader.get_string(1024)?.as_str());
+        let name = reader.get_string(1024)?.parse()?;
+        let public_key = reader.get_bytes(1024)?;
+        let value = reader.get_bytes(1024)?;
 
         Ok(Self {
             typ,
@@ -175,8 +175,8 @@ impl RocketMessage for OmniCert {
     }
 }
 
-impl fmt::Display for OmniCert {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniCert {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self.typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let mut hasher = Sha3_256::new();

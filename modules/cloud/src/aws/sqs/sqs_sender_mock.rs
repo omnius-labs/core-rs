@@ -3,6 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use parking_lot::Mutex;
 
+use crate::Result;
+
 use super::SqsSender;
 
 pub struct SqsSenderMock {
@@ -11,7 +13,7 @@ pub struct SqsSenderMock {
 
 #[async_trait]
 impl SqsSender for SqsSenderMock {
-    async fn send_message(&self, message: &str) -> anyhow::Result<()> {
+    async fn send_message(&self, message: &str) -> Result<()> {
         self.send_message_inputs.lock().push(message.to_string());
         Ok(())
     }

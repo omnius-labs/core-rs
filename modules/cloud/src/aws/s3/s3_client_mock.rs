@@ -8,6 +8,8 @@ use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use parking_lot::Mutex;
 
+use crate::Result;
+
 use super::S3Client;
 
 pub struct S3ClientMock {
@@ -49,7 +51,7 @@ pub struct PutObject {
 
 #[async_trait]
 impl S3Client for S3ClientMock {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String> {
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> Result<String> {
         self.gen_get_presigned_uri_inputs.lock().push(GenGetPresignedUriInput {
             key: key.to_string(),
             start_time,
@@ -61,7 +63,7 @@ impl S3Client for S3ClientMock {
         Ok(output)
     }
 
-    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String> {
+    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> Result<String> {
         self.gen_put_presigned_uri_inputs.lock().push(GenPutPresignedUriInput {
             key: key.to_string(),
             start_time,
@@ -72,7 +74,7 @@ impl S3Client for S3ClientMock {
         Ok(output)
     }
 
-    async fn get_object(&self, key: &str, destination: &Path) -> anyhow::Result<()> {
+    async fn get_object(&self, key: &str, destination: &Path) -> Result<()> {
         self.get_object_inputs.lock().push(GetObject {
             key: key.to_string(),
             destination: destination.to_path_buf(),
@@ -80,7 +82,7 @@ impl S3Client for S3ClientMock {
         Ok(())
     }
 
-    async fn put_object(&self, key: &str, source: &Path) -> anyhow::Result<()> {
+    async fn put_object(&self, key: &str, source: &Path) -> Result<()> {
         self.put_object_inputs.lock().push(PutObject {
             key: key.to_string(),
             source: source.to_path_buf(),

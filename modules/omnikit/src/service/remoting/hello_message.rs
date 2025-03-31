@@ -1,7 +1,4 @@
-use core::fmt;
-use std::str::FromStr;
-
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
+use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OmniRemotingVersion {
@@ -9,8 +6,8 @@ pub enum OmniRemotingVersion {
     V1,
 }
 
-impl fmt::Display for OmniRemotingVersion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniRemotingVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &OmniRemotingVersion::V1 => "V1",
             _ => "Unknown",
@@ -19,15 +16,12 @@ impl fmt::Display for OmniRemotingVersion {
     }
 }
 
-impl FromStr for OmniRemotingVersion {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for OmniRemotingVersion {
+    fn from(value: &str) -> Self {
+        match value {
             "V1" => OmniRemotingVersion::V1,
             _ => OmniRemotingVersion::Unknown,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -38,19 +32,19 @@ pub struct HelloMessage {
 }
 
 impl RocketMessage for HelloMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_str(&value.version.to_string());
         writer.put_u32(value.function_id);
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let version: OmniRemotingVersion = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid version"))?.parse()?;
-        let function_id = reader.get_u32().map_err(|_| anyhow::anyhow!("invalid function_id"))?;
+        let version = OmniRemotingVersion::from(reader.get_string(1024)?.as_str());
+        let function_id = reader.get_u32()?;
 
         Ok(Self { version, function_id })
     }

@@ -10,7 +10,6 @@ postgres = ["tokio-postgres"]
 sqlite = []
 
 [dependencies]
-anyhow = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -18,6 +17,8 @@ tracing-subscriber = { workspace = true }
 serial_test = { workspace = true }
 sqlx = { workspace = true }
 tokio-postgres = { workspace = true, optional = true }
+thiserror = { workspace = true }
+tempfile = { workspace = true }
 
 [dev-dependencies]
 omnius-core-testkit = { workspace = true }

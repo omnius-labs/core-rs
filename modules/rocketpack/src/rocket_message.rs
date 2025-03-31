@@ -1,15 +1,15 @@
 use tokio_util::bytes::{Bytes, BytesMut};
 
-use crate::{RocketMessageReader, RocketMessageWriter};
+use crate::{Result, RocketMessageReader, RocketMessageWriter};
 
 pub trait RocketMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> anyhow::Result<()>;
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> Result<()>;
 
-    fn unpack(reader: &mut RocketMessageReader, depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, depth: u32) -> Result<Self>
     where
         Self: Sized;
 
-    fn import(bytes: &mut Bytes) -> anyhow::Result<Self>
+    fn import(bytes: &mut Bytes) -> Result<Self>
     where
         Self: Sized,
     {
@@ -17,7 +17,7 @@ pub trait RocketMessage {
         Self::unpack(&mut reader, 0)
     }
 
-    fn export(&self) -> anyhow::Result<Bytes> {
+    fn export(&self) -> Result<Bytes> {
         let mut bytes = BytesMut::new();
         let mut writer = RocketMessageWriter::new(&mut bytes);
         Self::pack(&mut writer, self, 0)?;
@@ -42,17 +42,17 @@ mod tests {
     }
 
     impl RocketMessage for TestMessage {
-        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> Result<()> {
             writer.put_i32(value.value);
 
             Ok(())
         }
 
-        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> Result<Self>
         where
             Self: Sized,
         {
-            let value = reader.get_i32().map_err(|_| anyhow::anyhow!("invalid typ"))?;
+            let value = reader.get_i32()?;
 
             Ok(Self { value })
         }

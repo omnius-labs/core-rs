@@ -3,10 +3,12 @@ use tokio::io::AsyncRead;
 use tokio_stream::StreamExt as _;
 use tokio_util::bytes::Bytes;
 
+use crate::{Error, ErrorKind, Result};
+
 #[async_trait]
 pub trait FramedRecv {
-    async fn recv(&mut self) -> anyhow::Result<Bytes>;
-    async fn close(&mut self) -> anyhow::Result<()>;
+    async fn recv(&mut self) -> Result<Bytes>;
+    async fn close(&mut self) -> Result<()>;
 }
 
 pub struct FramedReceiver<T>
@@ -40,12 +42,12 @@ impl<T> FramedRecv for FramedReceiver<T>
 where
     T: AsyncRead + Send + Unpin,
 {
-    async fn recv(&mut self) -> anyhow::Result<Bytes> {
-        let buffer = self.framed.next().await.ok_or_else(|| anyhow::anyhow!("Stream ended"))??.freeze();
-        Ok(buffer)
+    async fn recv(&mut self) -> Result<Bytes> {
+        let v = self.framed.next().await.ok_or_else(|| Error::new(ErrorKind::EndOfStream))?;
+        Ok(v?.freeze())
     }
 
-    async fn close(&mut self) -> anyhow::Result<()> {
+    async fn close(&mut self) -> Result<()> {
         Ok(())
     }
 }

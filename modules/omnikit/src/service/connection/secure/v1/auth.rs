@@ -13,6 +13,7 @@ use tokio::{
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
 use crate::{
+    Error, ErrorKind, Result,
     model::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner},
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
@@ -56,7 +57,7 @@ where
         signer: Option<OmniSigner>,
         random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self> {
         Ok(Self {
             typ,
             receiver,
@@ -67,7 +68,7 @@ where
         })
     }
 
-    pub async fn auth(&self) -> anyhow::Result<AuthResult> {
+    pub async fn auth(&self) -> Result<AuthResult> {
         let my_profile = ProfileMessage {
             session_id: self.random_bytes_provider.lock().get_bytes(32),
             auth_type: match self.signer {
@@ -118,7 +119,7 @@ where
 
                 (other_sign, secret)
             }
-            _ => anyhow::bail!("Invalid key exchange algorithm"),
+            _ => return Err(Error::new(ErrorKind::UnsupportedType).message("key exchange algorithm")),
         };
 
         let (enc_key, enc_nonce, dec_key, dec_nonce) = match key_derivation_algorithm_type {
@@ -132,18 +133,19 @@ where
 
                 let (key_len, nonce_len) = match cipher_algorithm_type {
                     CipherAlgorithmType::Aes256Gcm => (32, 12),
-                    _ => anyhow::bail!("Invalid cipher algorithm"),
+                    _ => return Err(Error::new(ErrorKind::UnsupportedType).message("cipher algorithm")),
                 };
 
                 let okm = match hash_algorithm_type {
                     HashAlgorithmType::Sha3_256 => {
                         let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
                         let kdf = Hkdf::<Sha3_256>::new(Some(&salt), &secret);
-                        kdf.expand(&[], &mut okm).or_else(|_| anyhow::bail!("Failed to expand key"))?;
+                        kdf.expand(&[], &mut okm)
+                            .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("Failed to expand key"))?;
 
                         okm
                     }
-                    _ => anyhow::bail!("Invalid hash algorithm"),
+                    _ => return Err(Error::new(ErrorKind::UnsupportedType).message("hash algorithm")),
                 };
 
                 let (enc_offset, dec_offset) = match self.typ {
@@ -158,7 +160,7 @@ where
 
                 (enc_key, enc_nonce, dec_key, dec_nonce)
             }
-            _ => anyhow::bail!("Invalid key derivation algorithm"),
+            _ => return Err(Error::new(ErrorKind::UnsupportedType).message("key derivation algorithm")),
         };
 
         Ok(AuthResult {
@@ -175,7 +177,7 @@ where
         profile_message: &ProfileMessage,
         agreement_public_key: &OmniAgreementPublicKey,
         hash_algorithm: &HashAlgorithmType,
-    ) -> anyhow::Result<Vec<u8>> {
+    ) -> Result<Vec<u8>> {
         match hash_algorithm {
             &HashAlgorithmType::Sha3_256 => {
                 let mut hasher = Sha3_256::new();
@@ -191,7 +193,7 @@ where
 
                 Ok(hasher.finalize().to_vec())
             }
-            _ => anyhow::bail!("Invalid hash algorithm"),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).message("hash algorithm")),
         }
     }
 }

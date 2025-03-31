@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 
+use crate::{Error, ErrorKind, Result};
+
 #[async_trait]
 pub trait SesSender {
-    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, body: &str) -> anyhow::Result<String>;
+    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, body: &str) -> Result<String>;
 }
 
 pub struct SesSenderImpl {
@@ -13,7 +15,7 @@ pub struct SesSenderImpl {
 
 #[async_trait]
 impl SesSender for SesSenderImpl {
-    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> anyhow::Result<String> {
+    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> Result<String> {
         let res = self
             .client
             .send_email()
@@ -33,7 +35,7 @@ impl SesSender for SesSenderImpl {
             .send()
             .await?;
 
-        Ok(res.message_id.ok_or_else(|| anyhow::anyhow!("message_id is None"))?)
+        Ok(res.message_id.ok_or_else(|| Error::new(ErrorKind::NotFound))?)
     }
 }
 

@@ -1,10 +1,8 @@
-use std::{
-    fmt,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
-    str::FromStr,
-};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use nom::{IResult, Parser, branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*};
+
+use crate::{Error, ErrorKind, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OmniAddr {
@@ -37,29 +35,27 @@ impl OmniAddr {
         Self::new(format!("tcp(dns({}),{})", value.as_ref(), port).as_str())
     }
 
-    pub fn parse_tcp_ip(&self) -> anyhow::Result<SocketAddr> {
+    pub fn parse_tcp_ip(&self) -> Result<SocketAddr> {
         let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
         let addr = ElementParser::parse_tcp_ip(&element)?;
         Ok(addr)
     }
 
-    pub fn parse_tcp_host(&self) -> anyhow::Result<(String, u16)> {
+    pub fn parse_tcp_host(&self) -> Result<(String, u16)> {
         let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
         let (ip, port) = ElementParser::parse_tcp_host(&element)?;
         Ok((ip, port))
     }
 }
 
-impl FromStr for OmniAddr {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(OmniAddr::new(s))
+impl From<&str> for OmniAddr {
+    fn from(value: &str) -> Self {
+        OmniAddr::new(value)
     }
 }
 
-impl fmt::Display for OmniAddr {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniAddr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.inner)
     }
 }
@@ -69,7 +65,7 @@ struct ElementParser;
 
 #[allow(unused)]
 impl ElementParser {
-    pub fn parse_i2p(element: &Element) -> anyhow::Result<&str> {
+    pub fn parse_i2p(element: &Element) -> Result<&str> {
         match element {
             Element::Function(f) => {
                 if f.name == "i2p" {
@@ -77,13 +73,13 @@ impl ElementParser {
                         return Ok(v);
                     }
                 }
-                Err(anyhow::anyhow!("Invalid i2p element"))
+                Err(Error::new(ErrorKind::InvalidFormat).message("i2p"))
             }
-            _ => Err(anyhow::anyhow!("Invalid element")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
         }
     }
 
-    pub fn parse_tcp_ip(element: &Element) -> anyhow::Result<SocketAddr> {
+    pub fn parse_tcp_ip(element: &Element) -> Result<SocketAddr> {
         match element {
             Element::Function(f) => {
                 if f.name == "tcp" {
@@ -99,13 +95,13 @@ impl ElementParser {
                         }
                     };
                 }
-                Err(anyhow::anyhow!("Invalid tcp element"))
+                Err(Error::new(ErrorKind::InvalidFormat).message("tcp"))
             }
-            _ => Err(anyhow::anyhow!("Invalid element")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
         }
     }
 
-    pub fn parse_tcp_host(element: &Element) -> anyhow::Result<(String, u16)> {
+    pub fn parse_tcp_host(element: &Element) -> Result<(String, u16)> {
         match element {
             Element::Function(f) => {
                 if f.name == "tcp" {
@@ -126,51 +122,41 @@ impl ElementParser {
                         }
                     };
                 }
-                Err(anyhow::anyhow!("Invalid tcp element"))
+                Err(Error::new(ErrorKind::InvalidFormat).message("tcp"))
             }
-            _ => Err(anyhow::anyhow!("Invalid element")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
         }
     }
 
-    pub fn parse_ip4(element: &Element) -> anyhow::Result<IpAddr> {
+    pub fn parse_ip4(element: &Element) -> Result<IpAddr> {
         match element {
             Element::Function(f) => {
                 if f.name == "ip4" {
                     if let [Element::Constant(v)] = f.args.as_slice() {
-                        match v.parse::<Ipv4Addr>() {
-                            Ok(addr) => {
-                                return Ok(IpAddr::V4(addr));
-                            }
-                            Err(e) => return Err(anyhow::anyhow!("Failed to parse ip4 element: {}", e)),
-                        }
+                        return Ok(IpAddr::V4(v.parse::<Ipv4Addr>()?));
                     }
                 }
-                Err(anyhow::anyhow!("Invalid ip4 element"))
+                Err(Error::new(ErrorKind::InvalidFormat).message("ip4"))
             }
-            _ => Err(anyhow::anyhow!("Invalid element")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
         }
     }
 
-    pub fn parse_ip6(element: &Element) -> anyhow::Result<IpAddr> {
+    pub fn parse_ip6(element: &Element) -> Result<IpAddr> {
         match element {
             Element::Function(f) => {
                 if f.name == "ip6" {
                     if let [Element::Constant(v)] = f.args.as_slice() {
-                        match v.parse::<Ipv6Addr>() {
-                            Ok(addr) => {
-                                return Ok(IpAddr::V6(addr));
-                            }
-                            Err(e) => return Err(anyhow::anyhow!("Failed to parse ip6 element: {}", e)),
-                        }
+                        return Ok(IpAddr::V6(v.parse::<Ipv6Addr>()?));
                     }
                 }
-                Err(anyhow::anyhow!("Invalid ip6 element"))
+                Err(Error::new(ErrorKind::InvalidFormat).message("ip6"))
             }
-            _ => Err(anyhow::anyhow!("Invalid element")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
         }
     }
 
-    pub fn parse_dns(element: &Element) -> anyhow::Result<String> {
+    pub fn parse_dns(element: &Element) -> Result<String> {
         match element {
             Element::Function(f) => {
                 if f.name == "dns" {
@@ -178,9 +164,9 @@ impl ElementParser {
                         return Ok(v.clone());
                     }
                 }
-                Err(anyhow::anyhow!("Invalid dns element"))
+                Err(Error::new(ErrorKind::InvalidFormat).message("dns"))
             }
-            _ => Err(anyhow::anyhow!("Invalid element")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
         }
     }
 }

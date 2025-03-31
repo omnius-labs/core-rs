@@ -1,4 +1,4 @@
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
+use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
 
 pub enum PacketMessage<T, E>
 where
@@ -16,7 +16,7 @@ where
     T: RocketMessage + Send + Sync + 'static,
     E: RocketMessage + Send + Sync + 'static,
 {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> RocketPackResult<()> {
         if let PacketMessage::Unknown = value {
             writer.put_u8(0);
         } else if let PacketMessage::Continue(value) = value {
@@ -33,11 +33,11 @@ where
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let typ = reader.get_u8().map_err(|_| anyhow::anyhow!("invalid type"))?;
+        let typ = reader.get_u8()?;
 
         if typ == 0 {
             Ok(PacketMessage::Unknown)

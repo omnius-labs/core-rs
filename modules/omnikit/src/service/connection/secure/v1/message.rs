@@ -1,12 +1,7 @@
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
-
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
+use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,8 +11,8 @@ bitflags! {
     }
 }
 
-impl Display for AuthType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for AuthType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &AuthType::Sign => "Sign",
             _ => "None",
@@ -26,15 +21,12 @@ impl Display for AuthType {
     }
 }
 
-impl FromStr for AuthType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for AuthType {
+    fn from(value: &str) -> Self {
+        match value {
             "Sign" => AuthType::Sign,
             _ => AuthType::None,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -46,8 +38,8 @@ bitflags! {
     }
 }
 
-impl Display for KeyExchangeAlgorithmType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for KeyExchangeAlgorithmType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &KeyExchangeAlgorithmType::X25519 => "X25519",
             _ => "None",
@@ -56,15 +48,12 @@ impl Display for KeyExchangeAlgorithmType {
     }
 }
 
-impl FromStr for KeyExchangeAlgorithmType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for KeyExchangeAlgorithmType {
+    fn from(value: &str) -> Self {
+        match value {
             "X25519" => KeyExchangeAlgorithmType::X25519,
             _ => KeyExchangeAlgorithmType::None,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -76,8 +65,8 @@ bitflags! {
     }
 }
 
-impl Display for KeyDerivationAlgorithmType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for KeyDerivationAlgorithmType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &KeyDerivationAlgorithmType::Hkdf => "Hkdf",
             _ => "None",
@@ -86,15 +75,12 @@ impl Display for KeyDerivationAlgorithmType {
     }
 }
 
-impl FromStr for KeyDerivationAlgorithmType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for KeyDerivationAlgorithmType {
+    fn from(value: &str) -> Self {
+        match value {
             "Hkdf" => KeyDerivationAlgorithmType::Hkdf,
             _ => KeyDerivationAlgorithmType::None,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -106,8 +92,8 @@ bitflags! {
     }
 }
 
-impl Display for CipherAlgorithmType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for CipherAlgorithmType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &CipherAlgorithmType::Aes256Gcm => "Aes256Gcm",
             _ => "None",
@@ -116,15 +102,12 @@ impl Display for CipherAlgorithmType {
     }
 }
 
-impl FromStr for CipherAlgorithmType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for CipherAlgorithmType {
+    fn from(value: &str) -> Self {
+        match value {
             "Aes256Gcm" => CipherAlgorithmType::Aes256Gcm,
             _ => CipherAlgorithmType::None,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -136,8 +119,8 @@ bitflags! {
     }
 }
 
-impl Display for HashAlgorithmType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for HashAlgorithmType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &HashAlgorithmType::Sha3_256 => "Sha3_256",
             _ => "None",
@@ -146,15 +129,12 @@ impl Display for HashAlgorithmType {
     }
 }
 
-impl FromStr for HashAlgorithmType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for HashAlgorithmType {
+    fn from(value: &str) -> Self {
+        match value {
             "Sha3_256" => HashAlgorithmType::Sha3_256,
             _ => HashAlgorithmType::None,
-        };
-        Ok(typ)
+        }
     }
 }
 
@@ -169,7 +149,7 @@ pub(crate) struct ProfileMessage {
 }
 
 impl RocketMessage for ProfileMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_bytes(&value.session_id);
         writer.put_str(value.auth_type.to_string().as_str());
         writer.put_str(value.key_exchange_algorithm_type.to_string().as_str());
@@ -180,28 +160,16 @@ impl RocketMessage for ProfileMessage {
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let session_id = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid session_id"))?;
-        let auth_type: AuthType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid auth_type"))?.parse()?;
-        let key_exchange_algorithm_type: KeyExchangeAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid key_exchange_algorithm_type"))?
-            .parse()?;
-        let key_derivation_algorithm_type: KeyDerivationAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid key_derivation_algorithm_type"))?
-            .parse()?;
-        let cipher_algorithm_type: CipherAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid cipher_algorithm_type"))?
-            .parse()?;
-        let hash_algorithm_type: HashAlgorithmType = reader
-            .get_string(1024)
-            .map_err(|_| anyhow::anyhow!("invalid hash_algorithm_type"))?
-            .parse()?;
+        let session_id = reader.get_bytes(1024)?;
+        let auth_type = AuthType::from(reader.get_string(1024)?.as_str());
+        let key_exchange_algorithm_type = KeyExchangeAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let key_derivation_algorithm_type = KeyDerivationAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let cipher_algorithm_type = CipherAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let hash_algorithm_type = HashAlgorithmType::from(reader.get_string(1024)?.as_str());
 
         Ok(Self {
             session_id,

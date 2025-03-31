@@ -3,10 +3,12 @@ use std::collections::HashSet;
 use chrono::NaiveDateTime;
 use sqlx::SqlitePool;
 
+use crate::Result;
+
 pub struct SqliteMigrator;
 
 impl SqliteMigrator {
-    pub async fn migrate(db: &SqlitePool, requests: Vec<MigrationRequest>) -> anyhow::Result<()> {
+    pub async fn migrate(db: &SqlitePool, requests: Vec<MigrationRequest>) -> Result<()> {
         Self::init(db).await?;
 
         let histories = Self::fetch_migration_histories(db).await?;
@@ -23,7 +25,7 @@ impl SqliteMigrator {
         Ok(())
     }
 
-    async fn init(db: &SqlitePool) -> anyhow::Result<()> {
+    async fn init(db: &SqlitePool) -> Result<()> {
         sqlx::query(
             r#"
 CREATE TABLE IF NOT EXISTS _migrations (
@@ -40,7 +42,7 @@ CREATE TABLE IF NOT EXISTS _migrations (
         Ok(())
     }
 
-    async fn fetch_migration_histories(db: &SqlitePool) -> anyhow::Result<Vec<MigrationHistory>> {
+    async fn fetch_migration_histories(db: &SqlitePool) -> Result<Vec<MigrationHistory>> {
         let res: Vec<MigrationHistory> = sqlx::query_as(
             r#"
 SELECT name, executed_at FROM _migrations
@@ -52,7 +54,7 @@ SELECT name, executed_at FROM _migrations
         Ok(res)
     }
 
-    async fn execute_migration_queries(db: &SqlitePool, requests: Vec<MigrationRequest>) -> anyhow::Result<()> {
+    async fn execute_migration_queries(db: &SqlitePool, requests: Vec<MigrationRequest>) -> Result<()> {
         for r in requests {
             for query in r.queries.split(';') {
                 if query.trim().is_empty() {
@@ -67,7 +69,7 @@ SELECT name, executed_at FROM _migrations
         Ok(())
     }
 
-    async fn insert_migration_history(db: &SqlitePool, name: &str, queries: &str) -> anyhow::Result<()> {
+    async fn insert_migration_history(db: &SqlitePool, name: &str, queries: &str) -> Result<()> {
         sqlx::query(
             r#"
 INSERT INTO _migrations (name, queries) VALUES ($1, $2)

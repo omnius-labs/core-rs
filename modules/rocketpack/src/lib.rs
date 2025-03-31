@@ -1,15 +1,13 @@
 mod empty_rocket_pack;
-mod errors;
+mod error;
+pub mod primitive;
 mod rocket_message;
 mod rocket_message_reader;
 mod rocket_message_writer;
-mod timestamp;
-mod varint;
+pub mod varint;
 
 pub use empty_rocket_pack::*;
-pub use errors::*;
+pub use error::*;
 pub use rocket_message::*;
 pub use rocket_message_reader::*;
 pub use rocket_message_writer::*;
-pub use timestamp::*;
-pub use varint::*;

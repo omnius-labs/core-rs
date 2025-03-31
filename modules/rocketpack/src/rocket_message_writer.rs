@@ -1,6 +1,9 @@
 use tokio_util::bytes::{BufMut, BytesMut};
 
-use crate::{Timestamp64, Timestamp96, Varint};
+use crate::{
+    primitive::{Timestamp64, Timestamp96},
+    varint::Varint,
+};
 
 pub struct RocketMessageWriter<'a> {
     writer: &'a mut BytesMut,
