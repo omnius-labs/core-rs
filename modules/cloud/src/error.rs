@@ -2,25 +2,27 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
-    InvalidFormat,
-    NotFound,
     IoError,
+    TimeError,
+
     AwsClientError,
     AwsS3Error,
     GcpError,
-    TimeError,
+
+    InvalidFormat,
+    NotFound,
 }
 
 impl std::fmt::Display for ErrorKind {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-            ErrorKind::NotFound => write!(fmt, "not found"),
             ErrorKind::IoError => write!(fmt, "I/O error"),
+            ErrorKind::TimeError => write!(fmt, "time conversion error"),
             ErrorKind::AwsClientError => write!(fmt, "AWS client error"),
             ErrorKind::AwsS3Error => write!(fmt, "AWS S3 error"),
             ErrorKind::GcpError => write!(fmt, "GCP error"),
-            ErrorKind::TimeError => write!(fmt, "time conversion error"),
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+            ErrorKind::NotFound => write!(fmt, "not found"),
         }
     }
 }

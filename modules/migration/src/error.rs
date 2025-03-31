@@ -2,17 +2,18 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
-    InvalidFormat,
     IoError,
     DatabaseError,
+
+    InvalidFormat,
 }
 
 impl std::fmt::Display for ErrorKind {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
             ErrorKind::IoError => write!(fmt, "I/O error"),
             ErrorKind::DatabaseError => write!(fmt, "database error"),
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
         }
     }
 }
