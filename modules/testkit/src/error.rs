@@ -1,5 +1,20 @@
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
+    TestcontainersError,
+    InvalidFormat,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::TestcontainersError => write!(fmt, "testcontainers error"),
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+        }
+    }
+}
+
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
@@ -52,12 +67,6 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error {
-        Error::new(kind)
-    }
-}
-
 impl From<std::convert::Infallible> for Error {
     fn from(e: std::convert::Infallible) -> Self {
         Error::new(ErrorKind::InvalidFormat).message("convert failed").source(e)
@@ -67,24 +76,5 @@ impl From<std::convert::Infallible> for Error {
 impl From<testcontainers::TestcontainersError> for Error {
     fn from(e: testcontainers::TestcontainersError) -> Self {
         Error::new(ErrorKind::TestcontainersError).message("testcontainers error").source(e)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ErrorKind {
-    TestcontainersError,
-    TooLarge,
-    TooDepth,
-    InvalidFormat,
-}
-
-impl std::fmt::Display for ErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::TestcontainersError => write!(fmt, "testcontainers error"),
-            ErrorKind::TooLarge => write!(fmt, "too large"),
-            ErrorKind::TooDepth => write!(fmt, "too depth"),
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-        }
     }
 }

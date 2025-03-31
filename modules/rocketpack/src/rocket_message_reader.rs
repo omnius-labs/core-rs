@@ -1,9 +1,9 @@
 use tokio_util::bytes::{Buf, Bytes};
 
 use crate::{
-    Error, ErrorKind, Result,
     primitive::{Timestamp64, Timestamp96},
     varint::Varint,
+    Error, ErrorKind, Result,
 };
 
 pub struct RocketMessageReader<'a> {
@@ -91,7 +91,7 @@ impl<'a> RocketMessageReader<'a> {
         const SIZE: usize = 4;
 
         if self.reader.remaining() < SIZE {
-            return Err(Error::from(ErrorKind::EndOfStream));
+            return Err(Error::new(ErrorKind::EndOfStream));
         }
 
         let mut buffer = [0u8; SIZE];
@@ -103,7 +103,7 @@ impl<'a> RocketMessageReader<'a> {
         const SIZE: usize = 8;
 
         if self.reader.remaining() < SIZE {
-            return Err(Error::from(ErrorKind::EndOfStream));
+            return Err(Error::new(ErrorKind::EndOfStream));
         }
 
         let mut buffer = [0u8; SIZE];
