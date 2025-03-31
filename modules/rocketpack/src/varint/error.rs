@@ -9,5 +9,5 @@ pub enum Error {
     EndOfInput,
 
     #[error("Too small body (size: {size})")]
-    TooSmallBody { size: usize },
+    TooSmall { size: usize },
 }

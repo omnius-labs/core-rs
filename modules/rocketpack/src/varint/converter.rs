@@ -105,7 +105,7 @@ impl Varint {
             Ok(head)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u8())
         } else {
@@ -125,12 +125,12 @@ impl Varint {
             Ok(head as u16)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u8() as u16)
         } else if head == Self::INT16_CODE {
             if remaining < 3 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u16_le())
         } else {
@@ -150,17 +150,17 @@ impl Varint {
             Ok(head as u32)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u8() as u32)
         } else if head == Self::INT16_CODE {
             if remaining < 3 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u16_le() as u32)
         } else if head == Self::INT32_CODE {
             if remaining < 5 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u32_le())
         } else {
@@ -180,22 +180,22 @@ impl Varint {
             Ok(head as u64)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u8() as u64)
         } else if head == Self::INT16_CODE {
             if remaining < 3 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u16_le() as u64)
         } else if head == Self::INT32_CODE {
             if remaining < 5 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u32_le() as u64)
         } else if head == Self::INT64_CODE {
             if remaining < 9 {
-                return Err(Error::TooSmallBody { size: remaining });
+                return Err(Error::TooSmall { size: remaining });
             }
             Ok(reader.get_u64_le())
         } else {
@@ -368,41 +368,41 @@ mod tests {
             // 8
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u8(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_u8(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i8(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_i8(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
 
             // 16
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u16(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_u16(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i16(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_i16(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
 
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmallBody { size: 1 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 1 }));
             }
         }
 
@@ -415,31 +415,31 @@ mod tests {
             // 16
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u16(&mut buf), Err(Error::TooSmallBody { size: 2 }));
+                assert_eq!(Varint::get_u16(&mut buf), Err(Error::TooSmall { size: 2 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i16(&mut buf), Err(Error::TooSmallBody { size: 2 }));
+                assert_eq!(Varint::get_i16(&mut buf), Err(Error::TooSmall { size: 2 }));
             }
 
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmallBody { size: 2 }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmall { size: 2 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmallBody { size: 2 }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmall { size: 2 }));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmallBody { size: 2 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 2 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmallBody { size: 2 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 2 }));
             }
         }
 
@@ -452,21 +452,21 @@ mod tests {
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmallBody { size: 4 }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmall { size: 4 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmallBody { size: 4 }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmall { size: 4 }));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmallBody { size: 4 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 4 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmallBody { size: 4 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 4 }));
             }
         }
 
@@ -479,11 +479,11 @@ mod tests {
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmallBody { size: 8 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 8 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmallBody { size: 8 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 8 }));
             }
         }
 
