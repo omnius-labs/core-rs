@@ -5,8 +5,7 @@ pub enum ErrorKind {
     IoError,
     TimeError,
 
-    AwsClientError,
-    AwsS3Error,
+    AwsError,
     GcpError,
 
     InvalidFormat,
@@ -18,8 +17,7 @@ impl std::fmt::Display for ErrorKind {
         match self {
             ErrorKind::IoError => write!(fmt, "I/O error"),
             ErrorKind::TimeError => write!(fmt, "time conversion error"),
-            ErrorKind::AwsClientError => write!(fmt, "AWS client error"),
-            ErrorKind::AwsS3Error => write!(fmt, "AWS S3 error"),
+            ErrorKind::AwsError => write!(fmt, "AWS error"),
             ErrorKind::GcpError => write!(fmt, "GCP error"),
             ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
             ErrorKind::NotFound => write!(fmt, "not found"),
@@ -104,28 +102,28 @@ where
     R: std::fmt::Debug + Send + Sync + 'static,
 {
     fn from(e: aws_smithy_runtime_api::client::result::SdkError<E, R>) -> Self {
-        Error::new(ErrorKind::AwsClientError).message("AWS SDK operation failed").source(e)
+        Error::new(ErrorKind::AwsError).message("AWS SDK operation failed").source(e)
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::primitives::ByteStreamError> for Error {
     fn from(e: aws_sdk_s3::primitives::ByteStreamError) -> Self {
-        Error::new(ErrorKind::AwsS3Error).message("AWS S3 byte stream error").source(e)
+        Error::new(ErrorKind::AwsError).message("AWS S3 byte stream error").source(e)
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::presigning::PresigningConfigError> for Error {
     fn from(e: aws_sdk_s3::presigning::PresigningConfigError) -> Self {
-        Error::new(ErrorKind::AwsS3Error).message("AWS S3 presigning config error").source(e)
+        Error::new(ErrorKind::AwsError).message("AWS S3 presigning config error").source(e)
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::error::BuildError> for Error {
     fn from(e: aws_sdk_s3::error::BuildError) -> Self {
-        Error::new(ErrorKind::AwsS3Error).message("AWS S3 build error").source(e)
+        Error::new(ErrorKind::AwsError).message("AWS S3 build error").source(e)
     }
 }
 
