@@ -1,10 +1,13 @@
-use std::{fmt, str::FromStr};
+use std::str::FromStr;
 
 use bitflags::bitflags;
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
 use sha3::{Digest, Sha3_256};
 
-use crate::service::converter::OmniBase;
+use omnius_core_rocketpack::{
+    Error as RocketPackError, ErrorKind as RocketPackErrorKind, Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter,
+};
+
+use crate::{Error, ErrorKind, Result, service::converter::OmniBase};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -14,8 +17,8 @@ bitflags! {
     }
 }
 
-impl fmt::Display for OmniHashAlgorithmType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniHashAlgorithmType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &OmniHashAlgorithmType::Sha3_256 => "Sha3_256",
             _ => "None",
@@ -40,8 +43,8 @@ impl OmniHash {
     }
 }
 
-impl fmt::Display for OmniHash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}:{}", self.typ, OmniBase::encode_by_base64_url(&self.value))
     }
 }
@@ -56,13 +59,17 @@ impl Default for OmniHash {
 }
 
 impl FromStr for OmniHash {
-    type Err = anyhow::Error;
+    type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self> {
         let mut iter = s.split(':');
 
-        let typ = iter.next().ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
-        let value = iter.next().ok_or_else(|| anyhow::anyhow!("invalid omni hash"))?;
+        let typ = iter
+            .next()
+            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).message("type not found"))?;
+        let value = iter
+            .next()
+            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).message("value not found"))?;
 
         let typ = match typ {
             "Sha3_256" => OmniHashAlgorithmType::Sha3_256,
@@ -76,18 +83,19 @@ impl FromStr for OmniHash {
 }
 
 impl RocketMessage for OmniHash {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_u32(value.typ.bits());
         writer.put_bytes(&value.value);
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?).ok_or_else(|| anyhow::anyhow!("invalid typ"))?;
+        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?)
+            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("any unknown bits are set"))?;
         let value = reader.get_bytes(1024)?;
 
         Ok(Self { typ, value })

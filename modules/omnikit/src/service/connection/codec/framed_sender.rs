@@ -1,13 +1,14 @@
-use anyhow::Context as _;
 use async_trait::async_trait;
 use futures_util::SinkExt as _;
 use tokio::io::AsyncWrite;
 use tokio_util::bytes::Bytes;
 
+use crate::Result;
+
 #[async_trait]
 pub trait FramedSend {
-    async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()>;
-    async fn close(&mut self) -> anyhow::Result<()>;
+    async fn send(&mut self, buffer: Bytes) -> Result<()>;
+    async fn close(&mut self) -> Result<()>;
 }
 
 pub struct FramedSender<T>
@@ -41,15 +42,15 @@ impl<T> FramedSend for FramedSender<T>
 where
     T: AsyncWrite + Send + Unpin,
 {
-    async fn send(&mut self, buffer: Bytes) -> anyhow::Result<()> {
-        self.framed.send(buffer).await.with_context(|| "Failed to send")?;
-        self.framed.flush().await.with_context(|| "Failed to flush")?;
+    async fn send(&mut self, buffer: Bytes) -> Result<()> {
+        self.framed.send(buffer).await?;
+        self.framed.flush().await?;
         Ok(())
     }
 
-    async fn close(&mut self) -> anyhow::Result<()> {
-        self.framed.flush().await.with_context(|| "Failed to flush")?;
-        self.framed.close().await.with_context(|| "Failed to close")?;
+    async fn close(&mut self) -> Result<()> {
+        self.framed.flush().await?;
+        self.framed.close().await?;
         Ok(())
     }
 }

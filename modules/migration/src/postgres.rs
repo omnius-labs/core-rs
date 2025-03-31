@@ -3,6 +3,8 @@ use std::collections::HashSet;
 use chrono::NaiveDateTime;
 use tracing::info;
 
+use crate::Result;
+
 pub struct PostgresMigrator {
     client: tokio_postgres::Client,
     path: String,
@@ -11,7 +13,7 @@ pub struct PostgresMigrator {
 }
 
 impl PostgresMigrator {
-    pub async fn new(url: &str, path: &str, username: &str, description: &str) -> anyhow::Result<PostgresMigrator> {
+    pub async fn new(url: &str, path: &str, username: &str, description: &str) -> Result<PostgresMigrator> {
         // Get DB client and connection
         let (client, connection) = tokio_postgres::connect(url, tokio_postgres::NoTls).await?;
 
@@ -30,7 +32,7 @@ impl PostgresMigrator {
         })
     }
 
-    pub async fn migrate(&self) -> anyhow::Result<()> {
+    pub async fn migrate(&self) -> Result<()> {
         self.init().await?;
 
         let histories: Vec<MigrationHistory> = self.fetch_migration_histories().await?;
@@ -50,7 +52,7 @@ impl PostgresMigrator {
         res
     }
 
-    async fn init(&self) -> anyhow::Result<()> {
+    async fn init(&self) -> Result<()> {
         let queries = "\
 CREATE TABLE IF NOT EXISTS _migrations (
     file_name VARCHAR(255) NOT NULL,
@@ -70,7 +72,7 @@ CREATE TABLE IF NOT EXISTS _semaphores (
         Ok(())
     }
 
-    async fn load_migration_files(&self) -> anyhow::Result<Vec<MigrationFile>> {
+    async fn load_migration_files(&self) -> Result<Vec<MigrationFile>> {
         let mut results: Vec<MigrationFile> = Vec::new();
 
         for entry in std::fs::read_dir(std::path::Path::new(&self.path))? {
@@ -94,7 +96,7 @@ CREATE TABLE IF NOT EXISTS _semaphores (
         Ok(results)
     }
 
-    async fn fetch_migration_histories(&self) -> anyhow::Result<Vec<MigrationHistory>> {
+    async fn fetch_migration_histories(&self) -> Result<Vec<MigrationHistory>> {
         let mut results: Vec<MigrationHistory> = Vec::new();
 
         let query = "\
@@ -113,7 +115,7 @@ SELECT file_name, executed_at FROM _migrations
         Ok(results)
     }
 
-    async fn execute_migration_queries(&self, files: Vec<MigrationFile>) -> anyhow::Result<()> {
+    async fn execute_migration_queries(&self, files: Vec<MigrationFile>) -> Result<()> {
         for f in files {
             self.client.batch_execute(&f.queries).await?;
             self.insert_migration_history(&f.file_name, &f.queries).await?;
@@ -123,7 +125,7 @@ SELECT file_name, executed_at FROM _migrations
         Ok(())
     }
 
-    async fn insert_migration_history(&self, file_name: &str, queries: &str) -> anyhow::Result<()> {
+    async fn insert_migration_history(&self, file_name: &str, queries: &str) -> Result<()> {
         let statement = "\
 INSERT INTO _migrations (file_name, queries) VALUES ($1, $2)
 ";
@@ -132,7 +134,7 @@ INSERT INTO _migrations (file_name, queries) VALUES ($1, $2)
         Ok(())
     }
 
-    async fn semaphore_lock(&self) -> anyhow::Result<()> {
+    async fn semaphore_lock(&self) -> Result<()> {
         let query = "\
 INSERT INTO _semaphores (username, description) VALUES ($1, $2)
 ";
@@ -141,7 +143,7 @@ INSERT INTO _semaphores (username, description) VALUES ($1, $2)
         Ok(())
     }
 
-    async fn semaphore_unlock(&self) -> anyhow::Result<()> {
+    async fn semaphore_unlock(&self) -> Result<()> {
         let query = "\
 DELETE FROM _semaphores WHERE username = $1
 ";

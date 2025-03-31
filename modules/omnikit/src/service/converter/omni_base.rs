@@ -1,5 +1,7 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as BASE64_URL};
 
+use crate::{Error, ErrorKind, Result};
+
 // ref. https://github.com/multiformats/multibase#multibase-table
 
 pub struct OmniBase;
@@ -19,16 +21,16 @@ impl OmniBase {
         String::from_utf8_lossy(&bytes[..(1 + len)]).to_string()
     }
 
-    pub fn decode(data: &str) -> anyhow::Result<Vec<u8>> {
+    pub fn decode(data: &str) -> Result<Vec<u8>> {
         let data = data.as_bytes();
         if data.len() <= 1 {
-            return Err(anyhow::anyhow!("invalid omni base"));
+            return Err(Error::new(ErrorKind::InvalidFormat).message("omni base too small"));
         }
 
         match data[0] {
             b'f' => hex::decode(&data[1..]).map_err(|e| e.into()),
             b'u' => BASE64_URL.decode(&data[1..]).map_err(|e| e.into()),
-            _ => Err(anyhow::anyhow!("invalid omni base")),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).message("invalid omni base")),
         }
     }
 }

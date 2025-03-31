@@ -12,6 +12,7 @@ use tracing::trace;
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
 use crate::{
+    Error, ErrorKind, Result,
     model::OmniSigner,
     service::connection::codec::{FramedReceiver, FramedSender},
 };
@@ -83,7 +84,7 @@ where
         signer: Option<OmniSigner>,
         random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
-    ) -> anyhow::Result<Self> {
+    ) -> Result<Self> {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
         let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
         let authenticator = Authenticator::new(stream_type, receiver.clone(), sender.clone(), signer, random_bytes_provider, clock).await?;
@@ -91,11 +92,11 @@ where
         drop(authenticator);
 
         let reader = Arc::try_unwrap(receiver)
-            .map_err(|_| anyhow::anyhow!("unexpected result"))?
+            .map_err(|_| Error::new(ErrorKind::UnexpectedError).message("Arc try_unwrap error"))?
             .into_inner()
             .into_inner();
         let writer = Arc::try_unwrap(sender)
-            .map_err(|_| anyhow::anyhow!("unexpected result"))?
+            .map_err(|_| Error::new(ErrorKind::UnexpectedError).message("Arc try_unwrap error"))?
             .into_inner()
             .into_inner();
 
@@ -204,7 +205,11 @@ where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, write_buf: &[u8]) -> std::task::Poll<Result<usize, std::io::Error>> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        write_buf: &[u8],
+    ) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
         let this = Pin::into_inner(self);
         loop {
             trace!("poll_write: {:?}", this.write_state);
@@ -257,7 +262,7 @@ where
         }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), std::io::Error>> {
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
         let this = Pin::into_inner(self);
         trace!("poll_flush: {:?}", this.write_state);
         loop {
@@ -303,7 +308,7 @@ where
         }
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), std::io::Error>> {
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
         let this = Pin::into_inner(self);
         trace!("poll_shutdown: {:?}", this.write_state);
         tokio::io::AsyncWrite::poll_shutdown(Pin::new(&mut this.writer), cx)

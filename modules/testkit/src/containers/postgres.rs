@@ -1,5 +1,7 @@
 use testcontainers::{ContainerAsync, GenericImage, ImageExt as _, core::WaitFor, runners::AsyncRunner};
 
+use crate::Result;
+
 pub struct PostgresContainer {
     #[allow(unused)]
     pub container: ContainerAsync<GenericImage>,
@@ -8,7 +10,7 @@ pub struct PostgresContainer {
 
 impl PostgresContainer {
     #[allow(unused)]
-    pub async fn new(tag: &str) -> anyhow::Result<Self> {
+    pub async fn new(tag: &str) -> Result<Self> {
         let db = "postgres-db-test";
         let user = "postgres-user-test";
         let password = "postgres-password-test";

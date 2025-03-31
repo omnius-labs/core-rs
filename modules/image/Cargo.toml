@@ -8,13 +8,13 @@ authors = { workspace = true }
 stable-test = []
 
 [dependencies]
-anyhow = { workspace = true }
 chrono = { workspace = true }
 kamadak-exif = { workspace = true }
 tokio = { workspace = true }
 tokio-postgres = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }

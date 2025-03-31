@@ -444,9 +444,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-async"
-version = "1.2.1"
+version = "1.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62220bc6e97f946ddd51b5f1361f78996e704677afc518a4ff66b7a72ea1378c"
+checksum = "1e190749ea56f8c42bf15dd76c65e14f8f765233e6df9b0506d9d934ebef867c"
 dependencies = [
  "futures-util",
  "pin-project-lite",
@@ -554,9 +554,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-runtime-api"
-version = "1.7.3"
+version = "1.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92165296a47a812b267b4f41032ff8069ab7ff783696d217f0994a0d7ab585cd"
+checksum = "3da37cf5d57011cb1753456518ec76e31691f1f474b73934a284eb2a1c76510f"
 dependencies = [
  "aws-smithy-async",
  "aws-smithy-types",
@@ -571,9 +571,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-types"
-version = "1.2.9"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fbd94a32b3a7d55d3806fe27d98d3ad393050439dd05eb53ece36ec5e3d3510"
+checksum = "836155caafba616c0ff9b07944324785de2ab016141c3550bd1c07882f8cee8f"
 dependencies = [
  "base64-simd",
  "bytes",
@@ -802,9 +802,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.7.2"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "428d9aa8fbc0670b7b8d6030a7fadd0f86151cae55e4dbbece15f3780a3dfaf3"
+checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "bytes-utils"
@@ -2358,7 +2358,6 @@ dependencies = [
 name = "omnius-core-base"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "base64 0.22.1",
  "chrono",
@@ -2380,13 +2379,13 @@ dependencies = [
 name = "omnius-core-cloud"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "aws-config",
  "aws-sdk-s3",
  "aws-sdk-secretsmanager",
  "aws-sdk-sesv2",
  "aws-sdk-sqs",
+ "aws-smithy-runtime-api",
  "chrono",
  "gcloud-sdk",
  "parking_lot",
@@ -2394,6 +2393,7 @@ dependencies = [
  "serde",
  "serde_json",
  "testcontainers",
+ "thiserror",
  "tokio",
  "tokio-postgres",
  "tokio-stream",
@@ -2407,10 +2407,10 @@ dependencies = [
 name = "omnius-core-image"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chrono",
  "kamadak-exif",
  "testcontainers",
+ "thiserror",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -2421,12 +2421,14 @@ dependencies = [
 name = "omnius-core-migration"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "chrono",
  "omnius-core-testkit",
  "serial_test",
+ "sqlx",
+ "tempfile",
  "testcontainers",
  "testresult",
+ "thiserror",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -2438,7 +2440,6 @@ name = "omnius-core-omnikit"
 version = "0.1.0"
 dependencies = [
  "aes-gcm",
- "anyhow",
  "async-trait",
  "base64 0.22.1",
  "bitflags 2.6.0",
@@ -2485,7 +2486,6 @@ dependencies = [
 name = "omnius-core-rocketpack"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "base64 0.22.1",
  "chrono",
@@ -2497,6 +2497,7 @@ dependencies = [
  "serde_json",
  "testcontainers",
  "testresult",
+ "thiserror",
  "tokio",
  "tokio-postgres",
  "tokio-util",
@@ -2512,6 +2513,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "testcontainers",
+ "thiserror",
  "tokio",
  "tokio-postgres",
  "tracing",

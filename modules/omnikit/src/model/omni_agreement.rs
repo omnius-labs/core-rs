@@ -1,13 +1,12 @@
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
-
 use bitflags::bitflags;
 use chrono::{DateTime, Utc};
 use rand_core::OsRng;
 
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
+use omnius_core_rocketpack::{
+    Error as RocketPackError, ErrorKind as RocketPackErrorKind, Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter,
+};
+
+use crate::{Error, ErrorKind, Result};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -17,8 +16,8 @@ bitflags! {
     }
 }
 
-impl Display for OmniAgreementAlgorithmType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniAgreementAlgorithmType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &OmniAgreementAlgorithmType::X25519 => "X25519",
             _ => "None",
@@ -27,15 +26,21 @@ impl Display for OmniAgreementAlgorithmType {
     }
 }
 
-impl FromStr for OmniAgreementAlgorithmType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let typ = match s {
+impl From<&str> for OmniAgreementAlgorithmType {
+    fn from(value: &str) -> Self {
+        match value {
             "X25519" => OmniAgreementAlgorithmType::X25519,
             _ => OmniAgreementAlgorithmType::None,
-        };
-        Ok(typ)
+        }
+    }
+}
+
+impl OmniAgreementAlgorithmType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            &Self::X25519 => "X25519",
+            _ => "None",
+        }
     }
 }
 
@@ -48,7 +53,7 @@ pub struct OmniAgreement {
 }
 
 impl OmniAgreement {
-    pub fn new(created_time: DateTime<Utc>, algorithm_type: OmniAgreementAlgorithmType) -> anyhow::Result<Self> {
+    pub fn new(created_time: DateTime<Utc>, algorithm_type: OmniAgreementAlgorithmType) -> Result<Self> {
         let secret_key = x25519_dalek::StaticSecret::random_from_rng(OsRng);
         let public_key = x25519_dalek::PublicKey::from(&secret_key);
 
@@ -79,17 +84,17 @@ impl OmniAgreement {
         }
     }
 
-    pub fn gen_secret(private_key: &OmniAgreementPrivateKey, public_key: &OmniAgreementPublicKey) -> anyhow::Result<Vec<u8>> {
+    pub fn gen_secret(private_key: &OmniAgreementPrivateKey, public_key: &OmniAgreementPublicKey) -> Result<Vec<u8>> {
         let secret_key: [u8; 32] = private_key
             .secret_key
             .clone()
             .try_into()
-            .map_err(|_| anyhow::anyhow!("Invalid secret_key length"))?;
+            .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("invalid secret_key"))?;
         let public_key: [u8; 32] = public_key
             .public_key
             .clone()
             .try_into()
-            .map_err(|_| anyhow::anyhow!("Invalid public_key length"))?;
+            .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("public_key"))?;
 
         let secret_key = x25519_dalek::StaticSecret::from(secret_key);
         let public_key = x25519_dalek::PublicKey::from(public_key);
@@ -101,27 +106,26 @@ impl OmniAgreement {
 }
 
 impl RocketMessage for OmniAgreement {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_timestamp64(value.created_time.into());
-        writer.put_str(value.algorithm_type.to_string().as_str());
+        writer.put_str(value.algorithm_type.as_str());
         writer.put_bytes(&value.secret_key);
         writer.put_bytes(&value.public_key);
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
         let created_time = reader
-            .get_timestamp64()
-            .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
+            .get_timestamp64()?
             .to_date_time()
-            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
-        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
-        let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
-        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("invalid timestamp64"))?;
+        let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let secret_key = reader.get_bytes(1024)?;
+        let public_key = reader.get_bytes(1024)?;
 
         Ok(Self {
             created_time,
@@ -140,25 +144,24 @@ pub struct OmniAgreementPublicKey {
 }
 
 impl RocketMessage for OmniAgreementPublicKey {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_timestamp64(value.created_time.into());
-        writer.put_str(value.algorithm_type.to_string().as_str());
+        writer.put_str(value.algorithm_type.as_str());
         writer.put_bytes(&value.public_key);
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
         let created_time = reader
-            .get_timestamp64()
-            .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
+            .get_timestamp64()?
             .to_date_time()
-            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
-        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
-        let public_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("invalid timestamp64"))?;
+        let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let public_key = reader.get_bytes(1024)?;
 
         Ok(Self {
             created_time,
@@ -176,25 +179,24 @@ pub struct OmniAgreementPrivateKey {
 }
 
 impl RocketMessage for OmniAgreementPrivateKey {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_timestamp64(value.created_time.into());
-        writer.put_str(value.algorithm_type.to_string().as_str());
+        writer.put_str(value.algorithm_type.as_str());
         writer.put_bytes(&value.secret_key);
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
         let created_time = reader
-            .get_timestamp64()
-            .map_err(|_| anyhow::anyhow!("Invalid timestamp"))?
+            .get_timestamp64()?
             .to_date_time()
-            .ok_or_else(|| anyhow::anyhow!("Invalid timestamp"))?;
-        let algorithm_type: OmniAgreementAlgorithmType = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid algorithm_type"))?.parse()?;
-        let secret_key = reader.get_bytes(1024).map_err(|_| anyhow::anyhow!("invalid secret_key"))?;
+            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("invalid timestamp64"))?;
+        let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let secret_key = reader.get_bytes(1024)?;
 
         Ok(Self {
             created_time,

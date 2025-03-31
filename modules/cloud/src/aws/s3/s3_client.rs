@@ -7,12 +7,14 @@ use chrono::{DateTime, Duration, Utc};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
+use crate::Result;
+
 #[async_trait]
 pub trait S3Client {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String>;
-    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String>;
-    async fn get_object(&self, key: &str, destination: &Path) -> anyhow::Result<()>;
-    async fn put_object(&self, key: &str, source: &Path) -> anyhow::Result<()>;
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> Result<String>;
+    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> Result<String>;
+    async fn get_object(&self, key: &str, destination: &Path) -> Result<()>;
+    async fn put_object(&self, key: &str, source: &Path) -> Result<()>;
 }
 pub struct S3ClientImpl {
     pub client: aws_sdk_s3::Client,
@@ -21,7 +23,7 @@ pub struct S3ClientImpl {
 
 #[async_trait]
 impl S3Client for S3ClientImpl {
-    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> anyhow::Result<String> {
+    async fn gen_get_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration, file_name: &str) -> Result<String> {
         let presigning_config = PresigningConfig::builder()
             .start_time(start_time.into())
             .expires_in(expires_in.to_std()?)
@@ -43,7 +45,7 @@ impl S3Client for S3ClientImpl {
         Ok(request.uri().to_string())
     }
 
-    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> anyhow::Result<String> {
+    async fn gen_put_presigned_uri(&self, key: &str, start_time: DateTime<Utc>, expires_in: Duration) -> Result<String> {
         let presigning_config = PresigningConfig::builder()
             .start_time(start_time.into())
             .expires_in(expires_in.to_std()?)
@@ -59,7 +61,7 @@ impl S3Client for S3ClientImpl {
         Ok(request.uri().to_string())
     }
 
-    async fn get_object(&self, key: &str, destination: &Path) -> anyhow::Result<()> {
+    async fn get_object(&self, key: &str, destination: &Path) -> Result<()> {
         let mut file = File::create(destination).await?;
 
         let mut object = self.client.get_object().bucket(self.bucket.as_str()).key(key).send().await?;
@@ -71,7 +73,7 @@ impl S3Client for S3ClientImpl {
         Ok(())
     }
 
-    async fn put_object(&self, key: &str, source: &Path) -> anyhow::Result<()> {
+    async fn put_object(&self, key: &str, source: &Path) -> Result<()> {
         let body = ByteStream::from_path(source).await?;
         self.client.put_object().bucket(self.bucket.as_str()).key(key).body(body).send().await?;
 

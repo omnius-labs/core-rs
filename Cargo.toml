@@ -28,6 +28,7 @@ omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
 
+aws-smithy-runtime-api = "1.7.4"
 aws-config = "1.5.8"
 aws-sdk-secretsmanager = "1.49.0"
 aws-sdk-s3 = "1.54.0"
@@ -58,6 +59,7 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 uuid = { version = "1.11.0", features = ["serde", "v4"] }
 sqlx = { version = "0.8.2", features = [
   "postgres",
+  "sqlite",
   "chrono",
   "json",
   "macros",

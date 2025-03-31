@@ -1,8 +1,10 @@
 use async_trait::async_trait;
 
+use crate::Result;
+
 #[async_trait]
 pub trait SqsSender {
-    async fn send_message(&self, message: &str) -> anyhow::Result<()>;
+    async fn send_message(&self, message: &str) -> Result<()>;
 }
 
 pub struct SqsSenderImpl {
@@ -13,7 +15,7 @@ pub struct SqsSenderImpl {
 
 #[async_trait]
 impl SqsSender for SqsSenderImpl {
-    async fn send_message(&self, message: &str) -> anyhow::Result<()> {
+    async fn send_message(&self, message: &str) -> Result<()> {
         let _ = self
             .client
             .send_message()

@@ -3,6 +3,8 @@ use std::{collections::VecDeque, sync::Arc};
 use async_trait::async_trait;
 use parking_lot::Mutex;
 
+use crate::Result;
+
 use super::SesSender;
 
 pub struct SesSenderMock {
@@ -20,7 +22,7 @@ pub struct SendMailSimpleTextInput {
 
 #[async_trait]
 impl SesSender for SesSenderMock {
-    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> anyhow::Result<String> {
+    async fn send_mail_simple_text(&self, to_address: &str, from_address: &str, subject: &str, text_body: &str) -> Result<String> {
         self.send_mail_simple_text_inputs.lock().push(SendMailSimpleTextInput {
             to_address: to_address.to_string(),
             from_address: from_address.to_string(),

@@ -1,8 +1,10 @@
 use async_trait::async_trait;
 
+use crate::Result;
+
 #[async_trait]
 pub trait SqsReceiver {
-    async fn receive_message(&self) -> anyhow::Result<Option<Vec<String>>>;
+    async fn receive_message(&self) -> Result<Option<Vec<String>>>;
 }
 
 pub struct SqsReceiverImpl {
@@ -14,7 +16,7 @@ pub struct SqsReceiverImpl {
 
 #[async_trait]
 impl SqsReceiver for SqsReceiverImpl {
-    async fn receive_message(&self) -> anyhow::Result<Option<Vec<String>>> {
+    async fn receive_message(&self) -> Result<Option<Vec<String>>> {
         let output = self
             .client
             .receive_message()

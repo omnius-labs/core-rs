@@ -1,6 +1,4 @@
-use std::fmt;
-
-use omnius_core_rocketpack::{RocketMessage, RocketMessageReader, RocketMessageWriter};
+use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniRemotingDefaultErrorMessage {
@@ -10,7 +8,7 @@ pub struct OmniRemotingDefaultErrorMessage {
 }
 
 impl RocketMessage for OmniRemotingDefaultErrorMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> anyhow::Result<()> {
+    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_str(&value.typ);
         writer.put_str(&value.message);
         writer.put_str(&value.stack_trace);
@@ -18,20 +16,20 @@ impl RocketMessage for OmniRemotingDefaultErrorMessage {
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> anyhow::Result<Self>
+    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
     where
         Self: Sized,
     {
-        let typ = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid typ"))?;
-        let message = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid message"))?;
-        let stack_trace = reader.get_string(1024).map_err(|_| anyhow::anyhow!("invalid stack_trace"))?;
+        let typ = reader.get_string(1024)?;
+        let message = reader.get_string(1024)?;
+        let stack_trace = reader.get_string(1024)?;
 
         Ok(Self { typ, message, stack_trace })
     }
 }
 
-impl fmt::Display for OmniRemotingDefaultErrorMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for OmniRemotingDefaultErrorMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         writeln!(f, "{}: {}", self.typ, self.message)?;
         write!(f, "{}", self.stack_trace)?;
         Ok(())
