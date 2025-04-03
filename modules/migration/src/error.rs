@@ -13,6 +13,7 @@ impl std::fmt::Display for ErrorKind {
         match self {
             ErrorKind::IoError => write!(fmt, "I/O error"),
             ErrorKind::DatabaseError => write!(fmt, "database error"),
+
             ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
         }
     }
