@@ -2,7 +2,6 @@ use crate::varint;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     VarintError,
