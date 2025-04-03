@@ -5,6 +5,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     IoError,
+    UnexpectedError,
 
     RocketPackError,
 
@@ -12,20 +13,20 @@ pub enum ErrorKind {
     EndOfStream,
     UnsupportedVersion,
     UnsupportedType,
-
-    UnexpectedError,
 }
 
 impl std::fmt::Display for ErrorKind {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorKind::RocketPackError => write!(fmt, "rocket pack error"),
             ErrorKind::IoError => write!(fmt, "io error"),
+            ErrorKind::UnexpectedError => write!(fmt, "unexpected error"),
+
+            ErrorKind::RocketPackError => write!(fmt, "rocket pack error"),
+
             ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
             ErrorKind::EndOfStream => write!(fmt, "end of stream"),
             ErrorKind::UnsupportedVersion => write!(fmt, "unsupported version"),
             ErrorKind::UnsupportedType => write!(fmt, "unsupported type"),
-            ErrorKind::UnexpectedError => write!(fmt, "unexpected error"),
         }
     }
 }

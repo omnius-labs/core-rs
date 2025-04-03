@@ -16,6 +16,7 @@ impl std::fmt::Display for ErrorKind {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorKind::VarintError => write!(fmt, "varint error"),
+
             ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
             ErrorKind::EndOfStream => write!(fmt, "end of stream"),
             ErrorKind::TooLarge => write!(fmt, "too large"),

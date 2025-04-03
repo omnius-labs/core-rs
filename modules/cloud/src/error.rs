@@ -17,8 +17,10 @@ impl std::fmt::Display for ErrorKind {
         match self {
             ErrorKind::IoError => write!(fmt, "I/O error"),
             ErrorKind::TimeError => write!(fmt, "time conversion error"),
+
             ErrorKind::AwsError => write!(fmt, "AWS error"),
             ErrorKind::GcpError => write!(fmt, "GCP error"),
+
             ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
             ErrorKind::NotFound => write!(fmt, "not found"),
         }
