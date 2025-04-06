@@ -1,5 +1,3 @@
-use omnius_core_rocketpack::Error as RocketPackError;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,7 +59,19 @@ impl Error {
 
 impl std::fmt::Debug for Error {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "{}", self)
+        let mut debug = fmt.debug_struct("Error");
+
+        debug.field("kind", &self.kind);
+
+        if let Some(message) = &self.message {
+            debug.field("message", message);
+        }
+
+        if let Some(source) = &self.source {
+            debug.field("source", source);
+        }
+
+        debug.finish()
     }
 }
 
@@ -81,8 +91,8 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<RocketPackError> for Error {
-    fn from(e: RocketPackError) -> Error {
+impl From<omnius_core_rocketpack::Error> for Error {
+    fn from(e: omnius_core_rocketpack::Error) -> Error {
         Error::new(ErrorKind::SerdeError).message("rocket pack error").source(e)
     }
 }
