@@ -1,9 +1,9 @@
 use tokio_util::bytes::{Buf, Bytes};
 
 use crate::{
+    Error, ErrorKind, Result,
     primitive::{Timestamp64, Timestamp96},
     varint::Varint,
-    Error, ErrorKind, Result,
 };
 
 pub struct RocketMessageReader<'a> {
