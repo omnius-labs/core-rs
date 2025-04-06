@@ -59,7 +59,19 @@ impl Error {
 
 impl std::fmt::Debug for Error {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(fmt, "{}", self)
+        let mut debug = fmt.debug_struct("Error");
+
+        debug.field("kind", &self.kind);
+
+        if let Some(message) = &self.message {
+            debug.field("message", message);
+        }
+
+        if let Some(source) = &self.source {
+            debug.field("source", source);
+        }
+
+        debug.finish()
     }
 }
 
