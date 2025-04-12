@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use chrono::NaiveDateTime;
 use tracing::info;
 
-use crate::Result;
+use crate::prelude::*;
 
 pub struct PostgresMigrator {
     client: tokio_postgres::Client,

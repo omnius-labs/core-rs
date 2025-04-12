@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use chrono::NaiveDateTime;
 use sqlx::SqlitePool;
 
-use crate::Result;
+use crate::prelude::*;
 
 pub struct SqliteMigrator;
 

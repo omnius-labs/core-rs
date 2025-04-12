@@ -1,7 +1,7 @@
 use tokio_util::bytes::{Buf, Bytes};
 
 use crate::{
-    Error, ErrorKind, Result,
+    prelude::*,
     primitive::{Timestamp64, Timestamp96},
     varint::Varint,
 };

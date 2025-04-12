@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 #[async_trait]
 pub trait SecretsReader {

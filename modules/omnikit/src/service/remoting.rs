@@ -17,7 +17,7 @@ mod tests {
     use testresult::TestResult;
     use tokio::net::TcpListener;
 
-    use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
+    use crate::prelude::*;
 
     use super::*;
 
@@ -31,7 +31,7 @@ mod tests {
         let mut listener = OmniRemotingListener::<_, _, OmniRemotingDefaultErrorMessage>::new(reader, writer, 1024 * 1024);
         listener.handshake().await?;
 
-        async fn callback(param: TestMessage) -> Result<TestMessage, OmniRemotingDefaultErrorMessage> {
+        async fn callback(param: TestMessage) -> std::result::Result<TestMessage, OmniRemotingDefaultErrorMessage> {
             Ok(TestMessage { value: param.value + 1 })
         }
         listener.listen(callback).await?;

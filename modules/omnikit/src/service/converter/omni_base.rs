@@ -1,6 +1,6 @@
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as BASE64_URL};
 
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 // ref. https://github.com/multiformats/multibase#multibase-table
 

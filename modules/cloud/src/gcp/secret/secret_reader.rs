@@ -4,7 +4,7 @@ use gcloud_sdk::{
     google::cloud::secretmanager::v1::{AccessSecretVersionRequest, secret_manager_service_client::SecretManagerServiceClient},
 };
 
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 #[async_trait]
 pub trait SecretReader {

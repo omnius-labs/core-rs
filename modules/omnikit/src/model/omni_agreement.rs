@@ -2,11 +2,7 @@ use bitflags::bitflags;
 use chrono::{DateTime, Utc};
 use rand_core::OsRng;
 
-use omnius_core_rocketpack::{
-    Error as RocketPackError, ErrorKind as RocketPackErrorKind, Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter,
-};
-
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
