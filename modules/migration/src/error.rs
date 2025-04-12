@@ -95,6 +95,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl From<tokio_postgres::Error> for Error {
     fn from(e: tokio_postgres::Error) -> Self {
         Error::new(ErrorKind::DatabaseError).message("PostgreSQL operation failed").source(e)

@@ -100,3 +100,9 @@ impl From<varint::Error> for Error {
         Error::new(ErrorKind::VarintError).message("varint error").source(e)
     }
 }
+
+impl From<std::array::TryFromSliceError> for Error {
+    fn from(e: std::array::TryFromSliceError) -> Self {
+        Error::new(ErrorKind::InvalidFormat).message("failed to convert slice to array").source(e)
+    }
+}
