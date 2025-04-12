@@ -3,7 +3,7 @@ use tokio::io::AsyncRead;
 use tokio_stream::StreamExt as _;
 use tokio_util::bytes::Bytes;
 
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 #[async_trait]
 pub trait FramedRecv {

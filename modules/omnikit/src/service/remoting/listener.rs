@@ -9,7 +9,7 @@ use tokio::{
 use omnius_core_rocketpack::RocketMessage;
 
 use crate::{
-    Error, ErrorKind, Result,
+    prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 
@@ -100,12 +100,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessageReader, RocketMessageWriter};
     use testresult::TestResult;
     use tokio::net::TcpListener;
     use tracing::{info, warn};
 
-    use crate::service::remoting::OmniRemotingDefaultErrorMessage;
+    use crate::{prelude::*, service::remoting::OmniRemotingDefaultErrorMessage};
 
     use super::*;
 

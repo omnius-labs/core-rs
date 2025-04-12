@@ -8,7 +8,7 @@ use tokio::{
 use omnius_core_rocketpack::{EmptyRocketMessage, RocketMessage};
 
 use crate::{
-    Error, ErrorKind, Result,
+    prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 

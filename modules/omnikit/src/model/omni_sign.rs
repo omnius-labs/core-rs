@@ -8,7 +8,7 @@ use sha3::{Digest, Sha3_256};
 
 use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
 
-use crate::{Error, ErrorKind, Result, service::converter::OmniBase};
+use crate::{prelude::*, service::converter::OmniBase};
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq)]

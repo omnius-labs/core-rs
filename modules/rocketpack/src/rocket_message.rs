@@ -1,6 +1,6 @@
 use tokio_util::bytes::{Bytes, BytesMut};
 
-use crate::{Result, RocketMessageReader, RocketMessageWriter};
+use crate::{RocketMessageReader, RocketMessageWriter, prelude::*};
 
 pub trait RocketMessage {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, depth: u32) -> Result<()>;

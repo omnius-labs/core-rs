@@ -33,7 +33,7 @@ mod tests {
     use tokio_util::bytes::Bytes;
 
     use crate::{
-        Error, ErrorKind,
+        prelude::*,
         service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
     };
 

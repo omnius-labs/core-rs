@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{RocketMessage, RocketMessageReader, RocketMessageWriter};
-
-use crate::Result;
+use crate::{RocketMessage, RocketMessageReader, RocketMessageWriter, prelude::*};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmptyRocketMessage;

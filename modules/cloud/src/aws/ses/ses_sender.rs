@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 #[async_trait]
 pub trait SesSender {

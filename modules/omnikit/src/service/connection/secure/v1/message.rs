@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 
-use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
+use crate::prelude::*;
 
 bitflags! {
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

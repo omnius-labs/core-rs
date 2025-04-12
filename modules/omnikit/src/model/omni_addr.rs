@@ -2,7 +2,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use nom::{IResult, Parser, branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*};
 
-use crate::{Error, ErrorKind, Result};
+use crate::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OmniAddr {
