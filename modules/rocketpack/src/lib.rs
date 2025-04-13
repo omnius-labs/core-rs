@@ -5,7 +5,6 @@ pub mod primitive;
 mod rocket_message;
 mod rocket_message_reader;
 mod rocket_message_writer;
-pub mod varint;
 
 mod result {
     #[allow(unused)]

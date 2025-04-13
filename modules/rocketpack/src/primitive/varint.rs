@@ -2,7 +2,19 @@ use std::mem::transmute;
 
 use tokio_util::bytes::{Buf, BufMut};
 
-use super::{Error, Result};
+#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
+pub enum VarintError {
+    #[error("Invalid header (value {value})")]
+    InvalidHeader { value: u8 },
+
+    #[error("End of input")]
+    EndOfInput,
+
+    #[error("Too small body (size: {size})")]
+    TooSmall { size: usize },
+}
+
+type Result<T> = std::result::Result<T, VarintError>;
 
 pub struct Varint;
 
@@ -96,7 +108,7 @@ impl Varint {
     pub fn get_u8(reader: &mut impl Buf) -> Result<u8> {
         let remaining = reader.remaining();
         if remaining == 0 {
-            return Err(Error::EndOfInput);
+            return Err(VarintError::EndOfInput);
         }
 
         let head = reader.get_u8();
@@ -105,18 +117,18 @@ impl Varint {
             Ok(head)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u8())
         } else {
-            Err(Error::InvalidHeader { value: head })
+            Err(VarintError::InvalidHeader { value: head })
         }
     }
 
     pub fn get_u16(reader: &mut impl Buf) -> Result<u16> {
         let remaining = reader.remaining();
         if remaining == 0 {
-            return Err(Error::EndOfInput);
+            return Err(VarintError::EndOfInput);
         }
 
         let head = reader.get_u8();
@@ -125,23 +137,23 @@ impl Varint {
             Ok(head as u16)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u8() as u16)
         } else if head == Self::INT16_CODE {
             if remaining < 3 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u16_le())
         } else {
-            Err(Error::InvalidHeader { value: head })
+            Err(VarintError::InvalidHeader { value: head })
         }
     }
 
     pub fn get_u32(reader: &mut impl Buf) -> Result<u32> {
         let remaining = reader.remaining();
         if remaining == 0 {
-            return Err(Error::EndOfInput);
+            return Err(VarintError::EndOfInput);
         }
 
         let head = reader.get_u8();
@@ -150,28 +162,28 @@ impl Varint {
             Ok(head as u32)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u8() as u32)
         } else if head == Self::INT16_CODE {
             if remaining < 3 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u16_le() as u32)
         } else if head == Self::INT32_CODE {
             if remaining < 5 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u32_le())
         } else {
-            Err(Error::InvalidHeader { value: head })
+            Err(VarintError::InvalidHeader { value: head })
         }
     }
 
     pub fn get_u64(reader: &mut impl Buf) -> Result<u64> {
         let remaining = reader.remaining();
         if remaining == 0 {
-            return Err(Error::EndOfInput);
+            return Err(VarintError::EndOfInput);
         }
 
         let head = reader.get_u8();
@@ -180,26 +192,26 @@ impl Varint {
             Ok(head as u64)
         } else if head == Self::INT8_CODE {
             if remaining < 2 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u8() as u64)
         } else if head == Self::INT16_CODE {
             if remaining < 3 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u16_le() as u64)
         } else if head == Self::INT32_CODE {
             if remaining < 5 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u32_le() as u64)
         } else if head == Self::INT64_CODE {
             if remaining < 9 {
-                return Err(Error::TooSmall { size: remaining });
+                return Err(VarintError::TooSmall { size: remaining });
             }
             Ok(reader.get_u64_le())
         } else {
-            Err(Error::InvalidHeader { value: head })
+            Err(VarintError::InvalidHeader { value: head })
         }
     }
 
@@ -253,41 +265,41 @@ mod tests {
         // 8
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_u8(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_u8(&mut buf), Err(VarintError::EndOfInput));
         }
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_i8(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_i8(&mut buf), Err(VarintError::EndOfInput));
         }
 
         // 16
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_u16(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_u16(&mut buf), Err(VarintError::EndOfInput));
         }
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_i16(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_i16(&mut buf), Err(VarintError::EndOfInput));
         }
 
         // 32
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_u32(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_u32(&mut buf), Err(VarintError::EndOfInput));
         }
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_i32(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_i32(&mut buf), Err(VarintError::EndOfInput));
         }
 
         // 64
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_u64(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_u64(&mut buf), Err(VarintError::EndOfInput));
         }
         {
             let mut buf = buf.clone().freeze();
-            assert_eq!(Varint::get_i64(&mut buf), Err(Error::EndOfInput));
+            assert_eq!(Varint::get_i64(&mut buf), Err(VarintError::EndOfInput));
         }
 
         Ok(())
@@ -302,11 +314,11 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u8(&mut buf), Err(Error::InvalidHeader { value: INT16_CODE }));
+                assert_eq!(Varint::get_u8(&mut buf), Err(VarintError::InvalidHeader { value: INT16_CODE }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i8(&mut buf), Err(Error::InvalidHeader { value: INT16_CODE }));
+                assert_eq!(Varint::get_i8(&mut buf), Err(VarintError::InvalidHeader { value: INT16_CODE }));
             }
         }
 
@@ -317,11 +329,11 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u16(&mut buf), Err(Error::InvalidHeader { value: INT32_CODE }));
+                assert_eq!(Varint::get_u16(&mut buf), Err(VarintError::InvalidHeader { value: INT32_CODE }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i16(&mut buf), Err(Error::InvalidHeader { value: INT32_CODE }));
+                assert_eq!(Varint::get_i16(&mut buf), Err(VarintError::InvalidHeader { value: INT32_CODE }));
             }
         }
 
@@ -332,11 +344,11 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::InvalidHeader { value: INT64_CODE }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(VarintError::InvalidHeader { value: INT64_CODE }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::InvalidHeader { value: INT64_CODE }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(VarintError::InvalidHeader { value: INT64_CODE }));
             }
         }
 
@@ -347,11 +359,11 @@ mod tests {
 
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::InvalidHeader { value: INT64_CODE + 1 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(VarintError::InvalidHeader { value: INT64_CODE + 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::InvalidHeader { value: INT64_CODE + 1 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(VarintError::InvalidHeader { value: INT64_CODE + 1 }));
             }
         }
 
@@ -368,41 +380,41 @@ mod tests {
             // 8
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u8(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_u8(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i8(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_i8(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
 
             // 16
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u16(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_u16(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i16(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_i16(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
 
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 1 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(VarintError::TooSmall { size: 1 }));
             }
         }
 
@@ -415,31 +427,31 @@ mod tests {
             // 16
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u16(&mut buf), Err(Error::TooSmall { size: 2 }));
+                assert_eq!(Varint::get_u16(&mut buf), Err(VarintError::TooSmall { size: 2 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i16(&mut buf), Err(Error::TooSmall { size: 2 }));
+                assert_eq!(Varint::get_i16(&mut buf), Err(VarintError::TooSmall { size: 2 }));
             }
 
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmall { size: 2 }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(VarintError::TooSmall { size: 2 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmall { size: 2 }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(VarintError::TooSmall { size: 2 }));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 2 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(VarintError::TooSmall { size: 2 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 2 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(VarintError::TooSmall { size: 2 }));
             }
         }
 
@@ -452,21 +464,21 @@ mod tests {
             // 32
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u32(&mut buf), Err(Error::TooSmall { size: 4 }));
+                assert_eq!(Varint::get_u32(&mut buf), Err(VarintError::TooSmall { size: 4 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i32(&mut buf), Err(Error::TooSmall { size: 4 }));
+                assert_eq!(Varint::get_i32(&mut buf), Err(VarintError::TooSmall { size: 4 }));
             }
 
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 4 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(VarintError::TooSmall { size: 4 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 4 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(VarintError::TooSmall { size: 4 }));
             }
         }
 
@@ -479,11 +491,11 @@ mod tests {
             // 64
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_u64(&mut buf), Err(Error::TooSmall { size: 8 }));
+                assert_eq!(Varint::get_u64(&mut buf), Err(VarintError::TooSmall { size: 8 }));
             }
             {
                 let mut buf = buf.clone().freeze();
-                assert_eq!(Varint::get_i64(&mut buf), Err(Error::TooSmall { size: 8 }));
+                assert_eq!(Varint::get_i64(&mut buf), Err(VarintError::TooSmall { size: 8 }));
             }
         }
 
