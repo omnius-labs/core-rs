@@ -1,5 +1,3 @@
-use crate::varint;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     VarintError,
@@ -93,8 +91,8 @@ impl From<std::convert::Infallible> for Error {
     }
 }
 
-impl From<varint::Error> for Error {
-    fn from(e: varint::Error) -> Self {
+impl From<crate::primitive::VarintError> for Error {
+    fn from(e: crate::primitive::VarintError) -> Self {
         Error::new(ErrorKind::VarintError).message("varint error").source(e)
     }
 }
