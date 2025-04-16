@@ -102,23 +102,25 @@ mod tests {
     use std::{path::Path, sync::Arc};
 
     use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
+    use testresult::TestResult;
 
     use super::SqliteMigrator;
 
     #[tokio::test]
-    pub async fn success_test() {
-        let dir = tempfile::tempdir().unwrap();
+    pub async fn success_test() -> TestResult {
+        let dir = tempfile::tempdir()?;
         let dir_path = dir.path().as_os_str().to_str().unwrap();
 
         let path = Path::new(dir_path).join("sqlite.db");
         let path = path.to_str().unwrap();
-        let url = format!("sqlite:{}", path);
 
-        if !Sqlite::database_exists(url.as_str()).await.unwrap_or(false) {
-            Sqlite::create_database(url.as_str()).await.unwrap();
-        }
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(path)
+            .create_if_missing(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .busy_timeout(std::time::Duration::from_secs(5));
 
-        let db = Arc::new(SqlitePool::connect(&url).await.unwrap());
+        let db = Arc::new(SqlitePool::connect_with(options).await?);
 
         let requests = vec![super::MigrationRequest {
             name: "test".to_string(),
@@ -136,22 +138,25 @@ CREATE TABLE test (
 
         // Migrate again
         SqliteMigrator::migrate(&db, requests).await.unwrap();
+
+        Ok(())
     }
 
     #[tokio::test]
-    pub async fn error_test() {
-        let dir = tempfile::tempdir().unwrap();
+    pub async fn error_test() -> TestResult {
+        let dir = tempfile::tempdir()?;
         let dir_path = dir.path().as_os_str().to_str().unwrap();
 
         let path = Path::new(dir_path).join("sqlite.db");
         let path = path.to_str().unwrap();
-        let url = format!("sqlite:{}", path);
 
-        if !Sqlite::database_exists(url.as_str()).await.unwrap_or(false) {
-            Sqlite::create_database(url.as_str()).await.unwrap();
-        }
+        let options = sqlx::sqlite::SqliteConnectOptions::new()
+            .filename(path)
+            .create_if_missing(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .busy_timeout(std::time::Duration::from_secs(5));
 
-        let db = Arc::new(SqlitePool::connect(&url).await.unwrap());
+        let db = Arc::new(SqlitePool::connect_with(options).await?);
 
         let requests = vec![super::MigrationRequest {
             name: "test".to_string(),
@@ -165,5 +170,7 @@ CREATE TABLE test (
         }];
 
         assert!(SqliteMigrator::migrate(&db, requests).await.is_err());
+
+        Ok(())
     }
 }
