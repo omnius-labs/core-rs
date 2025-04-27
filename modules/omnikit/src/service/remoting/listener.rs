@@ -13,19 +13,19 @@ use crate::{
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 
-use super::{HelloMessage, OmniRemotingVersion, PacketMessage};
+use super::{HelloMessage, OmniRemotingStream, OmniRemotingVersion, PacketMessage};
 
 #[allow(unused)]
-pub struct OmniRemotingListener<R, W, TError>
+pub struct OmniRemotingListener<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TError: RocketMessage + std::fmt::Display + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
     function_id: Arc<Mutex<Option<u32>>>,
-    _phantom: std::marker::PhantomData<TError>,
+    _phantom: std::marker::PhantomData<TErrorMessage>,
 }
 
 impl<R, W, TErrorMessage> OmniRemotingListener<R, W, TErrorMessage>
@@ -63,7 +63,7 @@ where
         Ok(v.ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotConnected))?)
     }
 
-    pub async fn listen<TParamMessage, TSuccessMessage, F>(&self, callback: F) -> Result<()>
+    pub async fn listen_unary<TParamMessage, TSuccessMessage, F>(&self, callback: F) -> Result<()>
     where
         TParamMessage: RocketMessage + Send + Sync + 'static,
         TSuccessMessage: RocketMessage + Send + Sync + 'static,
@@ -76,14 +76,14 @@ where
             PacketMessage::Unknown => Err(Error::new(ErrorKind::UnsupportedType).message("type unknown")),
             PacketMessage::Continue(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type continue")),
             PacketMessage::Completed(param) => match callback(param).await {
-                Ok(success) => {
-                    let result = PacketMessage::<TSuccessMessage, TErrorMessage>::Completed(success).export()?;
-                    self.sender.lock().await.send(result).await?;
+                Ok(message) => {
+                    let message = PacketMessage::<TSuccessMessage, TErrorMessage>::Completed(message).export()?;
+                    self.sender.lock().await.send(message).await?;
                     Ok(())
                 }
-                Err(error) => {
-                    let error = PacketMessage::<TSuccessMessage, TErrorMessage>::Error(error).export()?;
-                    self.sender.lock().await.send(error).await?;
+                Err(error_message) => {
+                    let error_message = PacketMessage::<TSuccessMessage, TErrorMessage>::Error(error_message).export()?;
+                    self.sender.lock().await.send(error_message).await?;
                     Ok(())
                 }
             },
@@ -91,9 +91,11 @@ where
         }
     }
 
-    pub async fn close(&self) -> Result<()> {
-        self.receiver.lock().await.close().await?;
-        self.sender.lock().await.close().await?;
+    pub async fn listen_stream<F>(&self, callback: F) -> Result<()>
+    where
+        F: AsyncFnOnce(OmniRemotingStream<R, W, TErrorMessage>),
+    {
+        callback(OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())).await;
         Ok(())
     }
 }
@@ -123,11 +125,9 @@ mod tests {
             remoting_listener.handshake().await?;
 
             match remoting_listener.function_id()? {
-                1 => remoting_listener.listen(callback).await?,
+                1 => remoting_listener.listen_unary(callback).await?,
                 _ => warn!("not supported"),
             }
-
-            remoting_listener.close().await?;
         }
     }
 

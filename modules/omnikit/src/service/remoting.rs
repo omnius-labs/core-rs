@@ -4,6 +4,7 @@ mod hello_message;
 mod listener;
 mod packet_message;
 mod result;
+mod stream;
 
 pub use caller::*;
 pub use error_message::*;
@@ -11,6 +12,7 @@ use hello_message::*;
 pub use listener::*;
 use packet_message::*;
 pub use result::*;
+pub use stream::*;
 
 #[cfg(test)]
 mod tests {
@@ -34,7 +36,7 @@ mod tests {
         async fn callback(param: TestMessage) -> std::result::Result<TestMessage, OmniRemotingDefaultErrorMessage> {
             Ok(TestMessage { value: param.value + 1 })
         }
-        listener.listen(callback).await?;
+        listener.listen_unary(callback).await?;
 
         Ok(())
     }

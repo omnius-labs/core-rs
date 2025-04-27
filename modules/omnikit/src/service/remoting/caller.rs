@@ -12,19 +12,19 @@ use crate::{
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 
-use super::{CallResult, HelloMessage, OmniRemotingVersion, PacketMessage};
+use super::{CallResult, HelloMessage, OmniRemotingStream, OmniRemotingVersion, PacketMessage};
 
 #[allow(unused)]
-pub struct OmniRemotingCaller<R, W, TError>
+pub struct OmniRemotingCaller<R, W, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TError: RocketMessage + std::fmt::Display + Send + Sync + 'static,
+    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
     function_id: u32,
-    _phantom: std::marker::PhantomData<TError>,
+    _phantom: std::marker::PhantomData<TErrorMessage>,
 }
 
 impl<R, W, TErrorMessage> OmniRemotingCaller<R, W, TErrorMessage>
@@ -55,28 +55,26 @@ where
         Ok(())
     }
 
-    pub async fn call<TParamMessage, TSuccessMessage>(&self, param: TParamMessage) -> CallResult<TSuccessMessage, TErrorMessage>
+    pub async fn call_unary<TRequestMessage, TResponseMessage>(&self, param: TRequestMessage) -> CallResult<TResponseMessage, TErrorMessage>
     where
-        TParamMessage: RocketMessage + Send + Sync + 'static,
-        TSuccessMessage: RocketMessage + Send + Sync + 'static,
+        TRequestMessage: RocketMessage + Send + Sync + 'static,
+        TResponseMessage: RocketMessage + Send + Sync + 'static,
     {
-        let param = PacketMessage::<TParamMessage, EmptyRocketMessage>::Completed(param).export()?;
+        let param = PacketMessage::<TRequestMessage, EmptyRocketMessage>::Completed(param).export()?;
         self.sender.lock().await.send(param).await?;
 
         let mut message = self.receiver.lock().await.recv().await?;
-        let message = PacketMessage::<TSuccessMessage, TErrorMessage>::import(&mut message)?;
+        let message = PacketMessage::<TResponseMessage, TErrorMessage>::import(&mut message)?;
 
         match message {
             PacketMessage::Unknown => Err(Error::new(ErrorKind::UnsupportedType).message("type unknown")),
             PacketMessage::Continue(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type continue")),
-            PacketMessage::Completed(success) => Ok(Ok(success)),
-            PacketMessage::Error(error) => Ok(Err(error)),
+            PacketMessage::Completed(message) => Ok(Ok(message)),
+            PacketMessage::Error(error_message) => Ok(Err(error_message)),
         }
     }
 
-    pub async fn close(&self) -> Result<()> {
-        self.receiver.lock().await.close().await?;
-        self.sender.lock().await.close().await?;
-        Ok(())
+    pub async fn call_stream(&self) -> OmniRemotingStream<R, W, TErrorMessage> {
+        OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())
     }
 }
