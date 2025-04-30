@@ -10,7 +10,7 @@ pub use caller::*;
 pub use error_message::*;
 use hello_message::*;
 pub use listener::*;
-use packet_message::*;
+pub use packet_message::*;
 pub use result::*;
 pub use stream::*;
 
