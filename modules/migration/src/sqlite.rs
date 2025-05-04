@@ -101,7 +101,7 @@ struct MigrationHistory {
 mod tests {
     use std::{path::Path, sync::Arc};
 
-    use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
+    use sqlx::SqlitePool;
     use testresult::TestResult;
 
     use super::SqliteMigrator;
