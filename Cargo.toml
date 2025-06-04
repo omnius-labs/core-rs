@@ -28,7 +28,7 @@ omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
 
-aws-smithy-runtime-api = "1.7.4"
+aws-smithy-runtime-api = "1.8.0"
 aws-config = "1.5.8"
 aws-sdk-secretsmanager = "1.49.0"
 aws-sdk-s3 = "1.54.0"
@@ -41,21 +41,21 @@ gcloud-sdk = { version = "0.25.7", features = [
 
 rand = "0.8.5"
 rand_chacha = "0.3.1"
-async-trait = "0.1.83"
+async-trait = "0.1.88"
 axum = { version = "0.7.9", features = ["macros", "headers"] }
 axum-extra = "0.9.4"
-chrono = "0.4.39"
+chrono = "0.4.41"
 serde = { version = "1.0.219", features = ["derive", "rc"] }
-serde_json = "1.0.134"
-testcontainers = "0.23.1"
-tokio = { version = "1.42.0", features = ["full"] }
-tokio-postgres = { version = "0.7.12", features = ["with-chrono-0_4"] }
-tokio-util = { version = "0.7.13", features = ["full"] }
+serde_json = "1.0.140"
+testcontainers = "0.23.3"
+tokio = { version = "1.45.1", features = ["full"] }
+tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
+tokio-util = { version = "0.7.15", features = ["full"] }
 tokio-stream = "0.1.17"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 uuid = { version = "1.11.0", features = ["serde", "v4"] }
-sqlx = { version = "0.8.2", features = [
+sqlx = { version = "0.8.6", features = [
   "postgres",
   "sqlite",
   "chrono",
@@ -66,18 +66,18 @@ sqlx = { version = "0.8.2", features = [
 tower-http = { version = "0.6.1", features = ["cors"] }
 utoipa = "4.2.3"
 utoipa-swagger-ui = { version = "7.1.0", features = ["axum"] }
-ring = "0.17.13"
+ring = "0.17.14"
 hex = "0.4.3"
 urlencoding = "2.1.3"
 axum-aws-lambda = "0.8.0"
 lambda_http = "0.13"
 hyper = "1.6.0"
 tower = "0.5.2"
-thiserror = "1.0.69"
-jsonwebtoken = "9.3.0"
+thiserror = "2.0.12"
+jsonwebtoken = "9.3.1"
 validator = { version = "0.18.1", features = ["derive"] }
 headers = "0.4.0"
-once_cell = "1.20.2"
+once_cell = "1.21.3"
 kamadak-exif = "0.5.5"
 serial_test = "3.2.0"
 proc-macro2 = "1.0.87"
@@ -85,9 +85,9 @@ reqwest = { version = "0.12.11", features = ["json"] }
 testresult = "0.4.1"
 base64 = "0.22.1"
 ciborium = "0.2.2"
-bitflags = { version = "2.6.0", features = ["serde"] }
-tempfile = "3.14.0"
-crc = "3.2.1"
+bitflags = { version = "2.9.1", features = ["serde"] }
+tempfile = "3.20.0"
+crc = "3.3.0"
 sha3 = "0.10.8"
 rand_core = "0.6.4"
 nom = "7.1.3"
@@ -98,7 +98,7 @@ local-ip-address = "0.6.3"
 pin-utils = "0.1.0"
 hkdf = "0.12.4"
 aes-gcm = "0.10.3"
-parking_lot = "0.12.3"
+parking_lot = "0.12.4"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 ed25519-dalek = { version = "2.1.1", features = [
   "rand_core",
