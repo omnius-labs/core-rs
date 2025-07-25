@@ -5,6 +5,8 @@ use tokio::{
     sync::Mutex as TokioMutex,
 };
 
+use omnius_core_rocketpack::EmptyRocketMessage;
+
 use crate::{
     prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
@@ -37,10 +39,32 @@ where
         }
     }
 
-    pub async fn send<TMessage>(&self, packet: PacketMessage<TMessage, TErrorMessage>) -> Result<()>
+    pub async fn send_continue<TMessage>(&self, message: TMessage) -> Result<()>
     where
         TMessage: RocketMessage + Send + Sync + 'static,
     {
+        let packet = PacketMessage::<TMessage, TErrorMessage>::Continue(message);
+
+        let bytes = packet.export()?;
+        self.sender.lock().await.send(bytes).await?;
+
+        Ok(())
+    }
+
+    pub async fn send_completed<TMessage>(&self, message: TMessage) -> Result<()>
+    where
+        TMessage: RocketMessage + Send + Sync + 'static,
+    {
+        let packet = PacketMessage::<TMessage, TErrorMessage>::Completed(message);
+
+        let bytes = packet.export()?;
+        self.sender.lock().await.send(bytes).await?;
+
+        Ok(())
+    }
+    pub async fn send_error(&self, error_message: TErrorMessage) -> Result<()> {
+        let packet = PacketMessage::<EmptyRocketMessage, TErrorMessage>::Error(error_message);
+
         let bytes = packet.export()?;
         self.sender.lock().await.send(bytes).await?;
 
