@@ -28,8 +28,8 @@ omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
 
-aws-smithy-runtime-api = "1.8.0"
-aws-config = "1.5.8"
+aws-smithy-runtime-api = "1.8.5"
+aws-config = "1.8.1"
 aws-sdk-secretsmanager = "1.76.0"
 aws-sdk-s3 = "1.91.0"
 aws-sdk-sqs = "1.74.0"
@@ -39,16 +39,16 @@ gcloud-sdk = { version = "0.25.7", features = [
   "google-cloud-secretmanager-v1",
 ] }
 
-rand = "0.9.1"
+rand = "0.9.2"
 rand_chacha = "0.9.0"
 async-trait = "0.1.88"
 axum = { version = "0.7.9", features = ["macros", "headers"] }
 axum-extra = "0.9.4"
 chrono = "0.4.41"
 serde = { version = "1.0.219", features = ["derive", "rc"] }
-serde_json = "1.0.140"
+serde_json = "1.0.141"
 testcontainers = "0.23.3"
-tokio = { version = "1.46.1", features = ["full"] }
+tokio = { version = "1.47.0", features = ["full"] }
 tokio-postgres = { version = "0.7.13", features = ["with-chrono-0_4"] }
 tokio-util = { version = "0.7.15", features = ["full"] }
 tokio-stream = "0.1.17"
