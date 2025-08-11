@@ -17,7 +17,7 @@ impl<'a> RocketMessageReader<'a> {
     pub fn get_bytes(&mut self, limit: usize) -> Result<Vec<u8>> {
         let length = self.get_u32()? as usize;
         if length > limit {
-            return Err(Error::new(ErrorKind::TooLarge).message(format!("length exceeded limit: {} > {}", length, limit)));
+            return Err(Error::new(ErrorKind::TooLarge).message(format!("length exceeded limit: {length} > {limit}")));
         }
 
         if length == 0 {

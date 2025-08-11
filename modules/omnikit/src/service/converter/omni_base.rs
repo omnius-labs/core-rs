@@ -45,7 +45,7 @@ mod tests {
     #[tokio::test]
     async fn base16_test() -> TestResult {
         let b16 = OmniBase::encode_by_base16(b"test");
-        println!("{}", b16);
+        println!("{b16}");
         assert_eq!(OmniBase::decode(b16.as_str())?, b"test".to_vec());
         Ok(())
     }
@@ -54,7 +54,7 @@ mod tests {
     #[tokio::test]
     async fn base64_url_test() -> TestResult {
         let b64 = OmniBase::encode_by_base64_url(b"test");
-        println!("{}", b64);
+        println!("{b64}");
         assert_eq!(OmniBase::decode(b64.as_str())?, b"test".to_vec());
         Ok(())
     }

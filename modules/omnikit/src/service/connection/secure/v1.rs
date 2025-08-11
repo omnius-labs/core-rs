@@ -119,7 +119,7 @@ mod tests {
             let buffer = framed.next().await.ok_or_else(|| Error::new(ErrorKind::EndOfStream))??;
 
             let s = str::from_utf8(buffer.as_ref())?.to_string();
-            println!("{}", s);
+            println!("{s}");
 
             framed.send(buffer.freeze()).await?;
             framed.flush().await?;

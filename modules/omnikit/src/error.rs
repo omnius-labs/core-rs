@@ -102,14 +102,14 @@ impl From<std::io::Error> for Error {
 }
 
 impl From<ed25519_dalek::pkcs8::Error> for Error {
-    fn from(e: ed25519_dalek::pkcs8::Error) -> Self {
-        Error::new(ErrorKind::InvalidFormat).message("pkcs8 error").source(e)
+    fn from(_: ed25519_dalek::pkcs8::Error) -> Self {
+        Error::new(ErrorKind::InvalidFormat).message("pkcs8 error")
     }
 }
 
 impl From<ed25519_dalek::pkcs8::spki::Error> for Error {
-    fn from(e: ed25519_dalek::pkcs8::spki::Error) -> Self {
-        Error::new(ErrorKind::InvalidFormat).message("pkcs8 spki error").source(e)
+    fn from(_: ed25519_dalek::pkcs8::spki::Error) -> Self {
+        Error::new(ErrorKind::InvalidFormat).message("pkcs8 spki error")
     }
 }
 

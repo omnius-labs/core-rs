@@ -20,7 +20,7 @@ impl std::fmt::Display for OmniHashAlgorithmType {
             _ => "None",
         };
 
-        write!(f, "{}", typ)
+        write!(f, "{typ}",)
     }
 }
 

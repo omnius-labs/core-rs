@@ -11,6 +11,9 @@ stable-test = []
 omnius-core-base = { workspace = true }
 omnius-core-rocketpack = { workspace = true }
 
+rand = { workspace = true }
+rand_core = { workspace = true }
+rand_chacha = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -33,15 +36,12 @@ serial_test = { workspace = true }
 pin-utils = { workspace = true }
 nom = { workspace = true }
 fast-socks5 = { workspace = true }
-rand_core = { workspace = true }
 sha3 = { workspace = true }
 ciborium = { workspace = true }
 bitflags = { workspace = true }
 tempfile = { workspace = true }
 crc = { workspace = true }
 chrono = { workspace = true }
-rand = { workspace = true }
-rand_chacha = { workspace = true }
 hkdf = { workspace = true }
 aes-gcm = { workspace = true }
 parking_lot = { workspace = true }
