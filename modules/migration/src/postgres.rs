@@ -20,7 +20,7 @@ impl PostgresMigrator {
         // Spawn connection
         tokio::spawn(async move {
             if let Err(error) = connection.await {
-                eprintln!("Connection error: {}", error);
+                eprintln!("Connection error: {error}");
             }
         });
 

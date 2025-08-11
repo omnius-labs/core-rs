@@ -12,7 +12,7 @@ impl std::fmt::Display for OmniRemotingVersion {
             &OmniRemotingVersion::V1 => "V1",
             _ => "unknown",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 

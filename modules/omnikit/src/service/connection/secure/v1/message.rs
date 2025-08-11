@@ -17,7 +17,7 @@ impl std::fmt::Display for AuthType {
             &AuthType::Sign => "Sign",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
@@ -44,7 +44,7 @@ impl std::fmt::Display for KeyExchangeAlgorithmType {
             &KeyExchangeAlgorithmType::X25519 => "X25519",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
@@ -71,7 +71,7 @@ impl std::fmt::Display for KeyDerivationAlgorithmType {
             &KeyDerivationAlgorithmType::Hkdf => "Hkdf",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
@@ -98,7 +98,7 @@ impl std::fmt::Display for CipherAlgorithmType {
             &CipherAlgorithmType::Aes256Gcm => "Aes256Gcm",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
@@ -125,7 +125,7 @@ impl std::fmt::Display for HashAlgorithmType {
             &HashAlgorithmType::Sha3_256 => "Sha3_256",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
