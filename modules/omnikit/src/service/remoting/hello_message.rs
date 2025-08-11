@@ -10,7 +10,7 @@ impl std::fmt::Display for OmniRemotingVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
             &OmniRemotingVersion::V1 => "V1",
-            _ => "Unknown",
+            _ => "unknown",
         };
         write!(f, "{}", typ)
     }

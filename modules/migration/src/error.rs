@@ -1,77 +1,44 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ErrorKind {
-    IoError,
-    DatabaseError,
+use std::backtrace::Backtrace;
 
-    InvalidFormat,
-}
-
-impl std::fmt::Display for ErrorKind {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorKind::IoError => write!(fmt, "I/O error"),
-            ErrorKind::DatabaseError => write!(fmt, "database error"),
-
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-        }
-    }
-}
+use omnius_core_base::error::{OmniError, OmniErrorBuilder};
 
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
     source: Option<Box<dyn std::error::Error + Send + Sync>>,
+    backtrace: Option<Backtrace>,
+}
+
+pub struct ErrorBuilder {
+    inner: Error,
 }
 
 impl Error {
-    pub fn new(kind: ErrorKind) -> Self {
-        Self {
-            kind,
-            message: None,
-            source: None,
+    pub fn builder() -> ErrorBuilder {
+        ErrorBuilder {
+            inner: Self {
+                kind: ErrorKind::Unknown,
+                message: None,
+                source: None,
+                backtrace: None,
+            },
         }
     }
+}
 
-    pub fn message<S: AsRef<str>>(mut self, message: S) -> Self {
-        self.message = Some(message.as_ref().to_string());
-        self
-    }
+impl OmniError for Error {
+    type ErrorKind = ErrorKind;
 
-    pub fn source<E: Into<Box<dyn std::error::Error + Send + Sync>>>(mut self, source: E) -> Self {
-        self.source = Some(source.into());
-        self
-    }
-
-    pub fn kind(&self) -> &ErrorKind {
+    fn kind(&self) -> &Self::ErrorKind {
         &self.kind
     }
-}
 
-impl std::fmt::Debug for Error {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut debug = fmt.debug_struct("Error");
-
-        debug.field("kind", &self.kind);
-
-        if let Some(message) = &self.message {
-            debug.field("message", message);
-        }
-
-        if let Some(source) = &self.source {
-            debug.field("source", source);
-        }
-
-        debug.finish()
+    fn message(&self) -> Option<&str> {
+        self.message.as_deref()
     }
-}
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(message) = &self.message {
-            write!(fmt, "{}: {}", self.kind, message)
-        } else {
-            write!(fmt, "{}", self.kind)
-        }
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.backtrace.as_ref()
     }
 }
 
@@ -81,27 +48,100 @@ impl std::error::Error for Error {
     }
 }
 
+impl std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        OmniError::fmt(self, f)
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        OmniError::fmt(self, f)
+    }
+}
+
+impl OmniErrorBuilder<Error> for ErrorBuilder {
+    type ErrorKind = ErrorKind;
+
+    fn kind(mut self, kind: Self::ErrorKind) -> Self {
+        self.inner.kind = kind;
+        self
+    }
+
+    fn message<S: Into<String>>(mut self, message: S) -> Self {
+        self.inner.message = Some(message.into());
+        self
+    }
+
+    fn source<E: Into<Box<dyn std::error::Error + Send + Sync>>>(mut self, source: E) -> Self {
+        self.inner.source = Some(source.into());
+        self
+    }
+
+    fn backtrace(mut self) -> Self {
+        self.inner.backtrace = Some(Backtrace::capture());
+        self
+    }
+
+    fn build(self) -> Error {
+        self.inner
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErrorKind {
+    Unknown,
+    IoError,
+    DatabaseError,
+
+    InvalidFormat,
+}
+
+impl std::fmt::Display for ErrorKind {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::Unknown => write!(fmt, "unknown"),
+            ErrorKind::IoError => write!(fmt, "io error"),
+            ErrorKind::DatabaseError => write!(fmt, "database error"),
+
+            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
+        }
+    }
+}
+
 impl From<std::convert::Infallible> for Error {
     fn from(e: std::convert::Infallible) -> Self {
-        Error::new(ErrorKind::InvalidFormat).message("convert failed").source(e)
+        Error::builder()
+            .kind(ErrorKind::InvalidFormat)
+            .message("convert failed")
+            .source(e)
+            .build()
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        Error::new(ErrorKind::IoError).message("I/O operation failed").source(e)
+        Error::builder().kind(ErrorKind::IoError).message("io operation failed").source(e).build()
     }
 }
 
 #[cfg(feature = "postgres")]
 impl From<tokio_postgres::Error> for Error {
     fn from(e: tokio_postgres::Error) -> Self {
-        Error::new(ErrorKind::DatabaseError).message("PostgreSQL operation failed").source(e)
+        Error::builder()
+            .kind(ErrorKind::DatabaseError)
+            .message("postgres operation failed")
+            .source(e)
+            .build()
     }
 }
 
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
-        Error::new(ErrorKind::DatabaseError).message("Database operation failed").source(e)
+        Error::builder()
+            .kind(ErrorKind::DatabaseError)
+            .message("database operation failed")
+            .source(e)
+            .build()
     }
 }

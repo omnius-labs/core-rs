@@ -62,10 +62,10 @@ impl FromStr for OmniHash {
 
         let typ = iter
             .next()
-            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).message("type not found"))?;
+            .ok_or_else(|| Error::builder().kind(ErrorKind::InvalidFormat).message("type not found").build())?;
         let value = iter
             .next()
-            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).message("value not found"))?;
+            .ok_or_else(|| Error::builder().kind(ErrorKind::InvalidFormat).message("value not found").build())?;
 
         let typ = match typ {
             "Sha3_256" => OmniHashAlgorithmType::Sha3_256,
@@ -90,8 +90,12 @@ impl RocketMessage for OmniHash {
     where
         Self: Sized,
     {
-        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?)
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("any unknown bits are set"))?;
+        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?).ok_or_else(|| {
+            RocketPackError::builder()
+                .kind(RocketPackErrorKind::InvalidFormat)
+                .message("any unknown bits are set")
+                .build()
+        })?;
         let value = reader.get_bytes(1024)?;
 
         Ok(Self { typ, value })
