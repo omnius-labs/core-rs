@@ -48,6 +48,6 @@ mod tests {
             max_number_of_messages: None,
         };
         let result = secret_reader.receive_message().await.unwrap();
-        println!("{:?}", result);
+        println!("{result:?}");
     }
 }

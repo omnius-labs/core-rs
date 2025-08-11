@@ -57,7 +57,7 @@ mod tests {
             .send_mail_simple_text("lyrise1984@gmail.com", "no-reply@opxs-dev.omnius-labs.com", "test subject", "test body")
             .await;
         if let Err(e) = r {
-            println!("{:?}", e);
+            println!("{e:?}");
         }
     }
 }
