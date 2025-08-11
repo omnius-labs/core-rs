@@ -10,6 +10,8 @@ postgres = ["tokio-postgres"]
 sqlite = []
 
 [dependencies]
+omnius-core-base = { workspace = true }
+
 chrono = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

@@ -119,7 +119,12 @@ where
 
                 (other_sign, secret)
             }
-            _ => return Err(Error::new(ErrorKind::UnsupportedType).message("key exchange algorithm")),
+            _ => {
+                return Err(Error::builder()
+                    .kind(ErrorKind::UnsupportedType)
+                    .message("key exchange algorithm")
+                    .build());
+            }
         };
 
         let (enc_key, enc_nonce, dec_key, dec_nonce) = match key_derivation_algorithm_type {
@@ -133,7 +138,7 @@ where
 
                 let (key_len, nonce_len) = match cipher_algorithm_type {
                     CipherAlgorithmType::Aes256Gcm => (32, 12),
-                    _ => return Err(Error::new(ErrorKind::UnsupportedType).message("cipher algorithm")),
+                    _ => return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("cipher algorithm").build()),
                 };
 
                 let okm = match hash_algorithm_type {
@@ -141,11 +146,11 @@ where
                         let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
                         let kdf = Hkdf::<Sha3_256>::new(Some(&salt), &secret);
                         kdf.expand(&[], &mut okm)
-                            .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("Failed to expand key"))?;
+                            .map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("Failed to expand key").build())?;
 
                         okm
                     }
-                    _ => return Err(Error::new(ErrorKind::UnsupportedType).message("hash algorithm")),
+                    _ => return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("hash algorithm").build()),
                 };
 
                 let (enc_offset, dec_offset) = match self.typ {
@@ -160,7 +165,12 @@ where
 
                 (enc_key, enc_nonce, dec_key, dec_nonce)
             }
-            _ => return Err(Error::new(ErrorKind::UnsupportedType).message("key derivation algorithm")),
+            _ => {
+                return Err(Error::builder()
+                    .kind(ErrorKind::UnsupportedType)
+                    .message("key derivation algorithm")
+                    .build());
+            }
         };
 
         Ok(AuthResult {
@@ -193,7 +203,7 @@ where
 
                 Ok(hasher.finalize().to_vec())
             }
-            _ => Err(Error::new(ErrorKind::UnsupportedType).message("hash algorithm")),
+            _ => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("hash algorithm").build()),
         }
     }
 }
