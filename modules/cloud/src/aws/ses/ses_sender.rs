@@ -35,7 +35,7 @@ impl SesSender for SesSenderImpl {
             .send()
             .await?;
 
-        Ok(res.message_id.ok_or_else(|| Error::new(ErrorKind::NotFound))?)
+        Ok(res.message_id.ok_or_else(|| Error::builder().kind(ErrorKind::NotFound).build())?)
     }
 }
 

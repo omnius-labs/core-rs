@@ -4,13 +4,13 @@ use tokio_util::bytes::{Buf, BufMut};
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
 pub enum VarintError {
-    #[error("Invalid header (value {value})")]
+    #[error("invalid header (value {value})")]
     InvalidHeader { value: u8 },
 
-    #[error("End of input")]
+    #[error("end of input")]
     EndOfInput,
 
-    #[error("Too small body (size: {size})")]
+    #[error("too small body (size: {size})")]
     TooSmall { size: usize },
 }
 
