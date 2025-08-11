@@ -24,13 +24,13 @@ impl OmniBase {
     pub fn decode(data: &str) -> Result<Vec<u8>> {
         let data = data.as_bytes();
         if data.len() <= 1 {
-            return Err(Error::new(ErrorKind::InvalidFormat).message("omni base too small"));
+            return Err(Error::builder().kind(ErrorKind::InvalidFormat).message("omni base too small").build());
         }
 
         match data[0] {
             b'f' => hex::decode(&data[1..]).map_err(|e| e.into()),
             b'u' => BASE64_URL.decode(&data[1..]).map_err(|e| e.into()),
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("invalid omni base")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("invalid omni base").build()),
         }
     }
 }

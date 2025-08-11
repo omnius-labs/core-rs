@@ -116,7 +116,10 @@ mod tests {
                 .new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);
 
-            let buffer = framed.next().await.ok_or_else(|| Error::new(ErrorKind::EndOfStream))??;
+            let buffer = framed
+                .next()
+                .await
+                .ok_or_else(|| Error::builder().kind(ErrorKind::EndOfStream).build())??;
 
             let s = str::from_utf8(buffer.as_ref())?.to_string();
             println!("{s}");

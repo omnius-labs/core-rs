@@ -55,7 +55,10 @@ where
             return Ok(());
         }
 
-        Err(Error::new(ErrorKind::UnsupportedVersion).message(format!("unsupported version: {}", hello_message.version)))
+        Err(Error::builder()
+            .kind(ErrorKind::UnsupportedVersion)
+            .message(format!("unsupported version: {}", hello_message.version))
+            .build())
     }
 
     pub fn function_id(&self) -> Result<u32> {
@@ -73,8 +76,8 @@ where
         let param = PacketMessage::<TParamMessage, TErrorMessage>::import(&mut param)?;
 
         match param {
-            PacketMessage::Unknown => Err(Error::new(ErrorKind::UnsupportedType).message("type unknown")),
-            PacketMessage::Continue(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type continue")),
+            PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
+            PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
             PacketMessage::Completed(param) => match callback(param).await {
                 Ok(result_message) => {
                     let message = PacketMessage::<TResultMessage, TErrorMessage>::Completed(result_message).export()?;
@@ -87,7 +90,7 @@ where
                     Ok(())
                 }
             },
-            PacketMessage::Error(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type error")),
+            PacketMessage::Error(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type error").build()),
         }
     }
 

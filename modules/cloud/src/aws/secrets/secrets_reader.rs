@@ -16,7 +16,7 @@ impl SecretsReader for SecretsReaderImpl {
     async fn read_value(&self, secret_id: &str) -> Result<String> {
         let output = self.client.get_secret_value().secret_id(secret_id).send().await?;
 
-        let res = output.secret_string().ok_or_else(|| Error::new(ErrorKind::NotFound))?;
+        let res = output.secret_string().ok_or_else(|| Error::builder().kind(ErrorKind::NotFound).build())?;
         Ok(res.to_string())
     }
 }

@@ -67,8 +67,8 @@ where
         let message = PacketMessage::<TResultMessage, TErrorMessage>::import(&mut message)?;
 
         match message {
-            PacketMessage::Unknown => Err(Error::new(ErrorKind::UnsupportedType).message("type unknown")),
-            PacketMessage::Continue(_) => Err(Error::new(ErrorKind::UnsupportedType).message("type continue")),
+            PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
+            PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
             PacketMessage::Completed(result_message) => Ok(Ok(result_message)),
             PacketMessage::Error(error_message) => Ok(Err(error_message)),
         }

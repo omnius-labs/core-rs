@@ -73,9 +73,9 @@ impl ElementParser {
                         return Ok(v);
                     }
                 }
-                Err(Error::new(ErrorKind::InvalidFormat).message("i2p"))
+                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("i2p").build())
             }
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
         }
     }
 
@@ -95,9 +95,9 @@ impl ElementParser {
                         }
                     };
                 }
-                Err(Error::new(ErrorKind::InvalidFormat).message("tcp"))
+                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("tcp").build())
             }
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
         }
     }
 
@@ -122,9 +122,9 @@ impl ElementParser {
                         }
                     };
                 }
-                Err(Error::new(ErrorKind::InvalidFormat).message("tcp"))
+                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("tcp").build())
             }
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
         }
     }
 
@@ -136,9 +136,9 @@ impl ElementParser {
                         return Ok(IpAddr::V4(v.parse::<Ipv4Addr>()?));
                     }
                 }
-                Err(Error::new(ErrorKind::InvalidFormat).message("ip4"))
+                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("ip4").build())
             }
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
         }
     }
 
@@ -150,9 +150,9 @@ impl ElementParser {
                         return Ok(IpAddr::V6(v.parse::<Ipv6Addr>()?));
                     }
                 }
-                Err(Error::new(ErrorKind::InvalidFormat).message("ip6"))
+                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("ip6").build())
             }
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
         }
     }
 
@@ -164,9 +164,9 @@ impl ElementParser {
                         return Ok(v.clone());
                     }
                 }
-                Err(Error::new(ErrorKind::InvalidFormat).message("dns"))
+                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("dns").build())
             }
-            _ => Err(Error::new(ErrorKind::InvalidFormat).message("root")),
+            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
         }
     }
 }
