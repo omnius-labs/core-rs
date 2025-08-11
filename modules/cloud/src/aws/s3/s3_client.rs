@@ -37,8 +37,7 @@ impl S3Client for S3ClientImpl {
             .bucket(self.bucket.as_str())
             .key(key)
             .set_response_content_disposition(Some(format!(
-                "attachment; filename=\"{}\"; filename*=UTF-8''{}",
-                encoded_file_name, encoded_file_name
+                "attachment; filename=\"{encoded_file_name}\"; filename*=UTF-8''{encoded_file_name}"
             )))
             .presigned(presigning_config)
             .await?;
@@ -103,9 +102,9 @@ mod tests {
             bucket: "opxs.v1.dev.file-convert".to_string(),
         };
         let uri = s3.gen_put_presigned_uri("in/test.txt", Utc::now(), Duration::minutes(5)).await.unwrap();
-        println!("{:?}", uri);
+        println!("{uri:?}");
         let client = reqwest::Client::new();
         let res = client.put(&uri).body("test").send().await.unwrap();
-        println!("{:?}", res);
+        println!("{res:?}");
     }
 }
