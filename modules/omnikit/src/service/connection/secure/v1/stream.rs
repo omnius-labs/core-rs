@@ -176,7 +176,7 @@ where
                     if *body_offset == body_buf.len() {
                         let dec_buf = match this.decoder.decode(body_buf) {
                             Ok(buf) => buf,
-                            Err(e) => return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))),
+                            Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                         };
                         this.read_state = ReadState::ReadPlaintext {
                             plaintext: Bytes::from(dec_buf),
@@ -224,7 +224,7 @@ where
                     if plaintext.len() == MAX_FRAME_LENGTH {
                         let enc_buf = match this.encoder.encode(plaintext) {
                             Ok(buf) => buf,
-                            Err(e) => return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))),
+                            Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                         };
                         this.write_state = WriteState::SendPayload {
                             header: SendHeader {
@@ -273,7 +273,7 @@ where
                 WriteState::WritePlaintext { plaintext } => {
                     let enc_buf = match this.encoder.encode(plaintext) {
                         Ok(buf) => buf,
-                        Err(e) => return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))),
+                        Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                     };
                     this.write_state = WriteState::SendPayload {
                         header: SendHeader {

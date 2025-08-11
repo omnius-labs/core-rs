@@ -14,36 +14,41 @@ use crate::{
 
 use super::packet_message::PacketMessage;
 
-pub struct OmniRemotingStream<R, W, TErrorMessage>
+pub struct OmniRemotingStream<R, W, TInputMessage, TOutputMessage, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
+    TInputMessage: RocketMessage + Send + Sync + 'static,
+    TOutputMessage: RocketMessage + Send + Sync + 'static,
     TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
-    _phantom: std::marker::PhantomData<TErrorMessage>,
+    _phantom_input: std::marker::PhantomData<TInputMessage>,
+    _phantom_output: std::marker::PhantomData<TOutputMessage>,
+    _phantom_error: std::marker::PhantomData<TErrorMessage>,
 }
 
-impl<R, W, TErrorMessage> OmniRemotingStream<R, W, TErrorMessage>
+impl<R, W, TInputMessage, TOutputMessage, TErrorMessage> OmniRemotingStream<R, W, TInputMessage, TOutputMessage, TErrorMessage>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
+    TInputMessage: RocketMessage + Send + Sync + 'static,
+    TOutputMessage: RocketMessage + Send + Sync + 'static,
     TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     pub fn new(receiver: Arc<TokioMutex<FramedReceiver<R>>>, sender: Arc<TokioMutex<FramedSender<W>>>) -> Self {
         OmniRemotingStream {
             receiver,
             sender,
-            _phantom: std::marker::PhantomData,
+            _phantom_input: std::marker::PhantomData,
+            _phantom_output: std::marker::PhantomData,
+            _phantom_error: std::marker::PhantomData,
         }
     }
 
-    pub async fn send_continue<TMessage>(&self, message: TMessage) -> Result<()>
-    where
-        TMessage: RocketMessage + Send + Sync + 'static,
-    {
-        let packet = PacketMessage::<TMessage, TErrorMessage>::Continue(message);
+    pub async fn send_continue(&self, input_message: TInputMessage) -> Result<()> {
+        let packet = PacketMessage::<TInputMessage, TErrorMessage>::Continue(input_message);
 
         let bytes = packet.export()?;
         self.sender.lock().await.send(bytes).await?;
@@ -51,17 +56,15 @@ where
         Ok(())
     }
 
-    pub async fn send_completed<TMessage>(&self, message: TMessage) -> Result<()>
-    where
-        TMessage: RocketMessage + Send + Sync + 'static,
-    {
-        let packet = PacketMessage::<TMessage, TErrorMessage>::Completed(message);
+    pub async fn send_completed(&self, input_message: TInputMessage) -> Result<()> {
+        let packet = PacketMessage::<TInputMessage, TErrorMessage>::Completed(input_message);
 
         let bytes = packet.export()?;
         self.sender.lock().await.send(bytes).await?;
 
         Ok(())
     }
+
     pub async fn send_error(&self, error_message: TErrorMessage) -> Result<()> {
         let packet = PacketMessage::<EmptyRocketMessage, TErrorMessage>::Error(error_message);
 
@@ -71,12 +74,9 @@ where
         Ok(())
     }
 
-    pub async fn recv<TMessage>(&self) -> Result<PacketMessage<TMessage, TErrorMessage>>
-    where
-        TMessage: RocketMessage + Send + Sync + 'static,
-    {
+    pub async fn recv(&self) -> Result<PacketMessage<TOutputMessage, TErrorMessage>> {
         let mut bytes = self.receiver.lock().await.recv().await?;
-        let message = PacketMessage::<TMessage, TErrorMessage>::import(&mut bytes)?;
+        let message = PacketMessage::<TOutputMessage, TErrorMessage>::import(&mut bytes)?;
 
         Ok(message)
     }

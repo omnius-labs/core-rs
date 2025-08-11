@@ -3,6 +3,7 @@ use ed25519_dalek::{
     Signer as _,
     pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _},
 };
+use rand::TryRngCore;
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};
 
@@ -24,7 +25,7 @@ impl std::fmt::Display for OmniSignType {
             &OmniSignType::Ed25519_Sha3_256_Base64Url => "Ed25519_Sha3_256_Base64Url",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
@@ -48,7 +49,7 @@ impl OmniSigner {
     pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> Result<Self> {
         match &typ {
             &OmniSignType::Ed25519_Sha3_256_Base64Url => {
-                let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng);
+                let signing_key = ed25519_dalek::SigningKey::generate(&mut OsRng.unwrap_mut());
                 let name = name.as_ref().to_string();
                 let key = signing_key.to_pkcs8_der()?.to_bytes().to_vec();
                 Ok(Self { typ, name, key })

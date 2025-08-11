@@ -26,8 +26,8 @@ impl OmniAddr {
 
     pub fn create_tcp(ip: IpAddr, port: u16) -> OmniAddr {
         match ip {
-            IpAddr::V4(ip) => Self::new(format!("tcp(ip4({}),{})", ip, port).as_str()),
-            IpAddr::V6(ip) => Self::new(format!("tcp(ip6({}),{})", ip, port).as_str()),
+            IpAddr::V4(ip) => Self::new(format!("tcp(ip4({ip}),{port})").as_str()),
+            IpAddr::V6(ip) => Self::new(format!("tcp(ip6({ip}),{port})").as_str()),
         }
     }
 
@@ -178,7 +178,7 @@ struct StringParser;
 impl StringParser {
     pub fn string_literal_parser<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, String> {
         move |input: &'a str| {
-            let (input, parsed) = delimited(multispace0, many1(is_not(",()")), multispace0)(input)?;
+            let (input, parsed) = delimited(multispace0, many1(is_not(",()")), multispace0).parse(input)?;
             let result: String = parsed.into_iter().collect();
             Ok((input, result))
         }
@@ -188,7 +188,7 @@ impl StringParser {
         move |input: &'a str| {
             let (input, _) = char('"')(input)?;
             let (input, fragments) =
-                many0(map(preceded(char('\\'), anychar), |c| format!("\\{}", c)).or(map(is_not("\\\""), |s: &str| s.to_string())))(input)?;
+                many0(map(preceded(char('\\'), anychar), |c| format!("\\{c}")).or(map(is_not("\\\""), |s: &str| s.to_string()))).parse(input)?;
             let (input, _) = char('"')(input)?;
             let result: String = fragments.concat().replace("\\\"", "\"");
             Ok((input, result))
@@ -201,8 +201,9 @@ impl StringParser {
                 multispace0,
                 alt((Self::quoted_string_literal_parser(), Self::string_literal_parser())),
                 multispace0,
-            )(input)?;
-            let (input, _) = opt(delimited(multispace0, char(','), multispace0))(input)?;
+            )
+            .parse(input)?;
+            let (input, _) = opt(delimited(multispace0, char(','), multispace0)).parse(input)?;
             let result = Element::Constant(text);
             Ok((input, result))
         }
@@ -210,15 +211,16 @@ impl StringParser {
 
     pub fn function_element_parser<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Element> {
         move |input: &'a str| {
-            let (input, name) = delimited(multispace0, Self::string_literal_parser(), multispace0)(input)?;
-            let (input, _) = delimited(multispace0, char('('), multispace0)(input)?;
+            let (input, name) = delimited(multispace0, Self::string_literal_parser(), multispace0).parse(input)?;
+            let (input, _) = delimited(multispace0, char('('), multispace0).parse(input)?;
             let (input, args) = many0(delimited(
                 multispace0,
                 alt((Self::function_element_parser(), Self::constant_element_parser())),
                 multispace0,
-            ))(input)?;
-            let (input, _) = delimited(multispace0, char(')'), multispace0)(input)?;
-            let (input, _) = opt(delimited(multispace0, char(','), multispace0))(input)?;
+            ))
+            .parse(input)?;
+            let (input, _) = delimited(multispace0, char(')'), multispace0).parse(input)?;
+            let (input, _) = opt(delimited(multispace0, char(','), multispace0)).parse(input)?;
             let result = Element::Function(FunctionElement { name, args });
             Ok((input, result))
         }
