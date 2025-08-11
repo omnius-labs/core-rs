@@ -85,12 +85,12 @@ impl OmniAgreement {
             .secret_key
             .clone()
             .try_into()
-            .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("invalid secret_key"))?;
+            .map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("invalid secret_key").build())?;
         let public_key: [u8; 32] = public_key
             .public_key
             .clone()
             .try_into()
-            .map_err(|_| Error::new(ErrorKind::InvalidFormat).message("public_key"))?;
+            .map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("public_key").build())?;
 
         let secret_key = x25519_dalek::StaticSecret::from(secret_key);
         let public_key = x25519_dalek::PublicKey::from(public_key);
@@ -115,10 +115,12 @@ impl RocketMessage for OmniAgreement {
     where
         Self: Sized,
     {
-        let created_time = reader
-            .get_timestamp64()?
-            .to_date_time()
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("invalid timestamp64"))?;
+        let created_time = reader.get_timestamp64()?.to_date_time().ok_or_else(|| {
+            RocketPackError::builder()
+                .kind(RocketPackErrorKind::InvalidFormat)
+                .message("invalid timestamp64")
+                .build()
+        })?;
         let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
         let secret_key = reader.get_bytes(1024)?;
         let public_key = reader.get_bytes(1024)?;
@@ -152,10 +154,12 @@ impl RocketMessage for OmniAgreementPublicKey {
     where
         Self: Sized,
     {
-        let created_time = reader
-            .get_timestamp64()?
-            .to_date_time()
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("invalid timestamp64"))?;
+        let created_time = reader.get_timestamp64()?.to_date_time().ok_or_else(|| {
+            RocketPackError::builder()
+                .kind(RocketPackErrorKind::InvalidFormat)
+                .message("invalid timestamp64")
+                .build()
+        })?;
         let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
         let public_key = reader.get_bytes(1024)?;
 
@@ -187,10 +191,12 @@ impl RocketMessage for OmniAgreementPrivateKey {
     where
         Self: Sized,
     {
-        let created_time = reader
-            .get_timestamp64()?
-            .to_date_time()
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).message("invalid timestamp64"))?;
+        let created_time = reader.get_timestamp64()?.to_date_time().ok_or_else(|| {
+            RocketPackError::builder()
+                .kind(RocketPackErrorKind::InvalidFormat)
+                .message("invalid timestamp64")
+                .build()
+        })?;
         let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
         let secret_key = reader.get_bytes(1024)?;
 
