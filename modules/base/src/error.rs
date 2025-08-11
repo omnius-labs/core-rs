@@ -179,6 +179,6 @@ mod tests {
             .source(inner)
             .build();
 
-        println!("{:?}", outer);
+        println!("{outer:?}");
     }
 }
