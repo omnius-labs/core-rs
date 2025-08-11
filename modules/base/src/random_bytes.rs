@@ -1,5 +1,5 @@
-use rand::{RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
+use rand_core::{RngCore, SeedableRng};
 
 pub trait RandomBytesProvider {
     fn get_bytes(&mut self, len: usize) -> Vec<u8>;
@@ -12,7 +12,7 @@ pub struct RandomBytesProviderImpl {
 
 impl RandomBytesProviderImpl {
     pub fn new() -> Self {
-        let rng = ChaCha20Rng::from_entropy();
+        let rng = ChaCha20Rng::from_os_rng();
         Self { rng }
     }
 }

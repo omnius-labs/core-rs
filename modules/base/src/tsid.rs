@@ -56,7 +56,7 @@ impl Display for Tsid {
         let seconds = self.timestamp.timestamp();
         let nanos = self.timestamp.timestamp_subsec_nanos();
         let random_bytes_str = hex::encode(&self.random_bytes);
-        write!(f, "{}.{:09}.{}", seconds, nanos, random_bytes_str)
+        write!(f, "{seconds}.{nanos:09}.{random_bytes_str}")
     }
 }
 

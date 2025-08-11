@@ -19,7 +19,7 @@ impl<'a> RocketMessageReader<'a> {
         if length > limit {
             return Err(Error::builder()
                 .kind(ErrorKind::TooLarge)
-                .message(format!("length exceeded limit: {} > {}", length, limit))
+                .message(format!("length exceeded limit: {length} > {limit}"))
                 .build());
         }
 

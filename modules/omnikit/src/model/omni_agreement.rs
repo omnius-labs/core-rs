@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use chrono::{DateTime, Utc};
+use rand::TryRngCore;
 use rand_core::OsRng;
 
 use crate::prelude::*;
@@ -18,7 +19,7 @@ impl std::fmt::Display for OmniAgreementAlgorithmType {
             &OmniAgreementAlgorithmType::X25519 => "X25519",
             _ => "None",
         };
-        write!(f, "{}", typ)
+        write!(f, "{typ}")
     }
 }
 
@@ -50,7 +51,7 @@ pub struct OmniAgreement {
 
 impl OmniAgreement {
     pub fn new(created_time: DateTime<Utc>, algorithm_type: OmniAgreementAlgorithmType) -> Result<Self> {
-        let secret_key = x25519_dalek::StaticSecret::random_from_rng(OsRng);
+        let secret_key = x25519_dalek::StaticSecret::random_from_rng(&mut OsRng.unwrap_err());
         let public_key = x25519_dalek::PublicKey::from(&secret_key);
 
         let secret_key = secret_key.as_bytes().to_vec();

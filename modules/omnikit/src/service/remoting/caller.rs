@@ -55,26 +55,30 @@ where
         Ok(())
     }
 
-    pub async fn call_unary<TRequestMessage, TResponseMessage>(&self, param: TRequestMessage) -> CallResult<TResponseMessage, TErrorMessage>
+    pub async fn call_unary<TParamMessage, TResultMessage>(&self, param: TParamMessage) -> CallResult<TResultMessage, TErrorMessage>
     where
-        TRequestMessage: RocketMessage + Send + Sync + 'static,
-        TResponseMessage: RocketMessage + Send + Sync + 'static,
+        TParamMessage: RocketMessage + Send + Sync + 'static,
+        TResultMessage: RocketMessage + Send + Sync + 'static,
     {
-        let param = PacketMessage::<TRequestMessage, EmptyRocketMessage>::Completed(param).export()?;
+        let param = PacketMessage::<TParamMessage, EmptyRocketMessage>::Completed(param).export()?;
         self.sender.lock().await.send(param).await?;
 
         let mut message = self.receiver.lock().await.recv().await?;
-        let message = PacketMessage::<TResponseMessage, TErrorMessage>::import(&mut message)?;
+        let message = PacketMessage::<TResultMessage, TErrorMessage>::import(&mut message)?;
 
         match message {
             PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
             PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
-            PacketMessage::Completed(message) => Ok(Ok(message)),
+            PacketMessage::Completed(result_message) => Ok(Ok(result_message)),
             PacketMessage::Error(error_message) => Ok(Err(error_message)),
         }
     }
 
-    pub async fn call_stream(&self) -> OmniRemotingStream<R, W, TErrorMessage> {
+    pub fn call_stream<TInputMessage, TOutputMessage>(&self) -> OmniRemotingStream<R, W, TInputMessage, TOutputMessage, TErrorMessage>
+    where
+        TInputMessage: RocketMessage + Send + Sync + 'static,
+        TOutputMessage: RocketMessage + Send + Sync + 'static,
+    {
         OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())
     }
 }

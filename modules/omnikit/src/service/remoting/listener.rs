@@ -66,11 +66,11 @@ where
         Ok(v.ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotConnected))?)
     }
 
-    pub async fn listen_unary<TParamMessage, TSuccessMessage, F>(&self, callback: F) -> Result<()>
+    pub async fn listen_unary<TParamMessage, TResultMessage, F>(&self, callback: F) -> Result<()>
     where
         TParamMessage: RocketMessage + Send + Sync + 'static,
-        TSuccessMessage: RocketMessage + Send + Sync + 'static,
-        F: AsyncFnOnce(TParamMessage) -> std::result::Result<TSuccessMessage, TErrorMessage>,
+        TResultMessage: RocketMessage + Send + Sync + 'static,
+        F: AsyncFnOnce(TParamMessage) -> std::result::Result<TResultMessage, TErrorMessage>,
     {
         let mut param = self.receiver.lock().await.recv().await?;
         let param = PacketMessage::<TParamMessage, TErrorMessage>::import(&mut param)?;
@@ -79,13 +79,13 @@ where
             PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
             PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
             PacketMessage::Completed(param) => match callback(param).await {
-                Ok(message) => {
-                    let message = PacketMessage::<TSuccessMessage, TErrorMessage>::Completed(message).export()?;
+                Ok(result_message) => {
+                    let message = PacketMessage::<TResultMessage, TErrorMessage>::Completed(result_message).export()?;
                     self.sender.lock().await.send(message).await?;
                     Ok(())
                 }
                 Err(error_message) => {
-                    let error_message = PacketMessage::<TSuccessMessage, TErrorMessage>::Error(error_message).export()?;
+                    let error_message = PacketMessage::<TResultMessage, TErrorMessage>::Error(error_message).export()?;
                     self.sender.lock().await.send(error_message).await?;
                     Ok(())
                 }
@@ -94,9 +94,11 @@ where
         }
     }
 
-    pub async fn listen_stream<F>(&self, callback: F) -> Result<()>
+    pub async fn listen_stream<TInputMessage, TOutputMessage, F>(&self, callback: F) -> Result<()>
     where
-        F: AsyncFnOnce(OmniRemotingStream<R, W, TErrorMessage>),
+        TInputMessage: RocketMessage + Send + Sync + 'static,
+        TOutputMessage: RocketMessage + Send + Sync + 'static,
+        F: AsyncFnOnce(OmniRemotingStream<R, W, TInputMessage, TOutputMessage, TErrorMessage>),
     {
         callback(OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())).await;
         Ok(())
