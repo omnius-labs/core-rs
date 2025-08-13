@@ -35,7 +35,7 @@ impl PostgresMigrator {
     pub async fn migrate(&self) -> Result<()> {
         self.init().await?;
 
-        let histories: Vec<MigrationHistory> = self.fetch_migration_histories().await?;
+        let histories: Vec<MigrationHistory> = self.get_migration_histories().await?;
         let ignore_set: HashSet<String> = histories.iter().map(|n| n.file_name.clone()).collect();
 
         let files: Vec<MigrationFile> = self.load_migration_files().await?;
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS _semaphores (
         Ok(results)
     }
 
-    async fn fetch_migration_histories(&self) -> Result<Vec<MigrationHistory>> {
+    async fn get_migration_histories(&self) -> Result<Vec<MigrationHistory>> {
         let mut results: Vec<MigrationHistory> = Vec::new();
 
         let query = "\
