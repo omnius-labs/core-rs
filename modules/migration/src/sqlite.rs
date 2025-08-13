@@ -11,7 +11,7 @@ impl SqliteMigrator {
     pub async fn migrate(db: &SqlitePool, requests: Vec<MigrationRequest>) -> Result<()> {
         Self::init(db).await?;
 
-        let histories = Self::fetch_migration_histories(db).await?;
+        let histories = Self::get_migration_histories(db).await?;
         let ignore_set: HashSet<String> = histories.iter().map(|n| n.name.clone()).collect();
 
         let requests: Vec<MigrationRequest> = requests.into_iter().filter(|x| !ignore_set.contains(x.name.as_str())).collect();
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS _migrations (
         Ok(())
     }
 
-    async fn fetch_migration_histories(db: &SqlitePool) -> Result<Vec<MigrationHistory>> {
+    async fn get_migration_histories(db: &SqlitePool) -> Result<Vec<MigrationHistory>> {
         let res: Vec<MigrationHistory> = sqlx::query_as(
             r#"
 SELECT name, executed_at FROM _migrations
