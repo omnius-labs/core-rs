@@ -28,13 +28,17 @@ impl Clock<Utc> for FakeClockUtc {
 }
 
 impl FakeClockUtc {
-    pub fn new(start: DateTime<Utc>) -> Self {
+    pub fn new(current_time: DateTime<Utc>) -> Self {
         Self {
-            current_time: Arc::new(Mutex::new(start)),
+            current_time: Arc::new(Mutex::new(current_time)),
         }
     }
 
-    pub fn advance_time(&self, duration: Duration) {
+    pub fn set(&self, current_time: DateTime<Utc>) {
+        *self.current_time.lock() = current_time;
+    }
+
+    pub fn advance(&self, duration: Duration) {
         let mut current_time = self.current_time.lock();
         *current_time += duration;
     }
