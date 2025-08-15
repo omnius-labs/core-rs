@@ -87,6 +87,7 @@ impl OmniErrorBuilder<Error> for ErrorBuilder {
         self.inner
     }
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     Unknown,
