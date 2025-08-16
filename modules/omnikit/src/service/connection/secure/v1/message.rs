@@ -21,11 +21,13 @@ impl std::fmt::Display for AuthType {
     }
 }
 
-impl From<&str> for AuthType {
-    fn from(value: &str) -> Self {
-        match value {
-            "Sign" => AuthType::Sign,
-            _ => AuthType::None,
+impl std::str::FromStr for AuthType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "Sign" => Ok(AuthType::Sign),
+            _ => Ok(AuthType::None),
         }
     }
 }
@@ -48,11 +50,13 @@ impl std::fmt::Display for KeyExchangeAlgorithmType {
     }
 }
 
-impl From<&str> for KeyExchangeAlgorithmType {
-    fn from(value: &str) -> Self {
-        match value {
-            "X25519" => KeyExchangeAlgorithmType::X25519,
-            _ => KeyExchangeAlgorithmType::None,
+impl std::str::FromStr for KeyExchangeAlgorithmType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "X25519" => Ok(KeyExchangeAlgorithmType::X25519),
+            _ => Ok(KeyExchangeAlgorithmType::None),
         }
     }
 }
@@ -75,11 +79,13 @@ impl std::fmt::Display for KeyDerivationAlgorithmType {
     }
 }
 
-impl From<&str> for KeyDerivationAlgorithmType {
-    fn from(value: &str) -> Self {
-        match value {
-            "Hkdf" => KeyDerivationAlgorithmType::Hkdf,
-            _ => KeyDerivationAlgorithmType::None,
+impl std::str::FromStr for KeyDerivationAlgorithmType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "Hkdf" => Ok(KeyDerivationAlgorithmType::Hkdf),
+            _ => Ok(KeyDerivationAlgorithmType::None),
         }
     }
 }
@@ -102,11 +108,13 @@ impl std::fmt::Display for CipherAlgorithmType {
     }
 }
 
-impl From<&str> for CipherAlgorithmType {
-    fn from(value: &str) -> Self {
-        match value {
-            "Aes256Gcm" => CipherAlgorithmType::Aes256Gcm,
-            _ => CipherAlgorithmType::None,
+impl std::str::FromStr for CipherAlgorithmType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "Aes256Gcm" => Ok(CipherAlgorithmType::Aes256Gcm),
+            _ => Ok(CipherAlgorithmType::None),
         }
     }
 }
@@ -129,11 +137,13 @@ impl std::fmt::Display for HashAlgorithmType {
     }
 }
 
-impl From<&str> for HashAlgorithmType {
-    fn from(value: &str) -> Self {
-        match value {
-            "Sha3_256" => HashAlgorithmType::Sha3_256,
-            _ => HashAlgorithmType::None,
+impl std::str::FromStr for HashAlgorithmType {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "Sha3_256" => Ok(HashAlgorithmType::Sha3_256),
+            _ => Ok(HashAlgorithmType::None),
         }
     }
 }
@@ -151,11 +161,11 @@ pub(crate) struct ProfileMessage {
 impl RocketMessage for ProfileMessage {
     fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
         writer.put_bytes(&value.session_id);
-        writer.put_str(value.auth_type.to_string().as_str());
-        writer.put_str(value.key_exchange_algorithm_type.to_string().as_str());
-        writer.put_str(value.key_derivation_algorithm_type.to_string().as_str());
-        writer.put_str(value.cipher_algorithm_type.to_string().as_str());
-        writer.put_str(value.hash_algorithm_type.to_string().as_str());
+        writer.put_u32(value.auth_type.bits());
+        writer.put_u32(value.key_exchange_algorithm_type.bits());
+        writer.put_u32(value.key_derivation_algorithm_type.bits());
+        writer.put_u32(value.cipher_algorithm_type.bits());
+        writer.put_u32(value.hash_algorithm_type.bits());
 
         Ok(())
     }
@@ -165,11 +175,11 @@ impl RocketMessage for ProfileMessage {
         Self: Sized,
     {
         let session_id = reader.get_bytes(1024)?;
-        let auth_type = AuthType::from(reader.get_string(1024)?.as_str());
-        let key_exchange_algorithm_type = KeyExchangeAlgorithmType::from(reader.get_string(1024)?.as_str());
-        let key_derivation_algorithm_type = KeyDerivationAlgorithmType::from(reader.get_string(1024)?.as_str());
-        let cipher_algorithm_type = CipherAlgorithmType::from(reader.get_string(1024)?.as_str());
-        let hash_algorithm_type = HashAlgorithmType::from(reader.get_string(1024)?.as_str());
+        let auth_type = AuthType::from_bits_truncate(reader.get_u32()?);
+        let key_exchange_algorithm_type = KeyExchangeAlgorithmType::from_bits_truncate(reader.get_u32()?);
+        let key_derivation_algorithm_type = KeyDerivationAlgorithmType::from_bits_truncate(reader.get_u32()?);
+        let cipher_algorithm_type = CipherAlgorithmType::from_bits_truncate(reader.get_u32()?);
+        let hash_algorithm_type = HashAlgorithmType::from_bits_truncate(reader.get_u32()?);
 
         Ok(Self {
             session_id,
