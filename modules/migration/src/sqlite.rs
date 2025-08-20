@@ -134,10 +134,10 @@ CREATE TABLE test (
         }];
 
         // Migrate
-        SqliteMigrator::migrate(&db, requests.clone()).await.unwrap();
+        SqliteMigrator::migrate(&db, requests.clone()).await?;
 
         // Migrate again
-        SqliteMigrator::migrate(&db, requests).await.unwrap();
+        SqliteMigrator::migrate(&db, requests).await?;
 
         Ok(())
     }

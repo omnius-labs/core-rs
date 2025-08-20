@@ -85,12 +85,13 @@ mod tests {
     use std::env;
 
     use aws_config::BehaviorVersion;
+    use testresult::TestResult;
 
     use super::*;
 
     #[ignore]
     #[tokio::test]
-    async fn simple_test() {
+    async fn simple_test() -> TestResult {
         unsafe {
             env::set_var("AWS_PROFILE", "opxs-dev");
             env::set_var("AWS_REGION", "us-east-1");
@@ -101,10 +102,12 @@ mod tests {
             client: aws_sdk_s3::Client::new(&sdk_config),
             bucket: "opxs.v1.dev.file-convert".to_string(),
         };
-        let uri = s3.gen_put_presigned_uri("in/test.txt", Utc::now(), Duration::minutes(5)).await.unwrap();
+        let uri = s3.gen_put_presigned_uri("in/test.txt", Utc::now(), Duration::minutes(5)).await?;
         println!("{uri:?}");
         let client = reqwest::Client::new();
-        let res = client.put(&uri).body("test").send().await.unwrap();
+        let res = client.put(&uri).body("test").send().await?;
         println!("{res:?}");
+
+        Ok(())
     }
 }

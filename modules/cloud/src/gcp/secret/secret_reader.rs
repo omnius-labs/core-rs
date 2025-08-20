@@ -36,16 +36,19 @@ impl SecretReader for SecretReaderImpl {
 
 #[cfg(test)]
 mod tests {
+    use testresult::TestResult;
+
     use super::*;
 
     #[ignore]
     #[tokio::test]
-    async fn secrets_reader_test() {
+    async fn secrets_reader_test() -> TestResult {
         let secret_reader = SecretReaderImpl {};
         let result = secret_reader
             .read_value("projects/bews-415522/secrets/bews-secret/versions/latest")
-            .await
-            .unwrap();
+            .await?;
         println!("{result}");
+
+        Ok(())
     }
 }
