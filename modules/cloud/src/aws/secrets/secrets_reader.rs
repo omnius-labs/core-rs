@@ -24,17 +24,20 @@ impl SecretsReader for SecretsReaderImpl {
 #[cfg(test)]
 mod tests {
     use aws_config::BehaviorVersion;
+    use testresult::TestResult;
 
     use super::*;
 
     #[ignore]
     #[tokio::test]
-    async fn secrets_reader_test() {
+    async fn secrets_reader_test() -> TestResult {
         let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let secret_reader = SecretsReaderImpl {
             client: aws_sdk_secretsmanager::Client::new(&sdk_config),
         };
-        let result = secret_reader.read_value("opxs-api").await.unwrap();
+        let result = secret_reader.read_value("opxs-api").await?;
         println!("{result}");
+
+        Ok(())
     }
 }

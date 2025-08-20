@@ -45,3 +45,4 @@ gcloud-sdk = { workspace = true, optional = true }
 
 [dev-dependencies]
 testcontainers = { workspace = true }
+testresult = { workspace = true }
