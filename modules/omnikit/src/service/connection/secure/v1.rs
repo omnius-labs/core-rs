@@ -42,7 +42,7 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into()));
+        let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
         let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
 
         let addr = "127.0.0.1:50001";
@@ -92,7 +92,7 @@ mod tests {
     #[tokio::test]
     async fn server_echo_test() -> TestResult {
         loop {
-            let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into()));
+            let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
             let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
 
             let addr = "0.0.0.0:50000";

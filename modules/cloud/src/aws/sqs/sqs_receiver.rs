@@ -34,12 +34,13 @@ impl SqsReceiver for SqsReceiverImpl {
 #[cfg(test)]
 mod tests {
     use aws_config::BehaviorVersion;
+    use testresult::TestResult;
 
     use super::*;
 
     #[ignore]
     #[tokio::test]
-    async fn receive_test() {
+    async fn receive_test() -> TestResult {
         let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
         let secret_reader = SqsReceiverImpl {
             client: aws_sdk_sqs::Client::new(&sdk_config),
@@ -47,7 +48,9 @@ mod tests {
             wait_time_seconds: None,
             max_number_of_messages: None,
         };
-        let result = secret_reader.receive_message().await.unwrap();
+        let result = secret_reader.receive_message().await?;
         println!("{result:?}");
+
+        Ok(())
     }
 }

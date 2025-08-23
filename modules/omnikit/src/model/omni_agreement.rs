@@ -217,8 +217,8 @@ mod tests {
 
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let agreement1 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
-        let agreement2 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519).unwrap();
+        let agreement1 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519)?;
+        let agreement2 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519)?;
 
         let public_key1 = agreement1.gen_agreement_public_key();
         let private_key1 = agreement1.gen_agreement_private_key();
