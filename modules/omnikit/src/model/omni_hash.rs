@@ -31,7 +31,10 @@ pub struct OmniHash {
 }
 
 impl OmniHash {
-    pub fn compute_hash(typ: OmniHashAlgorithmType, bytes: &[u8]) -> Self {
+    pub fn compute_hash<V>(typ: OmniHashAlgorithmType, bytes: V) -> Self
+    where
+        V: AsRef<[u8]>,
+    {
         let mut hasher = Sha3_256::new();
         hasher.update(bytes);
         let value = hasher.finalize().to_vec();
