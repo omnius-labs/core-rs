@@ -47,12 +47,13 @@ impl From<DateTime<Utc>> for Timestamp96 {
 #[cfg(test)]
 mod tests {
     use chrono::Duration;
+    use testresult::TestResult;
 
     use super::*;
 
     #[test]
-    fn timestamp64_test() {
-        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into();
+    fn timestamp64_test() -> TestResult {
+        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into();
 
         let ts1 = Timestamp64::new(946684800);
         assert_eq!(ts1.seconds, 946684800);
@@ -61,11 +62,13 @@ mod tests {
         let ts2 = Timestamp64::from(t);
         assert_eq!(ts2.seconds, 946684800);
         assert_eq!(ts2.to_date_time(), Some(t));
+
+        Ok(())
     }
 
     #[test]
-    fn timestamp96_test() {
-        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z").unwrap().into();
+    fn timestamp96_test() -> TestResult {
+        let t: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into();
         let t = t.checked_add_signed(Duration::nanoseconds(123456789)).unwrap();
 
         let ts1 = Timestamp96::new(946684800, 123456789);
@@ -77,5 +80,7 @@ mod tests {
         assert_eq!(ts2.seconds, 946684800);
         assert_eq!(ts2.nanos, 123456789);
         assert_eq!(ts2.to_date_time(), Some(t));
+
+        Ok(())
     }
 }
