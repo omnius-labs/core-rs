@@ -109,9 +109,9 @@ mod tests {
     #[tokio::test]
     pub async fn success_test() -> TestResult {
         let dir = tempfile::tempdir()?;
-        let dir_path = dir.path().as_os_str().to_str().unwrap();
+        let state_dir = dir.path().as_os_str().to_str().unwrap();
 
-        let path = Path::new(dir_path).join("sqlite.db");
+        let path = Path::new(state_dir).join("sqlite.db");
         let path = path.to_str().unwrap();
 
         let options = sqlx::sqlite::SqliteConnectOptions::new()
@@ -145,9 +145,9 @@ CREATE TABLE test (
     #[tokio::test]
     pub async fn error_test() -> TestResult {
         let dir = tempfile::tempdir()?;
-        let dir_path = dir.path().as_os_str().to_str().unwrap();
+        let state_dir = dir.path().as_os_str().to_str().unwrap();
 
-        let path = Path::new(dir_path).join("sqlite.db");
+        let path = Path::new(state_dir).join("sqlite.db");
         let path = path.to_str().unwrap();
 
         let options = sqlx::sqlite::SqliteConnectOptions::new()
