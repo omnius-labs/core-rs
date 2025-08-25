@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@1.84.0
         with:
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@1.84.0
         with:
