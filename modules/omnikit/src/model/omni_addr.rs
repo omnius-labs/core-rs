@@ -68,10 +68,10 @@ impl ElementParser {
     pub fn parse_i2p(element: &Element) -> Result<&str> {
         match element {
             Element::Function(f) => {
-                if f.name == "i2p" {
-                    if let [Element::Constant(v)] = f.args.as_slice() {
-                        return Ok(v);
-                    }
+                if f.name == "i2p"
+                    && let [Element::Constant(v)] = f.args.as_slice()
+                {
+                    return Ok(v);
                 }
                 Err(Error::builder().kind(ErrorKind::InvalidFormat).message("i2p").build())
             }
@@ -82,19 +82,19 @@ impl ElementParser {
     pub fn parse_tcp_ip(element: &Element) -> Result<SocketAddr> {
         match element {
             Element::Function(f) => {
-                if f.name == "tcp" {
-                    if let [Element::Function(f2), Element::Constant(v)] = f.args.as_slice() {
-                        if let Ok(ip) = Self::parse_ip4(&Element::Function(f2.clone())) {
-                            let port = v.parse::<u16>()?;
-                            return Ok(SocketAddr::new(ip, port));
-                        }
+                if f.name == "tcp"
+                    && let [Element::Function(f2), Element::Constant(v)] = f.args.as_slice()
+                {
+                    if let Ok(ip) = Self::parse_ip4(&Element::Function(f2.clone())) {
+                        let port = v.parse::<u16>()?;
+                        return Ok(SocketAddr::new(ip, port));
+                    }
 
-                        if let Ok(ip) = Self::parse_ip6(&Element::Function(f2.clone())) {
-                            let port = v.parse::<u16>()?;
-                            return Ok(SocketAddr::new(ip, port));
-                        }
-                    };
-                }
+                    if let Ok(ip) = Self::parse_ip6(&Element::Function(f2.clone())) {
+                        let port = v.parse::<u16>()?;
+                        return Ok(SocketAddr::new(ip, port));
+                    }
+                };
                 Err(Error::builder().kind(ErrorKind::InvalidFormat).message("tcp").build())
             }
             _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
@@ -104,24 +104,24 @@ impl ElementParser {
     pub fn parse_tcp_host(element: &Element) -> Result<(String, u16)> {
         match element {
             Element::Function(f) => {
-                if f.name == "tcp" {
-                    if let [Element::Function(f2), Element::Constant(v)] = f.args.as_slice() {
-                        if let Ok(ip) = Self::parse_ip4(&Element::Function(f2.clone())) {
-                            let port = v.parse::<u16>()?;
-                            return Ok((ip.to_string(), port));
-                        }
+                if f.name == "tcp"
+                    && let [Element::Function(f2), Element::Constant(v)] = f.args.as_slice()
+                {
+                    if let Ok(ip) = Self::parse_ip4(&Element::Function(f2.clone())) {
+                        let port = v.parse::<u16>()?;
+                        return Ok((ip.to_string(), port));
+                    }
 
-                        if let Ok(ip) = Self::parse_ip6(&Element::Function(f2.clone())) {
-                            let port = v.parse::<u16>()?;
-                            return Ok((ip.to_string(), port));
-                        }
+                    if let Ok(ip) = Self::parse_ip6(&Element::Function(f2.clone())) {
+                        let port = v.parse::<u16>()?;
+                        return Ok((ip.to_string(), port));
+                    }
 
-                        if let Ok(host) = Self::parse_dns(&Element::Function(f2.clone())) {
-                            let port = v.parse::<u16>()?;
-                            return Ok((host, port));
-                        }
-                    };
-                }
+                    if let Ok(host) = Self::parse_dns(&Element::Function(f2.clone())) {
+                        let port = v.parse::<u16>()?;
+                        return Ok((host, port));
+                    }
+                };
                 Err(Error::builder().kind(ErrorKind::InvalidFormat).message("tcp").build())
             }
             _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
@@ -131,10 +131,10 @@ impl ElementParser {
     pub fn parse_ip4(element: &Element) -> Result<IpAddr> {
         match element {
             Element::Function(f) => {
-                if f.name == "ip4" {
-                    if let [Element::Constant(v)] = f.args.as_slice() {
-                        return Ok(IpAddr::V4(v.parse::<Ipv4Addr>()?));
-                    }
+                if f.name == "ip4"
+                    && let [Element::Constant(v)] = f.args.as_slice()
+                {
+                    return Ok(IpAddr::V4(v.parse::<Ipv4Addr>()?));
                 }
                 Err(Error::builder().kind(ErrorKind::InvalidFormat).message("ip4").build())
             }
@@ -145,10 +145,10 @@ impl ElementParser {
     pub fn parse_ip6(element: &Element) -> Result<IpAddr> {
         match element {
             Element::Function(f) => {
-                if f.name == "ip6" {
-                    if let [Element::Constant(v)] = f.args.as_slice() {
-                        return Ok(IpAddr::V6(v.parse::<Ipv6Addr>()?));
-                    }
+                if f.name == "ip6"
+                    && let [Element::Constant(v)] = f.args.as_slice()
+                {
+                    return Ok(IpAddr::V6(v.parse::<Ipv6Addr>()?));
                 }
                 Err(Error::builder().kind(ErrorKind::InvalidFormat).message("ip6").build())
             }
@@ -159,10 +159,10 @@ impl ElementParser {
     pub fn parse_dns(element: &Element) -> Result<String> {
         match element {
             Element::Function(f) => {
-                if f.name == "dns" {
-                    if let [Element::Constant(v)] = f.args.as_slice() {
-                        return Ok(v.clone());
-                    }
+                if f.name == "dns"
+                    && let [Element::Constant(v)] = f.args.as_slice()
+                {
+                    return Ok(v.clone());
                 }
                 Err(Error::builder().kind(ErrorKind::InvalidFormat).message("dns").build())
             }
@@ -187,8 +187,7 @@ impl StringParser {
     pub fn quoted_string_literal_parser<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, String> {
         move |input: &'a str| {
             let (input, _) = char('"')(input)?;
-            let (input, fragments) =
-                many0(map(preceded(char('\\'), anychar), |c| format!("\\{c}")).or(map(is_not("\\\""), |s: &str| s.to_string()))).parse(input)?;
+            let (input, fragments) = many0(map(preceded(char('\\'), anychar), |c| format!("\\{c}")).or(map(is_not("\\\""), |s: &str| s.to_string()))).parse(input)?;
             let (input, _) = char('"')(input)?;
             let result: String = fragments.concat().replace("\\\"", "\"");
             Ok((input, result))
@@ -197,12 +196,7 @@ impl StringParser {
 
     pub fn constant_element_parser<'a>() -> impl FnMut(&'a str) -> IResult<&'a str, Element> {
         move |input: &'a str| {
-            let (input, text) = delimited(
-                multispace0,
-                alt((Self::quoted_string_literal_parser(), Self::string_literal_parser())),
-                multispace0,
-            )
-            .parse(input)?;
+            let (input, text) = delimited(multispace0, alt((Self::quoted_string_literal_parser(), Self::string_literal_parser())), multispace0).parse(input)?;
             let (input, _) = opt(delimited(multispace0, char(','), multispace0)).parse(input)?;
             let result = Element::Constant(text);
             Ok((input, result))
@@ -213,12 +207,7 @@ impl StringParser {
         move |input: &'a str| {
             let (input, name) = delimited(multispace0, Self::string_literal_parser(), multispace0).parse(input)?;
             let (input, _) = delimited(multispace0, char('('), multispace0).parse(input)?;
-            let (input, args) = many0(delimited(
-                multispace0,
-                alt((Self::function_element_parser(), Self::constant_element_parser())),
-                multispace0,
-            ))
-            .parse(input)?;
+            let (input, args) = many0(delimited(multispace0, alt((Self::function_element_parser(), Self::constant_element_parser())), multispace0)).parse(input)?;
             let (input, _) = delimited(multispace0, char(')'), multispace0).parse(input)?;
             let (input, _) = opt(delimited(multispace0, char(','), multispace0)).parse(input)?;
             let result = Element::Function(FunctionElement { name, args });

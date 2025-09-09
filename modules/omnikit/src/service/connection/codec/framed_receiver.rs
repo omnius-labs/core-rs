@@ -43,11 +43,7 @@ where
     T: AsyncRead + Send + Unpin,
 {
     async fn recv(&mut self) -> Result<Bytes> {
-        let v = self
-            .framed
-            .next()
-            .await
-            .ok_or_else(|| Error::builder().kind(ErrorKind::EndOfStream).build())?;
+        let v = self.framed.next().await.ok_or_else(|| Error::builder().kind(ErrorKind::EndOfStream).build())?;
         Ok(v?.freeze())
     }
 

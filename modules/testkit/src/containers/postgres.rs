@@ -23,17 +23,8 @@ impl PostgresContainer {
             .start()
             .await?;
 
-        let connection_string = format!(
-            "postgres://{}:{}@127.0.0.1:{}/{}",
-            user,
-            password,
-            container.get_host_port_ipv4(5432).await?,
-            db
-        );
+        let connection_string = format!("postgres://{}:{}@127.0.0.1:{}/{}", user, password, container.get_host_port_ipv4(5432).await?, db);
 
-        Ok(Self {
-            container,
-            connection_string,
-        })
+        Ok(Self { container, connection_string })
     }
 }

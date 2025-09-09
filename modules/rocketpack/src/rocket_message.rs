@@ -33,6 +33,14 @@ mod tests {
 
     #[tokio::test]
     async fn simple_test() -> TestResult {
+        let a = TestMessage { value: 12345 };
+
+        let bytes = a.export()?;
+        let mut bytes_mut = bytes.clone();
+        let b = TestMessage::import(&mut bytes_mut)?;
+
+        assert_eq!(a, b);
+
         Ok(())
     }
 

@@ -120,21 +120,13 @@ where
                 (other_sign, secret)
             }
             _ => {
-                return Err(Error::builder()
-                    .kind(ErrorKind::UnsupportedType)
-                    .message("key exchange algorithm")
-                    .build());
+                return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("key exchange algorithm").build());
             }
         };
 
         let (enc_key, enc_nonce, dec_key, dec_nonce) = match key_derivation_algorithm_type {
             KeyDerivationAlgorithmType::Hkdf => {
-                let salt = my_profile
-                    .session_id
-                    .iter()
-                    .zip(other_profile.session_id.iter())
-                    .map(|(a, b)| a ^ b)
-                    .collect::<Vec<u8>>();
+                let salt = my_profile.session_id.iter().zip(other_profile.session_id.iter()).map(|(a, b)| a ^ b).collect::<Vec<u8>>();
 
                 let (key_len, nonce_len) = match cipher_algorithm_type {
                     CipherAlgorithmType::Aes256Gcm => (32, 12),
@@ -166,10 +158,7 @@ where
                 (enc_key, enc_nonce, dec_key, dec_nonce)
             }
             _ => {
-                return Err(Error::builder()
-                    .kind(ErrorKind::UnsupportedType)
-                    .message("key derivation algorithm")
-                    .build());
+                return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("key derivation algorithm").build());
             }
         };
 
@@ -183,11 +172,7 @@ where
         })
     }
 
-    fn gen_hash(
-        profile_message: &ProfileMessage,
-        agreement_public_key: &OmniAgreementPublicKey,
-        hash_algorithm: &HashAlgorithmType,
-    ) -> Result<Vec<u8>> {
+    fn gen_hash(profile_message: &ProfileMessage, agreement_public_key: &OmniAgreementPublicKey, hash_algorithm: &HashAlgorithmType) -> Result<Vec<u8>> {
         match hash_algorithm {
             &HashAlgorithmType::Sha3_256 => {
                 let mut hasher = Sha3_256::new();

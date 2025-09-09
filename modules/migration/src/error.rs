@@ -124,20 +124,12 @@ impl From<std::io::Error> for Error {
 #[cfg(feature = "postgres")]
 impl From<tokio_postgres::Error> for Error {
     fn from(e: tokio_postgres::Error) -> Self {
-        Error::builder()
-            .kind(ErrorKind::DatabaseError)
-            .message("postgres operation failed")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::DatabaseError).message("postgres operation failed").source(e).build()
     }
 }
 
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
-        Error::builder()
-            .kind(ErrorKind::DatabaseError)
-            .message("database operation failed")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::DatabaseError).message("database operation failed").source(e).build()
     }
 }

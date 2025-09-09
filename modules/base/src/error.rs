@@ -152,11 +152,7 @@ mod tests {
     #[test]
     #[ignore]
     fn builder_creates_omni_error() {
-        let e = SimpleTestError::builder()
-            .kind(SimpleTestErrorKind::Bar)
-            .message("builder message")
-            .backtrace()
-            .build();
+        let e = SimpleTestError::builder().kind(SimpleTestErrorKind::Bar).message("builder message").backtrace().build();
 
         // kind implements Debug via derive
         assert_eq!(format!("{:?}", e.kind()), "Bar");
@@ -167,17 +163,9 @@ mod tests {
     #[test]
     #[ignore]
     fn debug_print_contains_source_message() {
-        let inner = SimpleTestError::builder()
-            .kind(SimpleTestErrorKind::Foo)
-            .message("inner message")
-            .backtrace()
-            .build();
+        let inner = SimpleTestError::builder().kind(SimpleTestErrorKind::Foo).message("inner message").backtrace().build();
 
-        let outer = SimpleTestError::builder()
-            .kind(SimpleTestErrorKind::Bar)
-            .message("outer message")
-            .source(inner)
-            .build();
+        let outer = SimpleTestError::builder().kind(SimpleTestErrorKind::Bar).message("outer message").source(inner).build();
 
         println!("{outer:?}");
     }
