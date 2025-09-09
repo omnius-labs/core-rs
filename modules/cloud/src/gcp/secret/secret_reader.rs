@@ -44,9 +44,7 @@ mod tests {
     #[tokio::test]
     async fn secrets_reader_test() -> TestResult {
         let secret_reader = SecretReaderImpl {};
-        let result = secret_reader
-            .read_value("projects/bews-415522/secrets/bews-secret/versions/latest")
-            .await?;
+        let result = secret_reader.read_value("projects/bews-415522/secrets/bews-secret/versions/latest").await?;
         println!("{result}");
 
         Ok(())

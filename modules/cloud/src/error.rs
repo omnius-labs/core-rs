@@ -142,33 +142,21 @@ where
     R: std::fmt::Debug + Send + Sync + 'static,
 {
     fn from(e: aws_smithy_runtime_api::client::result::SdkError<E, R>) -> Self {
-        Error::builder()
-            .kind(ErrorKind::AwsError)
-            .message("aws sdk operation failed")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::AwsError).message("aws sdk operation failed").source(e).build()
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::primitives::ByteStreamError> for Error {
     fn from(e: aws_sdk_s3::primitives::ByteStreamError) -> Self {
-        Error::builder()
-            .kind(ErrorKind::AwsError)
-            .message("aws s3 byte stream error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::AwsError).message("aws s3 byte stream error").source(e).build()
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::presigning::PresigningConfigError> for Error {
     fn from(e: aws_sdk_s3::presigning::PresigningConfigError) -> Self {
-        Error::builder()
-            .kind(ErrorKind::AwsError)
-            .message("aws s3 presigning config error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::AwsError).message("aws s3 presigning config error").source(e).build()
     }
 }
 
@@ -182,21 +170,13 @@ impl From<aws_sdk_s3::error::BuildError> for Error {
 #[cfg(feature = "gcp")]
 impl From<gcloud_sdk::error::Error> for Error {
     fn from(e: gcloud_sdk::error::Error) -> Self {
-        Error::builder()
-            .kind(ErrorKind::GcpError)
-            .message("gcp sdk operation failed")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::GcpError).message("gcp sdk operation failed").source(e).build()
     }
 }
 
 #[cfg(feature = "gcp")]
 impl From<gcloud_sdk::tonic::Status> for Error {
     fn from(e: gcloud_sdk::tonic::Status) -> Self {
-        Error::builder()
-            .kind(ErrorKind::GcpError)
-            .message("gcp sdk operation failed")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::GcpError).message("gcp sdk operation failed").source(e).build()
     }
 }
