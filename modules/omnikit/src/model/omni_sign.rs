@@ -67,12 +67,7 @@ impl OmniSigner {
                 let name = self.name.clone();
                 let public_key = signing_key.verifying_key().to_public_key_der()?.into_vec();
                 let value = signing_key.sign(msg).to_vec();
-                Ok(OmniCert {
-                    typ,
-                    name,
-                    public_key,
-                    value,
-                })
+                Ok(OmniCert { typ, name, public_key, value })
             }
             _ => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("sign type").build()),
         }
@@ -167,12 +162,7 @@ impl RocketMessage for OmniCert {
         let public_key = reader.get_bytes(1024)?;
         let value = reader.get_bytes(1024)?;
 
-        Ok(Self {
-            typ,
-            name,
-            public_key,
-            value,
-        })
+        Ok(Self { typ, name, public_key, value })
     }
 }
 

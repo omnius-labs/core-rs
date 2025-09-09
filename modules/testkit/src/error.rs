@@ -114,10 +114,6 @@ impl From<std::convert::Infallible> for Error {
 
 impl From<testcontainers::TestcontainersError> for Error {
     fn from(e: testcontainers::TestcontainersError) -> Self {
-        Error::builder()
-            .kind(ErrorKind::TestcontainersError)
-            .message("testcontainers error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::TestcontainersError).message("testcontainers error").source(e).build()
     }
 }

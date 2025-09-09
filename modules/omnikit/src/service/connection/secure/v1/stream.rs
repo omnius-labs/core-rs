@@ -121,11 +121,7 @@ where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    fn poll_read(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        read_buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
+    fn poll_read(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>, read_buf: &mut tokio::io::ReadBuf<'_>) -> std::task::Poll<std::io::Result<()>> {
         let this = self.get_mut();
         loop {
             trace!("poll_read: {:?}", this.read_state);
@@ -178,9 +174,7 @@ where
                             Ok(buf) => buf,
                             Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                         };
-                        this.read_state = ReadState::ReadPlaintext {
-                            plaintext: Bytes::from(dec_buf),
-                        };
+                        this.read_state = ReadState::ReadPlaintext { plaintext: Bytes::from(dec_buf) };
                     }
                 }
                 ReadState::ReadPlaintext { ref mut plaintext } => {
@@ -205,11 +199,7 @@ where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    fn poll_write(
-        self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        write_buf: &[u8],
-    ) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
+    fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, write_buf: &[u8]) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
         let this = Pin::into_inner(self);
         loop {
             trace!("poll_write: {:?}", this.write_state);

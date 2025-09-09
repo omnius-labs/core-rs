@@ -119,11 +119,7 @@ impl std::fmt::Display for ErrorKind {
 
 impl From<omnius_core_rocketpack::Error> for Error {
     fn from(e: omnius_core_rocketpack::Error) -> Error {
-        Error::builder()
-            .kind(ErrorKind::SerdeError)
-            .message("rocket pack error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::SerdeError).message("rocket pack error").source(e).build()
     }
 }
 
@@ -149,54 +145,32 @@ impl<T> From<nom::Err<nom::error::Error<T>>> for Error {
     fn from(e: nom::Err<nom::error::Error<T>>) -> Error {
         match e {
             nom::Err::Incomplete(_) => Error::builder().kind(ErrorKind::InvalidFormat).message("nom incomplete").build(),
-            nom::Err::Error(e) => Error::builder()
-                .kind(ErrorKind::InvalidFormat)
-                .message(format!("nom error: {:?}", e.code))
-                .build(),
-            nom::Err::Failure(e) => Error::builder()
-                .kind(ErrorKind::InvalidFormat)
-                .message(format!("nom failure: {:?}", e.code))
-                .build(),
+            nom::Err::Error(e) => Error::builder().kind(ErrorKind::InvalidFormat).message(format!("nom error: {:?}", e.code)).build(),
+            nom::Err::Failure(e) => Error::builder().kind(ErrorKind::InvalidFormat).message(format!("nom failure: {:?}", e.code)).build(),
         }
     }
 }
 
 impl From<std::num::ParseIntError> for Error {
     fn from(e: std::num::ParseIntError) -> Error {
-        Error::builder()
-            .kind(ErrorKind::InvalidFormat)
-            .message("int parse error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::InvalidFormat).message("int parse error").source(e).build()
     }
 }
 
 impl From<std::net::AddrParseError> for Error {
     fn from(e: std::net::AddrParseError) -> Error {
-        Error::builder()
-            .kind(ErrorKind::InvalidFormat)
-            .message("addr parse error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::InvalidFormat).message("addr parse error").source(e).build()
     }
 }
 
 impl From<hex::FromHexError> for Error {
     fn from(e: hex::FromHexError) -> Self {
-        Error::builder()
-            .kind(ErrorKind::InvalidFormat)
-            .message("hex decode error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::InvalidFormat).message("hex decode error").source(e).build()
     }
 }
 
 impl From<base64::DecodeError> for Error {
     fn from(e: base64::DecodeError) -> Self {
-        Error::builder()
-            .kind(ErrorKind::InvalidFormat)
-            .message("base64 decode error")
-            .source(e)
-            .build()
+        Error::builder().kind(ErrorKind::InvalidFormat).message("base64 decode error").source(e).build()
     }
 }

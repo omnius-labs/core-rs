@@ -110,16 +110,10 @@ mod tests {
             )
             .await?;
 
-            let codec = tokio_util::codec::LengthDelimitedCodec::builder()
-                .max_frame_length(1024)
-                .little_endian()
-                .new_codec();
+            let codec = tokio_util::codec::LengthDelimitedCodec::builder().max_frame_length(1024).little_endian().new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);
 
-            let buffer = framed
-                .next()
-                .await
-                .ok_or_else(|| Error::builder().kind(ErrorKind::EndOfStream).build())??;
+            let buffer = framed.next().await.ok_or_else(|| Error::builder().kind(ErrorKind::EndOfStream).build())??;
 
             let s = str::from_utf8(buffer.as_ref())?.to_string();
             println!("{s}");
