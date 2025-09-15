@@ -1,17 +1,13 @@
 mod caller;
-mod error_message;
 mod hello_message;
 mod listener;
 mod packet_message;
-mod result;
 mod stream;
 
 pub use caller::*;
-pub use error_message::*;
 use hello_message::*;
 pub use listener::*;
 pub use packet_message::*;
-pub use result::*;
 pub use stream::*;
 
 #[cfg(test)]
@@ -30,11 +26,11 @@ mod tests {
         let listener = TcpListener::bind(addr).await?;
         let (reader, writer) = listener.accept().await?.0.into_split();
 
-        let mut listener = OmniRemotingListener::<_, _, OmniRemotingDefaultErrorMessage>::new(reader, writer, 1024 * 1024);
+        let mut listener = OmniRemotingListener::<_, _>::new(reader, writer, 1024 * 1024);
         listener.handshake().await?;
 
-        async fn callback(param: TestMessage) -> std::result::Result<TestMessage, OmniRemotingDefaultErrorMessage> {
-            Ok(TestMessage { value: param.value + 1 })
+        async fn callback(param: TestMessage) -> TestMessage {
+            TestMessage { value: param.value + 1 }
         }
         listener.listen_unary(callback).await?;
 

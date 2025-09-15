@@ -16,23 +16,20 @@ use crate::{
 use super::{HelloMessage, OmniRemotingStream, OmniRemotingVersion, PacketMessage};
 
 #[allow(unused)]
-pub struct OmniRemotingListener<R, W, TErrorMessage>
+pub struct OmniRemotingListener<R, W>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
     function_id: Arc<Mutex<Option<u32>>>,
-    _phantom: std::marker::PhantomData<TErrorMessage>,
 }
 
-impl<R, W, TErrorMessage> OmniRemotingListener<R, W, TErrorMessage>
+impl<R, W> OmniRemotingListener<R, W>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize) -> Self {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
@@ -42,7 +39,6 @@ where
             sender,
             receiver,
             function_id: Arc::new(Mutex::new(None)),
-            _phantom: std::marker::PhantomData,
         }
     }
 
@@ -70,35 +66,26 @@ where
     where
         TParamMessage: RocketMessage + Send + Sync + 'static,
         TResultMessage: RocketMessage + Send + Sync + 'static,
-        F: AsyncFnOnce(TParamMessage) -> std::result::Result<TResultMessage, TErrorMessage>,
+        F: AsyncFnOnce(TParamMessage) -> TResultMessage,
     {
         let mut param = self.receiver.lock().await.recv().await?;
-        let param = PacketMessage::<TParamMessage, TErrorMessage>::import(&mut param)?;
+        let param = PacketMessage::<TParamMessage>::import(&mut param)?;
 
         match param {
             PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
             PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
-            PacketMessage::Completed(param) => match callback(param).await {
-                Ok(result_message) => {
-                    let message = PacketMessage::<TResultMessage, TErrorMessage>::Completed(result_message).export()?;
-                    self.sender.lock().await.send(message).await?;
-                    Ok(())
-                }
-                Err(error_message) => {
-                    let error_message = PacketMessage::<TResultMessage, TErrorMessage>::Error(error_message).export()?;
-                    self.sender.lock().await.send(error_message).await?;
-                    Ok(())
-                }
-            },
-            PacketMessage::Error(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type error").build()),
+            PacketMessage::Completed(param) => {
+                let result_message = callback(param).await;
+                let message = PacketMessage::<TResultMessage>::Completed(result_message).export()?;
+                self.sender.lock().await.send(message).await?;
+                Ok(())
+            }
         }
     }
 
-    pub async fn listen_stream<TInputMessage, TOutputMessage, F>(&self, callback: F) -> Result<()>
+    pub async fn listen_stream<F>(&self, callback: F) -> Result<()>
     where
-        TInputMessage: RocketMessage + Send + Sync + 'static,
-        TOutputMessage: RocketMessage + Send + Sync + 'static,
-        F: AsyncFnOnce(OmniRemotingStream<R, W, TInputMessage, TOutputMessage, TErrorMessage>),
+        F: AsyncFnOnce(OmniRemotingStream<R, W>),
     {
         callback(OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())).await;
         Ok(())
@@ -111,7 +98,7 @@ mod tests {
     use tokio::net::TcpListener;
     use tracing::{info, warn};
 
-    use crate::{prelude::*, service::remoting::OmniRemotingDefaultErrorMessage};
+    use crate::prelude::*;
 
     use super::*;
 
@@ -126,7 +113,7 @@ mod tests {
 
             info!("listen start");
 
-            let mut remoting_listener = OmniRemotingListener::<_, _, OmniRemotingDefaultErrorMessage>::new(reader, writer, 1024 * 1024);
+            let mut remoting_listener = OmniRemotingListener::<_, _>::new(reader, writer, 1024 * 1024);
             remoting_listener.handshake().await?;
 
             match remoting_listener.function_id()? {
@@ -136,8 +123,8 @@ mod tests {
         }
     }
 
-    pub async fn callback(m: TextMessage) -> std::result::Result<TextMessage, OmniRemotingDefaultErrorMessage> {
-        Ok(m)
+    pub async fn callback(m: TextMessage) -> TextMessage {
+        m
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]
