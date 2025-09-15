@@ -5,44 +5,36 @@ use tokio::{
     sync::Mutex as TokioMutex,
 };
 
-use omnius_core_rocketpack::{EmptyRocketMessage, RocketMessage};
+use omnius_core_rocketpack::RocketMessage;
 
 use crate::{
     prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
 };
 
-use super::{CallResult, HelloMessage, OmniRemotingStream, OmniRemotingVersion, PacketMessage};
+use super::{HelloMessage, OmniRemotingStream, OmniRemotingVersion, PacketMessage};
 
 #[allow(unused)]
-pub struct OmniRemotingCaller<R, W, TErrorMessage>
+pub struct OmniRemotingCaller<R, W>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
     function_id: u32,
-    _phantom: std::marker::PhantomData<TErrorMessage>,
 }
 
-impl<R, W, TErrorMessage> OmniRemotingCaller<R, W, TErrorMessage>
+impl<R, W> OmniRemotingCaller<R, W>
 where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
-    TErrorMessage: RocketMessage + std::fmt::Display + Send + Sync + 'static,
 {
     pub fn new(reader: R, writer: W, max_frame_length: usize, function_id: u32) -> Self {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
         let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
 
-        OmniRemotingCaller {
-            sender,
-            receiver,
-            function_id,
-            _phantom: std::marker::PhantomData,
-        }
+        OmniRemotingCaller { sender, receiver, function_id }
     }
 
     pub async fn handshake(&self) -> Result<()> {
@@ -55,30 +47,25 @@ where
         Ok(())
     }
 
-    pub async fn call_unary<TParamMessage, TResultMessage>(&self, param: TParamMessage) -> CallResult<TResultMessage, TErrorMessage>
+    pub async fn call_unary<TParamMessage, TResultMessage>(&self, param: TParamMessage) -> Result<TResultMessage>
     where
         TParamMessage: RocketMessage + Send + Sync + 'static,
         TResultMessage: RocketMessage + Send + Sync + 'static,
     {
-        let param = PacketMessage::<TParamMessage, EmptyRocketMessage>::Completed(param).export()?;
+        let param = PacketMessage::<TParamMessage>::Completed(param).export()?;
         self.sender.lock().await.send(param).await?;
 
         let mut message = self.receiver.lock().await.recv().await?;
-        let message = PacketMessage::<TResultMessage, TErrorMessage>::import(&mut message)?;
+        let message = PacketMessage::<TResultMessage>::import(&mut message)?;
 
         match message {
             PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
             PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
-            PacketMessage::Completed(result_message) => Ok(Ok(result_message)),
-            PacketMessage::Error(error_message) => Ok(Err(error_message)),
+            PacketMessage::Completed(result_message) => Ok(result_message),
         }
     }
 
-    pub fn call_stream<TInputMessage, TOutputMessage>(&self) -> OmniRemotingStream<R, W, TInputMessage, TOutputMessage, TErrorMessage>
-    where
-        TInputMessage: RocketMessage + Send + Sync + 'static,
-        TOutputMessage: RocketMessage + Send + Sync + 'static,
-    {
+    pub fn call_stream(&self) -> OmniRemotingStream<R, W> {
         OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())
     }
 }

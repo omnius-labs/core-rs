@@ -93,12 +93,7 @@ impl RocketMessage for OmniHash {
     where
         Self: Sized,
     {
-        let typ = OmniHashAlgorithmType::from_bits(reader.get_u32()?).ok_or_else(|| {
-            RocketPackError::builder()
-                .kind(RocketPackErrorKind::InvalidFormat)
-                .message("any unknown bits are set")
-                .build()
-        })?;
+        let typ = OmniHashAlgorithmType::from_bits_truncate(reader.get_u32()?);
         let value = reader.get_bytes(1024)?;
 
         Ok(Self { typ, value })
