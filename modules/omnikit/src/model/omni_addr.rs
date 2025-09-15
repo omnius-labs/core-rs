@@ -1,4 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    str::FromStr,
+};
 
 use nom::{IResult, Parser, branch::*, bytes::complete::*, character::complete::*, combinator::*, multi::*, sequence::*};
 
@@ -10,7 +13,7 @@ pub struct OmniAddr {
 }
 
 impl OmniAddr {
-    pub fn new<S: AsRef<str> + ?Sized>(value: &S) -> OmniAddr {
+    pub fn new<S: AsRef<str>>(value: S) -> OmniAddr {
         OmniAddr {
             inner: value.as_ref().to_string(),
         }
@@ -45,6 +48,19 @@ impl OmniAddr {
         let (_, element) = StringParser::function_element_parser()(&self.inner).map_err(|e| e.to_owned())?;
         let (ip, port) = ElementParser::parse_tcp_host(&element)?;
         Ok((ip, port))
+    }
+
+    pub fn from_host_and_port_str<S: AsRef<str>>(value: S) -> Result<OmniAddr> {
+        let Some((host, port)) = value.as_ref().rsplit_once(":") else {
+            return Err(Error::builder().kind(ErrorKind::InvalidFormat).build());
+        };
+        let port = port.parse::<u16>()?;
+
+        if let Ok(ip) = IpAddr::from_str(host) {
+            Ok(Self::create_tcp(ip, port))
+        } else {
+            Ok(Self::create_tcp_dns(host, port))
+        }
     }
 }
 
