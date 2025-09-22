@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@1.84.0
         with:
@@ -30,7 +30,7 @@ jobs:
         with:
           version: latest
       - name: Setup rust cache
-        uses: Swatinem/rust-cache@v2.8.0
+        uses: Swatinem/rust-cache@v2.8.1
         with:
           shared-key: lint
       - name: Lint
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup rust toolchain
         uses: dtolnay/rust-toolchain@1.84.0
         with:
@@ -49,7 +49,7 @@ jobs:
         with:
           version: latest
       - name: Setup rust cache
-        uses: Swatinem/rust-cache@v2.8.0
+        uses: Swatinem/rust-cache@v2.8.1
         with:
           shared-key: test
       - name: Test
