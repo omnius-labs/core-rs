@@ -47,10 +47,7 @@ where
             return Ok(hello_message.function_id);
         }
 
-        Err(Error::builder()
-            .kind(ErrorKind::UnsupportedType)
-            .message(format!("unsupported version: {}", hello_message.version))
-            .build())
+        Err(Error::new(ErrorKind::UnsupportedType).with_message(format!("unsupported version: {}", hello_message.version)))
     }
 
     pub fn function_id(&self) -> u32 {

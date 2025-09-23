@@ -92,11 +92,11 @@ where
         drop(authenticator);
 
         let reader = Arc::try_unwrap(receiver)
-            .map_err(|_| Error::builder().kind(ErrorKind::UnexpectedError).message("Arc try_unwrap error").build())?
+            .map_err(|_| Error::new(ErrorKind::UnexpectedError).with_message("Arc try_unwrap error"))?
             .into_inner()
             .into_inner();
         let writer = Arc::try_unwrap(sender)
-            .map_err(|_| Error::builder().kind(ErrorKind::UnexpectedError).message("Arc try_unwrap error").build())?
+            .map_err(|_| Error::new(ErrorKind::UnexpectedError).with_message("Arc try_unwrap error"))?
             .into_inner()
             .into_inner();
 

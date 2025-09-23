@@ -52,7 +52,7 @@ impl OmniAddr {
 
     pub fn from_host_and_port_str<S: AsRef<str>>(value: S) -> Result<OmniAddr> {
         let Some((host, port)) = value.as_ref().rsplit_once(":") else {
-            return Err(Error::builder().kind(ErrorKind::InvalidFormat).build());
+            return Err(Error::new(ErrorKind::InvalidFormat));
         };
         let port = port.parse::<u16>()?;
 
@@ -89,9 +89,9 @@ impl ElementParser {
                 {
                     return Ok(v);
                 }
-                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("i2p").build())
+                Err(Error::new(ErrorKind::InvalidFormat).with_message("i2p"))
             }
-            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).with_message("root")),
         }
     }
 
@@ -111,9 +111,9 @@ impl ElementParser {
                         return Ok(SocketAddr::new(ip, port));
                     }
                 };
-                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("tcp").build())
+                Err(Error::new(ErrorKind::InvalidFormat).with_message("tcp"))
             }
-            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).with_message("root")),
         }
     }
 
@@ -138,9 +138,9 @@ impl ElementParser {
                         return Ok((host, port));
                     }
                 };
-                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("tcp").build())
+                Err(Error::new(ErrorKind::InvalidFormat).with_message("tcp"))
             }
-            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).with_message("root")),
         }
     }
 
@@ -152,9 +152,9 @@ impl ElementParser {
                 {
                     return Ok(IpAddr::V4(v.parse::<Ipv4Addr>()?));
                 }
-                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("ip4").build())
+                Err(Error::new(ErrorKind::InvalidFormat).with_message("ip4"))
             }
-            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).with_message("root")),
         }
     }
 
@@ -166,9 +166,9 @@ impl ElementParser {
                 {
                     return Ok(IpAddr::V6(v.parse::<Ipv6Addr>()?));
                 }
-                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("ip6").build())
+                Err(Error::new(ErrorKind::InvalidFormat).with_message("ip6"))
             }
-            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).with_message("root")),
         }
     }
 
@@ -180,9 +180,9 @@ impl ElementParser {
                 {
                     return Ok(v.clone());
                 }
-                Err(Error::builder().kind(ErrorKind::InvalidFormat).message("dns").build())
+                Err(Error::new(ErrorKind::InvalidFormat).with_message("dns"))
             }
-            _ => Err(Error::builder().kind(ErrorKind::InvalidFormat).message("root").build()),
+            _ => Err(Error::new(ErrorKind::InvalidFormat).with_message("root")),
         }
     }
 }
