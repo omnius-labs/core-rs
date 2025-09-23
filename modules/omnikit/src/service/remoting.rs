@@ -10,6 +10,8 @@ pub use stream::*;
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use testresult::TestResult;
     use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -17,48 +19,57 @@ mod tests {
 
     use super::*;
 
-    #[ignore]
     #[tokio::test]
     async fn communication_test() -> TestResult {
+        const FUNCTION_ID: u32 = 1;
+
         let (client_side, server_side) = tokio::io::duplex(4096);
 
         let (client_reader, client_writer) = tokio::io::split(client_side);
         let (server_reader, server_writer) = tokio::io::split(server_side);
 
-        let join_handle_1 = tokio::spawn(async {
-            let listener = OmniRemotingListener::<_, _>::new(server_reader, server_writer, 1024 * 1024).await.unwrap();
+        let listener_result = tokio::time::timeout(
+            Duration::from_secs(30),
+            tokio::spawn(async {
+                let listener = OmniRemotingListener::<_, _>::new(server_reader, server_writer, 1024 * 1024).await.unwrap();
 
-            async fn callback<R, W>(stream: OmniRemotingStream<R, W>)
-            where
-                R: AsyncRead + Send + Unpin + 'static,
-                W: AsyncWrite + Send + Unpin + 'static,
-            {
+                async fn callback<R, W>(stream: OmniRemotingStream<R, W>)
+                where
+                    R: AsyncRead + Send + Unpin + 'static,
+                    W: AsyncWrite + Send + Unpin + 'static,
+                {
+                    let received = stream.recv::<TestMessage>().await.unwrap();
+                    info!(value = received.value, "listener receive");
+
+                    stream.send(TestMessage { value: received.value + 1 }).await.unwrap();
+                    info!("listener send");
+                }
+
+                listener.listen_stream(callback).await.unwrap();
+
+                listener.function_id()
+            }),
+        );
+
+        let caller_result = tokio::time::timeout(
+            Duration::from_secs(30),
+            tokio::spawn(async {
+                let caller = OmniRemotingCaller::<_, _>::new(client_reader, client_writer, 1024 * 1024, FUNCTION_ID).await.unwrap();
+
+                let stream = caller.call_stream();
+
+                stream.send(TestMessage { value: 1 }).await.unwrap();
+                info!("caller send");
+
                 let received = stream.recv::<TestMessage>().await.unwrap();
-                info!(value = received.value, "listener receive");
+                info!(value = received.value, "caller receive");
 
-                stream.send(TestMessage { value: received.value + 1 }).await.unwrap();
-                info!("listener send");
-            }
+                received.value
+            }),
+        );
 
-            listener.listen_stream(callback).await.unwrap();
-        });
-
-        let join_handle_2 = tokio::spawn(async {
-            let caller = OmniRemotingCaller::<_, _>::new(client_reader, client_writer, 1024 * 1024, 1).await.unwrap();
-
-            let stream = caller.call_stream();
-
-            stream.send(TestMessage { value: 1 }).await.unwrap();
-            info!("caller send");
-
-            let received = stream.recv::<TestMessage>().await.unwrap();
-            info!(value = received.value, "caller receive");
-
-            received.value
-        });
-
-        join_handle_1.await?;
-        assert_eq!(join_handle_2.await?, 2);
+        assert_eq!(FUNCTION_ID, listener_result.await??);
+        assert_eq!(2, caller_result.await??);
 
         Ok(())
     }
