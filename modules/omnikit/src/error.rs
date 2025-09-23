@@ -97,22 +97,24 @@ pub enum ErrorKind {
 
     InvalidFormat,
     EndOfStream,
-    UnsupportedVersion,
     UnsupportedType,
+    AlreadyConnected,
+    NotConnected,
 }
 
 impl std::fmt::Display for ErrorKind {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorKind::Unknown => write!(fmt, "unknown"),
-            ErrorKind::SerdeError => write!(fmt, "serde error"),
-            ErrorKind::IoError => write!(fmt, "io error"),
-            ErrorKind::UnexpectedError => write!(fmt, "unexpected error"),
+            ErrorKind::SerdeError => write!(fmt, "serde_error"),
+            ErrorKind::IoError => write!(fmt, "io_error"),
+            ErrorKind::UnexpectedError => write!(fmt, "unexpected_error"),
 
-            ErrorKind::InvalidFormat => write!(fmt, "invalid format"),
-            ErrorKind::EndOfStream => write!(fmt, "end of stream"),
-            ErrorKind::UnsupportedVersion => write!(fmt, "unsupported version"),
-            ErrorKind::UnsupportedType => write!(fmt, "unsupported type"),
+            ErrorKind::InvalidFormat => write!(fmt, "invalid_format"),
+            ErrorKind::EndOfStream => write!(fmt, "end_of_stream"),
+            ErrorKind::UnsupportedType => write!(fmt, "unsupported_type"),
+            ErrorKind::AlreadyConnected => write!(fmt, "already_connected"),
+            ErrorKind::NotConnected => write!(fmt, "not_connected"),
         }
     }
 }
