@@ -120,7 +120,7 @@ where
                 (other_sign, secret)
             }
             _ => {
-                return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("key exchange algorithm").build());
+                return Err(Error::new(ErrorKind::UnsupportedType).with_message("key exchange algorithm"));
             }
         };
 
@@ -130,7 +130,7 @@ where
 
                 let (key_len, nonce_len) = match cipher_algorithm_type {
                     CipherAlgorithmType::Aes256Gcm => (32, 12),
-                    _ => return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("cipher algorithm").build()),
+                    _ => return Err(Error::new(ErrorKind::UnsupportedType).with_message("cipher algorithm")),
                 };
 
                 let okm = match hash_algorithm_type {
@@ -138,11 +138,11 @@ where
                         let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
                         let kdf = Hkdf::<Sha3_256>::new(Some(&salt), &secret);
                         kdf.expand(&[], &mut okm)
-                            .map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("Failed to expand key").build())?;
+                            .map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("Failed to expand key"))?;
 
                         okm
                     }
-                    _ => return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("hash algorithm").build()),
+                    _ => return Err(Error::new(ErrorKind::UnsupportedType).with_message("hash algorithm")),
                 };
 
                 let (enc_offset, dec_offset) = match self.typ {
@@ -158,7 +158,7 @@ where
                 (enc_key, enc_nonce, dec_key, dec_nonce)
             }
             _ => {
-                return Err(Error::builder().kind(ErrorKind::UnsupportedType).message("key derivation algorithm").build());
+                return Err(Error::new(ErrorKind::UnsupportedType).with_message("key derivation algorithm"));
             }
         };
 
@@ -188,7 +188,7 @@ where
 
                 Ok(hasher.finalize().to_vec())
             }
-            _ => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("hash algorithm").build()),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).with_message("hash algorithm")),
         }
     }
 }

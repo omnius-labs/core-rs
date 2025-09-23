@@ -17,10 +17,7 @@ impl<'a> RocketMessageReader<'a> {
     pub fn get_bytes(&mut self, limit: usize) -> Result<Vec<u8>> {
         let length = self.get_u32()? as usize;
         if length > limit {
-            return Err(Error::builder()
-                .kind(ErrorKind::TooLarge)
-                .message(format!("length exceeded limit: {length} > {limit}"))
-                .build());
+            return Err(Error::new(ErrorKind::TooLarge).with_message(format!("length exceeded limit: {length} > {limit}")));
         }
 
         if length == 0 {
@@ -28,7 +25,7 @@ impl<'a> RocketMessageReader<'a> {
         }
 
         if self.reader.remaining() < length {
-            return Err(Error::builder().kind(ErrorKind::EndOfStream).build());
+            return Err(Error::new(ErrorKind::EndOfStream));
         }
 
         let mut result = vec![0u8; length];
@@ -38,7 +35,7 @@ impl<'a> RocketMessageReader<'a> {
 
     pub fn get_string(&mut self, limit: usize) -> Result<String> {
         let result = self.get_bytes(limit)?;
-        String::from_utf8(result).map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("invalid utf-8").build())
+        String::from_utf8(result).map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("invalid utf-8"))
     }
 
     pub fn get_timestamp64(&mut self) -> Result<Timestamp64> {
@@ -93,7 +90,7 @@ impl<'a> RocketMessageReader<'a> {
         const SIZE: usize = 4;
 
         if self.reader.remaining() < SIZE {
-            return Err(Error::builder().kind(ErrorKind::EndOfStream).build());
+            return Err(Error::new(ErrorKind::EndOfStream));
         }
 
         let mut buffer = [0u8; SIZE];
@@ -105,7 +102,7 @@ impl<'a> RocketMessageReader<'a> {
         const SIZE: usize = 8;
 
         if self.reader.remaining() < SIZE {
-            return Err(Error::builder().kind(ErrorKind::EndOfStream).build());
+            return Err(Error::new(ErrorKind::EndOfStream));
         }
 
         let mut buffer = [0u8; SIZE];

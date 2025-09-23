@@ -54,7 +54,7 @@ impl OmniSigner {
                 let key = signing_key.to_pkcs8_der()?.to_bytes().to_vec();
                 Ok(Self { typ, name, key })
             }
-            _ => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("sign type").build()),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).with_message("sign type")),
         }
     }
 
@@ -69,7 +69,7 @@ impl OmniSigner {
                 let value = signing_key.sign(msg).to_vec();
                 Ok(OmniCert { typ, name, public_key, value })
             }
-            _ => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("sign type").build()),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).with_message("sign type")),
         }
     }
 }
@@ -131,14 +131,14 @@ impl OmniCert {
                     .value
                     .clone()
                     .try_into()
-                    .map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("invalid public_key").build())?;
+                    .map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("invalid public_key"))?;
                 let signature = ed25519_dalek::Signature::from_bytes(&signature);
 
                 Ok(public_key
                     .verify_strict(msg, &signature)
-                    .map_err(|_| Error::builder().kind(ErrorKind::InvalidFormat).message("failed to verify").build())?)
+                    .map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("failed to verify"))?)
             }
-            _ => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("sign type").build()),
+            _ => Err(Error::new(ErrorKind::UnsupportedType).with_message("sign type")),
         }
     }
 }

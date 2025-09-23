@@ -28,7 +28,7 @@ impl SecretReader for SecretReaderImpl {
             .payload
             .as_ref()
             .map(|p| p.data.as_sensitive_str())
-            .ok_or_else(|| Error::builder().kind(ErrorKind::NotFound).build())?;
+            .ok_or_else(|| Error::new(ErrorKind::NotFound))?;
 
         Ok(result.to_string())
     }

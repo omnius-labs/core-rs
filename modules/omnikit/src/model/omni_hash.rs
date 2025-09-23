@@ -65,10 +65,10 @@ impl FromStr for OmniHash {
 
         let typ = iter
             .next()
-            .ok_or_else(|| Error::builder().kind(ErrorKind::InvalidFormat).message("type not found").build())?;
+            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("type not found"))?;
         let value = iter
             .next()
-            .ok_or_else(|| Error::builder().kind(ErrorKind::InvalidFormat).message("value not found").build())?;
+            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("value not found"))?;
 
         let typ = match typ {
             "Sha3_256" => OmniHashAlgorithmType::Sha3_256,

@@ -1,33 +1,34 @@
 use std::backtrace::Backtrace;
 
-use omnius_core_base::error::{OmniError, OmniErrorBuilder};
+use omnius_core_base::error::OmniError;
 
 pub struct Error {
     kind: ErrorKind,
     message: Option<String>,
     source: Option<Box<dyn std::error::Error + Send + Sync>>,
-    backtrace: Option<Backtrace>,
-}
-
-pub struct ErrorBuilder {
-    inner: Error,
-}
-
-impl Error {
-    pub fn builder() -> ErrorBuilder {
-        ErrorBuilder {
-            inner: Self {
-                kind: ErrorKind::Unknown,
-                message: None,
-                source: None,
-                backtrace: None,
-            },
-        }
-    }
+    backtrace: Backtrace,
 }
 
 impl OmniError for Error {
     type ErrorKind = ErrorKind;
+
+    fn new(kind: Self::ErrorKind) -> Self {
+        Self {
+            kind,
+            message: None,
+            source: None,
+            backtrace: Backtrace::capture(),
+        }
+    }
+
+    fn from_error<E: Into<Box<dyn std::error::Error + Send + Sync>>>(source: E, kind: Self::ErrorKind) -> Self {
+        Self {
+            kind,
+            message: None,
+            source: Some(source.into()),
+            backtrace: Backtrace::disabled(),
+        }
+    }
 
     fn kind(&self) -> &Self::ErrorKind {
         &self.kind
@@ -37,8 +38,13 @@ impl OmniError for Error {
         self.message.as_deref()
     }
 
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.backtrace.as_ref()
+    fn backtrace(&self) -> &Backtrace {
+        &self.backtrace
+    }
+
+    fn with_message<S: Into<String>>(mut self, message: S) -> Self {
+        self.message = Some(message.into());
+        self
     }
 }
 
@@ -57,34 +63,6 @@ impl std::fmt::Debug for Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         OmniError::fmt(self, f)
-    }
-}
-
-impl OmniErrorBuilder<Error> for ErrorBuilder {
-    type ErrorKind = ErrorKind;
-
-    fn kind(mut self, kind: Self::ErrorKind) -> Self {
-        self.inner.kind = kind;
-        self
-    }
-
-    fn message<S: Into<String>>(mut self, message: S) -> Self {
-        self.inner.message = Some(message.into());
-        self
-    }
-
-    fn source<E: Into<Box<dyn std::error::Error + Send + Sync>>>(mut self, source: E) -> Self {
-        self.inner.source = Some(source.into());
-        self
-    }
-
-    fn backtrace(mut self) -> Self {
-        self.inner.backtrace = Some(Backtrace::capture());
-        self
-    }
-
-    fn build(self) -> Error {
-        self.inner
     }
 }
 
@@ -119,19 +97,19 @@ impl std::fmt::Display for ErrorKind {
 
 impl From<std::convert::Infallible> for Error {
     fn from(_: std::convert::Infallible) -> Self {
-        Error::builder().build()
+        Error::new(ErrorKind::Unknown)
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        Error::builder().kind(ErrorKind::IoError).message("io operation failed").source(e).build()
+        Error::from_error(e, ErrorKind::IoError).with_message("io operation failed")
     }
 }
 
 impl From<chrono::OutOfRangeError> for Error {
     fn from(e: chrono::OutOfRangeError) -> Self {
-        Error::builder().kind(ErrorKind::TimeError).message("out of range").source(e).build()
+        Error::from_error(e, ErrorKind::TimeError).with_message("out of range")
     }
 }
 
@@ -142,41 +120,41 @@ where
     R: std::fmt::Debug + Send + Sync + 'static,
 {
     fn from(e: aws_smithy_runtime_api::client::result::SdkError<E, R>) -> Self {
-        Error::builder().kind(ErrorKind::AwsError).message("aws sdk operation failed").source(e).build()
+        Error::from_error(e, ErrorKind::AwsError).with_message("aws sdk operation failed")
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::primitives::ByteStreamError> for Error {
     fn from(e: aws_sdk_s3::primitives::ByteStreamError) -> Self {
-        Error::builder().kind(ErrorKind::AwsError).message("aws s3 byte stream error").source(e).build()
+        Error::from_error(e, ErrorKind::AwsError).with_message("aws s3 byte stream error")
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::presigning::PresigningConfigError> for Error {
     fn from(e: aws_sdk_s3::presigning::PresigningConfigError) -> Self {
-        Error::builder().kind(ErrorKind::AwsError).message("aws s3 presigning config error").source(e).build()
+        Error::from_error(e, ErrorKind::AwsError).with_message("aws s3 presigning config error")
     }
 }
 
 #[cfg(feature = "aws")]
 impl From<aws_sdk_s3::error::BuildError> for Error {
     fn from(e: aws_sdk_s3::error::BuildError) -> Self {
-        Error::builder().kind(ErrorKind::AwsError).message("aws s3 build error").source(e).build()
+        Error::from_error(e, ErrorKind::AwsError).with_message("aws s3 build error")
     }
 }
 
 #[cfg(feature = "gcp")]
 impl From<gcloud_sdk::error::Error> for Error {
     fn from(e: gcloud_sdk::error::Error) -> Self {
-        Error::builder().kind(ErrorKind::GcpError).message("gcp sdk operation failed").source(e).build()
+        Error::from_error(e, ErrorKind::GcpError).with_message("gcp sdk operation failed")
     }
 }
 
 #[cfg(feature = "gcp")]
 impl From<gcloud_sdk::tonic::Status> for Error {
     fn from(e: gcloud_sdk::tonic::Status) -> Self {
-        Error::builder().kind(ErrorKind::GcpError).message("gcp sdk operation failed").source(e).build()
+        Error::from_error(e, ErrorKind::GcpError).with_message("gcp sdk operation failed")
     }
 }
