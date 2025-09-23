@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use parking_lot::Mutex;
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     sync::Mutex as TokioMutex,
@@ -10,10 +9,10 @@ use omnius_core_rocketpack::RocketMessage;
 
 use crate::{
     prelude::*,
-    service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
+    service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSender},
 };
 
-use super::{HelloMessage, OmniRemotingStream, OmniRemotingVersion, PacketMessage};
+use super::{HelloMessage, OmniRemotingStream, OmniRemotingVersion};
 
 #[allow(unused)]
 pub struct OmniRemotingListener<R, W>
@@ -23,7 +22,7 @@ where
 {
     receiver: Arc<TokioMutex<FramedReceiver<R>>>,
     sender: Arc<TokioMutex<FramedSender<W>>>,
-    function_id: Arc<Mutex<Option<u32>>>,
+    function_id: u32,
 }
 
 impl<R, W> OmniRemotingListener<R, W>
@@ -31,56 +30,31 @@ where
     R: AsyncRead + Send + Unpin + 'static,
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    pub fn new(reader: R, writer: W, max_frame_length: usize) -> Self {
+    pub async fn new(reader: R, writer: W, max_frame_length: usize) -> Result<Self> {
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
         let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
 
-        OmniRemotingListener {
-            sender,
-            receiver,
-            function_id: Arc::new(Mutex::new(None)),
-        }
+        let function_id = Self::handshake(receiver.clone()).await?;
+
+        Ok(OmniRemotingListener { sender, receiver, function_id })
     }
 
-    pub async fn handshake(&mut self) -> Result<()> {
-        let mut v = self.receiver.lock().await.recv().await?;
+    async fn handshake(receiver: Arc<TokioMutex<FramedReceiver<R>>>) -> Result<u32> {
+        let mut v = receiver.lock().await.recv().await?;
         let hello_message = HelloMessage::import(&mut v)?;
 
         if hello_message.version == OmniRemotingVersion::V1 {
-            *self.function_id.lock() = Some(hello_message.function_id);
-            return Ok(());
+            return Ok(hello_message.function_id);
         }
 
         Err(Error::builder()
-            .kind(ErrorKind::UnsupportedVersion)
+            .kind(ErrorKind::UnsupportedType)
             .message(format!("unsupported version: {}", hello_message.version))
             .build())
     }
 
-    pub fn function_id(&self) -> Result<u32> {
-        let v = *self.function_id.lock();
-        Ok(v.ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotConnected))?)
-    }
-
-    pub async fn listen_unary<TParamMessage, TResultMessage, F>(&self, callback: F) -> Result<()>
-    where
-        TParamMessage: RocketMessage + Send + Sync + 'static,
-        TResultMessage: RocketMessage + Send + Sync + 'static,
-        F: AsyncFnOnce(TParamMessage) -> TResultMessage,
-    {
-        let mut param = self.receiver.lock().await.recv().await?;
-        let param = PacketMessage::<TParamMessage>::import(&mut param)?;
-
-        match param {
-            PacketMessage::Unknown => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type unknown").build()),
-            PacketMessage::Continue(_) => Err(Error::builder().kind(ErrorKind::UnsupportedType).message("type continue").build()),
-            PacketMessage::Completed(param) => {
-                let result_message = callback(param).await;
-                let message = PacketMessage::<TResultMessage>::Completed(result_message).export()?;
-                self.sender.lock().await.send(message).await?;
-                Ok(())
-            }
-        }
+    pub fn function_id(&self) -> u32 {
+        self.function_id
     }
 
     pub async fn listen_stream<F>(&self, callback: F) -> Result<()>
@@ -89,62 +63,5 @@ where
     {
         callback(OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())).await;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use testresult::TestResult;
-    use tokio::net::TcpListener;
-    use tracing::{info, warn};
-
-    use crate::prelude::*;
-
-    use super::*;
-
-    #[ignore]
-    #[tokio::test]
-    async fn multi_language_communication_listener_test() -> TestResult {
-        let tcp_listener = TcpListener::bind("0.0.0.0:50000").await?;
-
-        loop {
-            let (tcp_stream, _) = tcp_listener.accept().await?;
-            let (reader, writer) = tokio::io::split(tcp_stream);
-
-            info!("listen start");
-
-            let mut remoting_listener = OmniRemotingListener::<_, _>::new(reader, writer, 1024 * 1024);
-            remoting_listener.handshake().await?;
-
-            match remoting_listener.function_id()? {
-                1 => remoting_listener.listen_unary(callback).await?,
-                _ => warn!("not supported"),
-            }
-        }
-    }
-
-    pub async fn callback(m: TextMessage) -> TextMessage {
-        m
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct TextMessage {
-        pub text: String,
-    }
-
-    impl RocketMessage for TextMessage {
-        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-            writer.put_str(&value.text);
-
-            Ok(())
-        }
-
-        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
-        where
-            Self: Sized,
-        {
-            let text = reader.get_string(1024)?;
-            Ok(Self { text })
-        }
     }
 }

@@ -1,19 +1,17 @@
 mod caller;
 mod hello_message;
 mod listener;
-mod packet_message;
 mod stream;
 
 pub use caller::*;
 use hello_message::*;
 pub use listener::*;
-pub use packet_message::*;
 pub use stream::*;
 
 #[cfg(test)]
 mod tests {
     use testresult::TestResult;
-    use tokio::net::TcpListener;
+    use tokio::io::{AsyncRead, AsyncWrite};
 
     use crate::prelude::*;
 
@@ -21,18 +19,46 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn listen_test() -> TestResult {
-        let addr = "0.0.0.0:50000";
-        let listener = TcpListener::bind(addr).await?;
-        let (reader, writer) = listener.accept().await?.0.into_split();
+    async fn communication_test() -> TestResult {
+        let (client_side, server_side) = tokio::io::duplex(4096);
 
-        let mut listener = OmniRemotingListener::<_, _>::new(reader, writer, 1024 * 1024);
-        listener.handshake().await?;
+        let (client_reader, client_writer) = tokio::io::split(client_side);
+        let (server_reader, server_writer) = tokio::io::split(server_side);
 
-        async fn callback(param: TestMessage) -> TestMessage {
-            TestMessage { value: param.value + 1 }
-        }
-        listener.listen_unary(callback).await?;
+        let join_handle_1 = tokio::spawn(async {
+            let listener = OmniRemotingListener::<_, _>::new(server_reader, server_writer, 1024 * 1024).await.unwrap();
+
+            async fn callback<R, W>(stream: OmniRemotingStream<R, W>)
+            where
+                R: AsyncRead + Send + Unpin + 'static,
+                W: AsyncWrite + Send + Unpin + 'static,
+            {
+                let received = stream.recv::<TestMessage>().await.unwrap();
+                info!(value = received.value, "listener receive");
+
+                stream.send(TestMessage { value: received.value + 1 }).await.unwrap();
+                info!("listener send");
+            }
+
+            listener.listen_stream(callback).await.unwrap();
+        });
+
+        let join_handle_2 = tokio::spawn(async {
+            let caller = OmniRemotingCaller::<_, _>::new(client_reader, client_writer, 1024 * 1024, 1).await.unwrap();
+
+            let stream = caller.call_stream();
+
+            stream.send(TestMessage { value: 1 }).await.unwrap();
+            info!("caller send");
+
+            let received = stream.recv::<TestMessage>().await.unwrap();
+            info!(value = received.value, "caller receive");
+
+            received.value
+        });
+
+        join_handle_1.await?;
+        assert_eq!(join_handle_2.await?, 2);
 
         Ok(())
     }
