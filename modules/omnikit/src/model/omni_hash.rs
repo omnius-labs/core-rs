@@ -63,12 +63,8 @@ impl FromStr for OmniHash {
     fn from_str(s: &str) -> Result<Self> {
         let mut iter = s.split(':');
 
-        let typ = iter
-            .next()
-            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("type not found"))?;
-        let value = iter
-            .next()
-            .ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("value not found"))?;
+        let typ = iter.next().ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("type not found"))?;
+        let value = iter.next().ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("value not found"))?;
 
         let typ = match typ {
             "Sha3_256" => OmniHashAlgorithmType::Sha3_256,
