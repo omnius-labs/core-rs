@@ -8,7 +8,6 @@ use crate::Result;
 #[async_trait]
 pub trait FramedSend {
     async fn send(&mut self, buffer: Bytes) -> Result<()>;
-    async fn close(&mut self) -> Result<()>;
 }
 
 pub struct FramedSender<T>
@@ -45,12 +44,6 @@ where
     async fn send(&mut self, buffer: Bytes) -> Result<()> {
         self.framed.send(buffer).await?;
         self.framed.flush().await?;
-        Ok(())
-    }
-
-    async fn close(&mut self) -> Result<()> {
-        self.framed.flush().await?;
-        self.framed.close().await?;
         Ok(())
     }
 }
