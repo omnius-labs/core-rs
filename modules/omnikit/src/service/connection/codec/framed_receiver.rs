@@ -8,7 +8,6 @@ use crate::prelude::*;
 #[async_trait]
 pub trait FramedRecv {
     async fn recv(&mut self) -> Result<Bytes>;
-    async fn close(&mut self) -> Result<()>;
 }
 
 pub struct FramedReceiver<T>
@@ -45,9 +44,5 @@ where
     async fn recv(&mut self) -> Result<Bytes> {
         let v = self.framed.next().await.ok_or_else(|| Error::new(ErrorKind::EndOfStream))?;
         Ok(v?.freeze())
-    }
-
-    async fn close(&mut self) -> Result<()> {
-        Ok(())
     }
 }
