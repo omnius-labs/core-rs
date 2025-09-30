@@ -21,19 +21,24 @@ bitflags! {
 
 impl std::fmt::Display for OmniSignType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let typ = match self {
-            &OmniSignType::Ed25519_Sha3_256_Base64Url => "Ed25519_Sha3_256_Base64Url",
-            _ => "None",
-        };
-        write!(f, "{typ}")
+        write!(f, "{}", self.as_str())
     }
 }
 
 impl From<&str> for OmniSignType {
     fn from(value: &str) -> Self {
         match value {
-            "Ed25519_Sha3_256_Base64Url" => OmniSignType::Ed25519_Sha3_256_Base64Url,
+            "ed25519_sha3_256_base64url" => OmniSignType::Ed25519_Sha3_256_Base64Url,
             _ => OmniSignType::None,
+        }
+    }
+}
+
+impl OmniSignType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            &Self::Ed25519_Sha3_256_Base64Url => "ed25519_sha3_256_base64url",
+            _ => "none",
         }
     }
 }

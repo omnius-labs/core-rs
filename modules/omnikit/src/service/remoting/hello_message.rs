@@ -9,17 +9,18 @@ pub enum OmniRemotingVersion {
 impl std::fmt::Display for OmniRemotingVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
-            &OmniRemotingVersion::V1 => "V1",
+            &OmniRemotingVersion::V1 => "v1",
             _ => "unknown",
         };
         write!(f, "{typ}")
     }
 }
 
+// TODO
 impl From<&str> for OmniRemotingVersion {
     fn from(value: &str) -> Self {
         match value {
-            "V1" => OmniRemotingVersion::V1,
+            "v1" => OmniRemotingVersion::V1,
             _ => OmniRemotingVersion::Unknown,
         }
     }
