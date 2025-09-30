@@ -13,11 +13,7 @@ bitflags! {
 
 impl std::fmt::Display for AuthType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let typ = match self {
-            &AuthType::Sign => "Sign",
-            _ => "None",
-        };
-        write!(f, "{typ}")
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -26,8 +22,17 @@ impl std::str::FromStr for AuthType {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "Sign" => Ok(AuthType::Sign),
+            "sign" => Ok(AuthType::Sign),
             _ => Ok(AuthType::None),
+        }
+    }
+}
+
+impl AuthType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            &Self::Sign => "sign",
+            _ => "none",
         }
     }
 }
@@ -40,11 +45,12 @@ bitflags! {
     }
 }
 
+// TODO
 impl std::fmt::Display for KeyExchangeAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
-            &KeyExchangeAlgorithmType::X25519 => "X25519",
-            _ => "None",
+            &KeyExchangeAlgorithmType::X25519 => "x25519",
+            _ => "none",
         };
         write!(f, "{typ}")
     }
@@ -55,7 +61,7 @@ impl std::str::FromStr for KeyExchangeAlgorithmType {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "X25519" => Ok(KeyExchangeAlgorithmType::X25519),
+            "x25519" => Ok(KeyExchangeAlgorithmType::X25519),
             _ => Ok(KeyExchangeAlgorithmType::None),
         }
     }
@@ -72,8 +78,8 @@ bitflags! {
 impl std::fmt::Display for KeyDerivationAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
-            &KeyDerivationAlgorithmType::Hkdf => "Hkdf",
-            _ => "None",
+            &KeyDerivationAlgorithmType::Hkdf => "hkdf",
+            _ => "none",
         };
         write!(f, "{typ}")
     }
@@ -84,7 +90,7 @@ impl std::str::FromStr for KeyDerivationAlgorithmType {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "Hkdf" => Ok(KeyDerivationAlgorithmType::Hkdf),
+            "hkdf" => Ok(KeyDerivationAlgorithmType::Hkdf),
             _ => Ok(KeyDerivationAlgorithmType::None),
         }
     }
@@ -101,8 +107,8 @@ bitflags! {
 impl std::fmt::Display for CipherAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
-            &CipherAlgorithmType::Aes256Gcm => "Aes256Gcm",
-            _ => "None",
+            &CipherAlgorithmType::Aes256Gcm => "aes256gcm",
+            _ => "none",
         };
         write!(f, "{typ}")
     }
@@ -113,7 +119,7 @@ impl std::str::FromStr for CipherAlgorithmType {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "Aes256Gcm" => Ok(CipherAlgorithmType::Aes256Gcm),
+            "aes256gcm" => Ok(CipherAlgorithmType::Aes256Gcm),
             _ => Ok(CipherAlgorithmType::None),
         }
     }
@@ -130,8 +136,8 @@ bitflags! {
 impl std::fmt::Display for HashAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
-            &HashAlgorithmType::Sha3_256 => "Sha3_256",
-            _ => "None",
+            &HashAlgorithmType::Sha3_256 => "sha3_256",
+            _ => "none",
         };
         write!(f, "{typ}")
     }
@@ -142,7 +148,7 @@ impl std::str::FromStr for HashAlgorithmType {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "Sha3_256" => Ok(HashAlgorithmType::Sha3_256),
+            "sha3_256" => Ok(HashAlgorithmType::Sha3_256),
             _ => Ok(HashAlgorithmType::None),
         }
     }

@@ -15,18 +15,14 @@ bitflags! {
 
 impl std::fmt::Display for OmniAgreementAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let typ = match self {
-            &OmniAgreementAlgorithmType::X25519 => "X25519",
-            _ => "None",
-        };
-        write!(f, "{typ}")
+        write!(f, "{}", self.as_str())
     }
 }
 
 impl From<&str> for OmniAgreementAlgorithmType {
     fn from(value: &str) -> Self {
         match value {
-            "X25519" => OmniAgreementAlgorithmType::X25519,
+            "x25519" => OmniAgreementAlgorithmType::X25519,
             _ => OmniAgreementAlgorithmType::None,
         }
     }
@@ -35,8 +31,8 @@ impl From<&str> for OmniAgreementAlgorithmType {
 impl OmniAgreementAlgorithmType {
     pub fn as_str(&self) -> &'static str {
         match self {
-            &Self::X25519 => "X25519",
-            _ => "None",
+            &Self::X25519 => "x25519",
+            _ => "none",
         }
     }
 }

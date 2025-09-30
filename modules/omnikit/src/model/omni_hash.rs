@@ -16,8 +16,8 @@ bitflags! {
 impl std::fmt::Display for OmniHashAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
-            &OmniHashAlgorithmType::Sha3_256 => "Sha3_256",
-            _ => "None",
+            &OmniHashAlgorithmType::Sha3_256 => "sha3_256",
+            _ => "none",
         };
 
         write!(f, "{typ}",)
@@ -67,7 +67,7 @@ impl FromStr for OmniHash {
         let value = iter.next().ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("value not found"))?;
 
         let typ = match typ {
-            "Sha3_256" => OmniHashAlgorithmType::Sha3_256,
+            "sha3_256" => OmniHashAlgorithmType::Sha3_256,
             _ => OmniHashAlgorithmType::None,
         };
 
