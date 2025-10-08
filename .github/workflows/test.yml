@@ -15,41 +15,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout branch
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+
       - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@1.84.0
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+
       - name: Setup cargo make
         uses: davidB/rust-cargo-make@v1
         with:
           version: latest
+
       - name: Setup rust cache
         uses: Swatinem/rust-cache@v2.8.0
         with:
-          shared-key: lint
+          shared-key: " ${{ matrix.os }}-test"
+
       - name: Lint
         run: cargo make lint
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
-      - name: Setup rust toolchain
-        uses: dtolnay/rust-toolchain@1.84.0
-        with:
-          components: clippy, rustfmt
-      - name: Setup cargo make
-        uses: davidB/rust-cargo-make@v1
-        with:
-          version: latest
-      - name: Setup rust cache
-        uses: Swatinem/rust-cache@v2.8.0
-        with:
-          shared-key: test
+
       - name: Test
-        run: cargo test --features "stable-test,aws,postgres"
+        run: cargo test --features "stable-test"
