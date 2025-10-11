@@ -1,0 +1,11 @@
+[package]
+name = "rocketpack-compiled-example"
+version = "0.1.0"
+edition = "2024"
+authors = ["Lyrise <lyrise1984@gmail.com>"]
+
+[dependencies]
+omnius-core-base = { path = "../../../modules/base" }
+omnius-core-rocketpack = { path = "../../../modules/rocketpack" }
+
+[dev-dependencies]

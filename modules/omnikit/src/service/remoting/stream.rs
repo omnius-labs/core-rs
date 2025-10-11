@@ -30,20 +30,20 @@ where
 
     pub async fn send<T>(&self, message: T) -> Result<()>
     where
-        T: RocketMessage + Send + Sync + 'static,
+        T: RocketPackStruct + Send + Sync + 'static,
     {
         let bytes = message.export()?;
-        self.sender.lock().await.send(bytes).await?;
+        self.sender.lock().await.send(bytes.into()).await?;
 
         Ok(())
     }
 
     pub async fn recv<T>(&self) -> Result<T>
     where
-        T: RocketMessage + Send + Sync + 'static,
+        T: RocketPackStruct + Send + Sync + 'static,
     {
-        let mut bytes = self.receiver.lock().await.recv().await?;
-        let message = T::import(&mut bytes)?;
+        let bytes = self.receiver.lock().await.recv().await?;
+        let message = T::import(&bytes)?;
 
         Ok(message)
     }

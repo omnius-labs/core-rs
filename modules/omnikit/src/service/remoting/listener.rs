@@ -5,8 +5,6 @@ use tokio::{
     sync::Mutex as TokioMutex,
 };
 
-use omnius_core_rocketpack::RocketMessage;
-
 use crate::{
     prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSender},
@@ -40,8 +38,8 @@ where
     }
 
     async fn handshake(receiver: Arc<TokioMutex<FramedReceiver<R>>>) -> Result<u32> {
-        let mut v = receiver.lock().await.recv().await?;
-        let hello_message = HelloMessage::import(&mut v)?;
+        let v = receiver.lock().await.recv().await?;
+        let hello_message = HelloMessage::import(&v)?;
 
         if hello_message.version == OmniRemotingVersion::V1 {
             return Ok(hello_message.function_id);

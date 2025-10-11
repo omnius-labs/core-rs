@@ -1,5 +1,6 @@
 use bitflags::bitflags;
 use chrono::{DateTime, Utc};
+use omnius_core_rocketpack::primitive::Timestamp64;
 use rand::TryRngCore;
 use rand_core::OsRng;
 
@@ -19,9 +20,12 @@ impl std::fmt::Display for OmniAgreementAlgorithmType {
     }
 }
 
-impl From<&str> for OmniAgreementAlgorithmType {
-    fn from(value: &str) -> Self {
-        match value {
+impl<T> From<T> for OmniAgreementAlgorithmType
+where
+    T: AsRef<str>,
+{
+    fn from(value: T) -> Self {
+        match value.as_ref() {
             "x25519" => OmniAgreementAlgorithmType::X25519,
             _ => OmniAgreementAlgorithmType::None,
         }
@@ -39,14 +43,14 @@ impl OmniAgreementAlgorithmType {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniAgreement {
-    pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
     pub secret_key: Vec<u8>,
     pub public_key: Vec<u8>,
+    pub created_time: DateTime<Utc>,
 }
 
 impl OmniAgreement {
-    pub fn new(created_time: DateTime<Utc>, algorithm_type: OmniAgreementAlgorithmType) -> Result<Self> {
+    pub fn new(algorithm_type: OmniAgreementAlgorithmType, created_time: DateTime<Utc>) -> Result<Self> {
         let secret_key = x25519_dalek::StaticSecret::random_from_rng(&mut OsRng.unwrap_err());
         let public_key = x25519_dalek::PublicKey::from(&secret_key);
 
@@ -54,26 +58,26 @@ impl OmniAgreement {
         let public_key = public_key.as_bytes().to_vec();
 
         Ok(Self {
-            created_time,
             algorithm_type,
             secret_key,
             public_key,
+            created_time,
         })
     }
 
     pub fn gen_agreement_public_key(&self) -> OmniAgreementPublicKey {
         OmniAgreementPublicKey {
-            created_time: self.created_time,
             algorithm_type: self.algorithm_type.clone(),
             public_key: self.public_key.clone(),
+            created_time: self.created_time,
         }
     }
 
     pub fn gen_agreement_private_key(&self) -> OmniAgreementPrivateKey {
         OmniAgreementPrivateKey {
-            created_time: self.created_time,
             algorithm_type: self.algorithm_type.clone(),
             secret_key: self.secret_key.clone(),
+            created_time: self.created_time,
         }
     }
 
@@ -98,103 +102,166 @@ impl OmniAgreement {
     }
 }
 
-impl RocketMessage for OmniAgreement {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_timestamp64(value.created_time.into());
-        writer.put_str(value.algorithm_type.as_str());
-        writer.put_bytes(&value.secret_key);
-        writer.put_bytes(&value.public_key);
+impl RocketPackStruct for OmniAgreement {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(4)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_string(value.algorithm_type.as_str())?;
+
+        encoder.write_u64(1)?;
+        encoder.write_bytes(&value.secret_key)?;
+
+        encoder.write_u64(2)?;
+        encoder.write_bytes(&value.public_key)?;
+
+        encoder.write_u64(3)?;
+        encoder.write_struct(&Timestamp64::from(value.created_time))?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let created_time = reader
-            .get_timestamp64()?
-            .to_date_time()
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).with_message("invalid timestamp64"))?;
-        let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
-        let secret_key = reader.get_bytes(1024)?;
-        let public_key = reader.get_bytes(1024)?;
+        let mut algorithm_type: OmniAgreementAlgorithmType = OmniAgreementAlgorithmType::None;
+        let mut secret_key: Vec<u8> = Vec::new();
+        let mut public_key: Vec<u8> = Vec::new();
+        let mut created_time: DateTime<Utc> = DateTime::<Utc>::from_timestamp(0, 0).unwrap();
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => algorithm_type = OmniAgreementAlgorithmType::from(decoder.read_string()?),
+                1 => secret_key = decoder.read_bytes_vec()?,
+                2 => public_key = decoder.read_bytes_vec()?,
+                3 => {
+                    created_time = decoder
+                        .read_struct::<Timestamp64>()?
+                        .to_date_time()
+                        .ok_or(RocketPackDecoderError::Other("created_time parse error"))?
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self {
-            created_time,
             algorithm_type,
             secret_key,
             public_key,
+            created_time,
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniAgreementPublicKey {
-    pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
     pub public_key: Vec<u8>,
+    pub created_time: DateTime<Utc>,
 }
 
-impl RocketMessage for OmniAgreementPublicKey {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_timestamp64(value.created_time.into());
-        writer.put_str(value.algorithm_type.as_str());
-        writer.put_bytes(&value.public_key);
+impl RocketPackStruct for OmniAgreementPublicKey {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(3)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_string(value.algorithm_type.as_str())?;
+
+        encoder.write_u64(1)?;
+        encoder.write_bytes(&value.public_key)?;
+
+        encoder.write_u64(2)?;
+        encoder.write_struct(&Timestamp64::from(value.created_time))?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let created_time = reader
-            .get_timestamp64()?
-            .to_date_time()
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).with_message("invalid timestamp64"))?;
-        let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
-        let public_key = reader.get_bytes(1024)?;
+        let mut algorithm_type: OmniAgreementAlgorithmType = OmniAgreementAlgorithmType::None;
+        let mut public_key: Vec<u8> = Vec::new();
+        let mut created_time: DateTime<Utc> = DateTime::<Utc>::from_timestamp(0, 0).unwrap();
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => algorithm_type = OmniAgreementAlgorithmType::from(decoder.read_string()?),
+                1 => public_key = decoder.read_bytes_vec()?,
+                2 => {
+                    created_time = decoder
+                        .read_struct::<Timestamp64>()?
+                        .to_date_time()
+                        .ok_or(RocketPackDecoderError::Other("created_time parse error"))?
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self {
-            created_time,
             algorithm_type,
             public_key,
+            created_time,
         })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniAgreementPrivateKey {
-    pub created_time: DateTime<Utc>,
     pub algorithm_type: OmniAgreementAlgorithmType,
     pub secret_key: Vec<u8>,
+    pub created_time: DateTime<Utc>,
 }
 
-impl RocketMessage for OmniAgreementPrivateKey {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_timestamp64(value.created_time.into());
-        writer.put_str(value.algorithm_type.as_str());
-        writer.put_bytes(&value.secret_key);
+impl RocketPackStruct for OmniAgreementPrivateKey {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(3)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_string(value.algorithm_type.as_str())?;
+
+        encoder.write_u64(1)?;
+        encoder.write_bytes(&value.secret_key)?;
+
+        encoder.write_u64(2)?;
+        encoder.write_struct(&Timestamp64::from(value.created_time))?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let created_time = reader
-            .get_timestamp64()?
-            .to_date_time()
-            .ok_or_else(|| RocketPackError::new(RocketPackErrorKind::InvalidFormat).with_message("invalid timestamp64"))?;
-        let algorithm_type = OmniAgreementAlgorithmType::from(reader.get_string(1024)?.as_str());
-        let secret_key = reader.get_bytes(1024)?;
+        let mut algorithm_type: OmniAgreementAlgorithmType = OmniAgreementAlgorithmType::None;
+        let mut secret_key: Vec<u8> = Vec::new();
+        let mut created_time: DateTime<Utc> = DateTime::<Utc>::from_timestamp(0, 0).unwrap();
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => algorithm_type = OmniAgreementAlgorithmType::from(decoder.read_string()?),
+                1 => secret_key = decoder.read_bytes_vec()?,
+                2 => {
+                    created_time = decoder
+                        .read_struct::<Timestamp64>()?
+                        .to_date_time()
+                        .ok_or(RocketPackDecoderError::Other("created_time parse error"))?
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self {
-            created_time,
             algorithm_type,
             secret_key,
+            created_time,
         })
     }
 }
@@ -207,8 +274,9 @@ mod tests {
 
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let agreement1 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519)?;
-        let agreement2 = OmniAgreement::new(Utc::now(), OmniAgreementAlgorithmType::X25519)?;
+        let example_time: DateTime<Utc> = DateTime::parse_from_rfc3339("2000-01-01T01:01:01Z")?.to_utc();
+        let agreement1 = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, example_time)?;
+        let agreement2 = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, example_time)?;
 
         let public_key1 = agreement1.gen_agreement_public_key();
         let private_key1 = agreement1.gen_agreement_private_key();

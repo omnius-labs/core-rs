@@ -97,9 +97,15 @@ impl std::fmt::Display for ErrorKind {
     }
 }
 
-impl From<omnius_core_rocketpack::Error> for Error {
-    fn from(e: omnius_core_rocketpack::Error) -> Error {
-        Error::from_error(e, ErrorKind::SerdeError).with_message("rocket pack error")
+impl From<omnius_core_rocketpack::RocketPackEncoderError> for Error {
+    fn from(e: omnius_core_rocketpack::RocketPackEncoderError) -> Error {
+        Error::from_error(e, ErrorKind::SerdeError).with_message("rocket pack encode error")
+    }
+}
+
+impl From<omnius_core_rocketpack::RocketPackDecoderError> for Error {
+    fn from(e: omnius_core_rocketpack::RocketPackDecoderError) -> Error {
+        Error::from_error(e, ErrorKind::SerdeError).with_message("rocket pack decode error")
     }
 }
 

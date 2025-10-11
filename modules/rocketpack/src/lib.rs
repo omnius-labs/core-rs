@@ -1,19 +1,14 @@
 mod empty_rocket_pack;
-mod error;
+mod field_type;
 mod prelude;
 pub mod primitive;
-mod rocket_message;
-mod rocket_message_reader;
-mod rocket_message_writer;
-
-mod result {
-    #[allow(unused)]
-    pub type Result<T> = std::result::Result<T, crate::error::Error>;
-}
+mod rocket_pack_codec_test;
+mod rocket_pack_decoder;
+mod rocket_pack_encoder;
+mod rocket_pack_struct;
 
 pub use empty_rocket_pack::*;
-pub use error::*;
-pub use result::*;
-pub use rocket_message::*;
-pub use rocket_message_reader::*;
-pub use rocket_message_writer::*;
+pub use field_type::*;
+pub use rocket_pack_decoder::*;
+pub use rocket_pack_encoder::*;
+pub use rocket_pack_struct::*;
