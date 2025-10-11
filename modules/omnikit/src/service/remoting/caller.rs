@@ -5,8 +5,6 @@ use tokio::{
     sync::Mutex as TokioMutex,
 };
 
-use omnius_core_rocketpack::RocketMessage;
-
 use crate::{
     prelude::*,
     service::connection::codec::{FramedReceiver, FramedSend as _, FramedSender},
@@ -44,7 +42,7 @@ where
             version: OmniRemotingVersion::V1,
             function_id,
         };
-        sender.lock().await.send(hello_message.export()?).await?;
+        sender.lock().await.send(hello_message.export()?.into()).await?;
 
         Ok(())
     }

@@ -1,19 +1,19 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{RocketMessage, RocketMessageReader, RocketMessageWriter, prelude::*};
+use crate::RocketPackStruct;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmptyRocketMessage;
 
-impl RocketMessage for EmptyRocketMessage {
-    fn pack(_writer: &mut RocketMessageWriter, _value: &Self, _depth: u32) -> Result<()> {
+impl RocketPackStruct for EmptyRocketMessage {
+    fn pack(_encoder: &mut impl crate::RocketPackEncoder, _value: &Self) -> std::result::Result<(), crate::RocketPackEncoderError> {
         Ok(())
     }
 
-    fn unpack(_reader: &mut RocketMessageReader, _depth: u32) -> Result<Self>
+    fn unpack(_decoder: &mut impl crate::RocketPackDecoder) -> std::result::Result<Self, crate::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        Ok(Self {})
+        Ok(Self)
     }
 }

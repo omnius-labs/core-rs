@@ -10,7 +10,9 @@ members = [
   "modules/omnikit",
   "modules/rocketpack",
   "modules/testkit",
+  "entrypoints/rocketpack-compiler",
 ]
+exclude = ["entrypoints/rocketpack-compiled-example/rust"]
 resolver = "3"
 
 [workspace.package]
@@ -27,6 +29,8 @@ omnius-core-migration = { path = "./modules/migration", features = [
 omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
+
+omnius-core-rocketpack-compiler = { path = "./entrypoints/rocketpack-compiler" }
 
 aws-smithy-runtime-api = "1.8.7"
 aws-config = "1.8.4"
@@ -106,3 +110,9 @@ ed25519-dalek = { version = "=3.0.0-pre.0", features = [
   "serde",
   "pkcs8",
 ] }
+logos = "0.15.1"
+clap = { version = "4.5.44", features = ["wrap_help", "derive"] }
+serde_yaml_ng = "0.10.0"
+
+[workspace.lints.clippy]
+uninlined_format_args = "allow"

@@ -45,7 +45,6 @@ bitflags! {
     }
 }
 
-// TODO
 impl std::fmt::Display for KeyExchangeAlgorithmType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match self {
@@ -164,28 +163,55 @@ pub(crate) struct ProfileMessage {
     pub hash_algorithm_type: HashAlgorithmType,
 }
 
-impl RocketMessage for ProfileMessage {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_bytes(&value.session_id);
-        writer.put_u32(value.auth_type.bits());
-        writer.put_u32(value.key_exchange_algorithm_type.bits());
-        writer.put_u32(value.key_derivation_algorithm_type.bits());
-        writer.put_u32(value.cipher_algorithm_type.bits());
-        writer.put_u32(value.hash_algorithm_type.bits());
+impl RocketPackStruct for ProfileMessage {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(6)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_bytes(&value.session_id)?;
+
+        encoder.write_u64(1)?;
+        encoder.write_u32(value.auth_type.bits())?;
+
+        encoder.write_u64(2)?;
+        encoder.write_u32(value.key_exchange_algorithm_type.bits())?;
+
+        encoder.write_u64(3)?;
+        encoder.write_u32(value.key_derivation_algorithm_type.bits())?;
+
+        encoder.write_u64(4)?;
+        encoder.write_u32(value.cipher_algorithm_type.bits())?;
+
+        encoder.write_u64(5)?;
+        encoder.write_u32(value.hash_algorithm_type.bits())?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let session_id = reader.get_bytes(1024)?;
-        let auth_type = AuthType::from_bits_truncate(reader.get_u32()?);
-        let key_exchange_algorithm_type = KeyExchangeAlgorithmType::from_bits_truncate(reader.get_u32()?);
-        let key_derivation_algorithm_type = KeyDerivationAlgorithmType::from_bits_truncate(reader.get_u32()?);
-        let cipher_algorithm_type = CipherAlgorithmType::from_bits_truncate(reader.get_u32()?);
-        let hash_algorithm_type = HashAlgorithmType::from_bits_truncate(reader.get_u32()?);
+        let mut session_id: Vec<u8> = Vec::new();
+        let mut auth_type = AuthType::None;
+        let mut key_exchange_algorithm_type = KeyExchangeAlgorithmType::None;
+        let mut key_derivation_algorithm_type = KeyDerivationAlgorithmType::None;
+        let mut cipher_algorithm_type = CipherAlgorithmType::None;
+        let mut hash_algorithm_type = HashAlgorithmType::None;
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => session_id = decoder.read_bytes_vec()?,
+                1 => auth_type = AuthType::from_bits_truncate(decoder.read_u32()?),
+                2 => key_exchange_algorithm_type = KeyExchangeAlgorithmType::from_bits_truncate(decoder.read_u32()?),
+                3 => key_derivation_algorithm_type = KeyDerivationAlgorithmType::from_bits_truncate(decoder.read_u32()?),
+                4 => cipher_algorithm_type = CipherAlgorithmType::from_bits_truncate(decoder.read_u32()?),
+                5 => hash_algorithm_type = HashAlgorithmType::from_bits_truncate(decoder.read_u32()?),
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self {
             session_id,
@@ -218,7 +244,7 @@ mod tests {
         };
 
         let b = p.export()?;
-        let p2 = ProfileMessage::import(&mut b.clone())?;
+        let p2 = ProfileMessage::import(&b.clone())?;
 
         assert_eq!(p, p2);
 

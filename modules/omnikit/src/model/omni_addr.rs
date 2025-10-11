@@ -64,8 +64,11 @@ impl OmniAddr {
     }
 }
 
-impl From<&str> for OmniAddr {
-    fn from(value: &str) -> Self {
+impl<T> From<T> for OmniAddr
+where
+    T: AsRef<str>,
+{
+    fn from(value: T) -> Self {
         OmniAddr::new(value)
     }
 }

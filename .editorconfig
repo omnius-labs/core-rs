@@ -16,7 +16,7 @@ end_of_line = lf
 end_of_line = crlf
 
 # Config files
-[*.{yml,toml}]
+[*.{yaml,yml,toml}]
 end_of_line = lf
 indent_size = 2
 

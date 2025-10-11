@@ -1,0 +1,52 @@
+version: 1
+
+sources:
+  - base_dir: rpfs
+    includes:
+      - "**/*.rpf"
+    excludes:
+      - "**/*.test.rpf"
+
+generators:
+
+  - id: csharp
+    plugin: rocketpack-csharp
+    options:
+      target_framework: net8.0
+      visibility: public
+      partial_types: true
+      base_namespace: Company.Project
+      file_extension: .g.cs
+    targets:
+      example/first.rpf:
+        out: sharp/gen/src/example/first
+      example/*.rpf:
+        dir: sharp/gen/src/example/second
+        options:
+          visibility: internal
+
+  - id: rust
+    plugin: rocketpack-rust
+    options:
+      edition: 2024
+      visibility: public
+    targets:
+      example/first.rpf:
+        out: rust/gen/src/example/first
+      example/*.rpf:
+        dir: rust/gen/src/example/second
+        options:
+          visibility: internal
+
+  - id: swift
+    plugin: rocketpack-swift
+    options:
+      swift_version: 6.x
+      visibility: public
+    targets:
+      example/first.rpf:
+        out: swift/gen/src/example/first
+      example/*.rpf:
+        dir: swift/gen/src/example/second
+        options:
+          visibility: internal
