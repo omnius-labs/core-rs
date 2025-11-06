@@ -4,7 +4,7 @@ mod tests {
 
     use testresult::TestResult;
 
-    use crate::{FieldType, RocketPackBytesDecoder, RocketPackBytesEncoder, RocketPackDecoder, RocketPackEncoder};
+    use crate::{FieldType, RocketPackBytesDecoder, RocketPackBytesEncoder, RocketPackDecoder, RocketPackDecoderError, RocketPackEncoder};
 
     fn compose(major: u8, info: u8) -> u8 {
         (major << 5) | info
@@ -425,5 +425,16 @@ mod tests {
         assert_eq!(decoder.remaining(), 0);
 
         Ok(())
+    }
+
+    #[test]
+    fn truncated_negative_number_reports_eof() -> TestResult {
+        let bytes = vec![compose(1, 24)];
+        let decoder = RocketPackBytesDecoder::new(&bytes);
+
+        match decoder.current_type() {
+            Err(RocketPackDecoderError::UnexpectedEof) => Ok(()),
+            other => panic!("expected UnexpectedEof, got {other:?}"),
+        }
     }
 }
