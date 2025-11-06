@@ -562,7 +562,7 @@ impl<'a> RocketPackBytesDecoder<'a> {
     }
 
     fn peek_raw_byte(&self) -> Result<u8> {
-        if self.remaining() < 1 {
+        if self.remaining() < 2 {
             return Err(RocketPackDecoderError::UnexpectedEof);
         }
         Ok(self.buf[self.pos + 1])
