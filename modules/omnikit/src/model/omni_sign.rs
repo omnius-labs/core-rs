@@ -7,8 +7,6 @@ use rand::TryRngCore;
 use rand_core::OsRng;
 use sha3::{Digest, Sha3_256};
 
-use omnius_core_rocketpack::{Result as RocketPackResult, RocketMessage, RocketMessageReader, RocketMessageWriter};
-
 use crate::{prelude::*, service::converter::OmniBase};
 
 bitflags! {
@@ -25,9 +23,12 @@ impl std::fmt::Display for OmniSignType {
     }
 }
 
-impl From<&str> for OmniSignType {
-    fn from(value: &str) -> Self {
-        match value {
+impl<T> From<T> for OmniSignType
+where
+    T: AsRef<str>,
+{
+    fn from(value: T) -> Self {
+        match value.as_ref() {
             "ed25519_sha3_256_base64url" => OmniSignType::Ed25519_Sha3_256_Base64Url,
             _ => OmniSignType::None,
         }
@@ -79,22 +80,40 @@ impl OmniSigner {
     }
 }
 
-impl RocketMessage for OmniSigner {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_str(value.typ.to_string().as_str());
-        writer.put_str(&value.name);
-        writer.put_bytes(&value.key);
+impl RocketPackStruct for OmniSigner {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(3)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_string(value.typ.as_str())?;
+
+        encoder.write_u32(1)?;
+        encoder.write_string(&value.name)?;
+
+        encoder.write_u32(2)?;
+        encoder.write_bytes(&value.key)?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let typ = OmniSignType::from(reader.get_string(1024)?.as_str());
-        let name = reader.get_string(1024)?.parse()?;
-        let key = reader.get_bytes(1024)?;
+        let mut typ: OmniSignType = OmniSignType::None;
+        let mut name: String = "".to_string();
+        let mut key: Vec<u8> = Vec::new();
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => typ = OmniSignType::from(decoder.read_string()?),
+                1 => name = decoder.read_string()?,
+                2 => key = decoder.read_bytes_vec()?,
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self { typ, name, key })
     }
@@ -148,24 +167,45 @@ impl OmniCert {
     }
 }
 
-impl RocketMessage for OmniCert {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_str(value.typ.to_string().as_str());
-        writer.put_str(&value.name);
-        writer.put_bytes(&value.public_key);
-        writer.put_bytes(&value.value);
+impl RocketPackStruct for OmniCert {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(4)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_string(value.typ.as_str())?;
+
+        encoder.write_u32(1)?;
+        encoder.write_string(&value.name)?;
+
+        encoder.write_u32(2)?;
+        encoder.write_bytes(&value.public_key)?;
+
+        encoder.write_u32(3)?;
+        encoder.write_bytes(&value.value)?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let typ = OmniSignType::from(reader.get_string(1024)?.as_str());
-        let name = reader.get_string(1024)?.parse()?;
-        let public_key = reader.get_bytes(1024)?;
-        let value = reader.get_bytes(1024)?;
+        let mut typ: OmniSignType = OmniSignType::None;
+        let mut name: String = "".to_string();
+        let mut public_key: Vec<u8> = Vec::new();
+        let mut value: Vec<u8> = Vec::new();
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => typ = OmniSignType::from(decoder.read_string()?),
+                1 => name = decoder.read_string()?,
+                2 => public_key = decoder.read_bytes_vec()?,
+                3 => value = decoder.read_bytes_vec()?,
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self { typ, name, public_key, value })
     }
