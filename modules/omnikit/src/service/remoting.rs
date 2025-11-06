@@ -79,18 +79,30 @@ mod tests {
         pub value: i32,
     }
 
-    impl RocketMessage for TestMessage {
-        fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-            writer.put_i32(value.value);
+    impl RocketPackStruct for TestMessage {
+        fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+            encoder.write_map(1)?;
+
+            encoder.write_u64(0)?;
+            encoder.write_i32(value.value)?;
 
             Ok(())
         }
 
-        fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+        fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
         where
             Self: Sized,
         {
-            let value = reader.get_i32()?;
+            let count = decoder.read_map()?;
+
+            let mut value: i32 = 0;
+
+            for _ in 0..count {
+                match decoder.read_u64()? {
+                    0 => value = decoder.read_i32()?,
+                    _ => decoder.skip_field()?,
+                }
+            }
 
             Ok(Self { value })
         }

@@ -1,0 +1,38 @@
+[package]
+name = "omnius-core-rocketpack-compiler"
+version = "0.1.0"
+edition = { workspace = true }
+authors = { workspace = true }
+
+[features]
+default = []
+stable-test = []
+
+[dependencies]
+omnius-core-base = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+logos = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tokio-stream = { workspace = true }
+serde_yaml_ng = { workspace = true }
+
+[dev-dependencies]
+testresult = { workspace = true }
+
+[lints.rust]
+unused = "allow"
+
+[lints.clippy]
+uninlined_format_args = "allow"
+unused_async = "allow"
+unused_collect = "allow"
+unused_iter_cloned = "allow"
+unused_peekable = "allow"
+unused_self = "allow"
+unused_unit = "allow"
+redundant_pattern_matching = "allow"

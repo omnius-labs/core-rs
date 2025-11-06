@@ -6,6 +6,7 @@
         "chacha",
         "chrono",
         "ciphertext",
+        "codegen",
         "dalek",
         "diffie",
         "exif",
@@ -25,6 +26,7 @@
         "Repr",
         "reqwest",
         "rocketpack",
+        "rpfs",
         "secretmanager",
         "Seedable",
         "serde",
@@ -37,6 +39,7 @@
         "testresult",
         "thiserror",
         "tsid",
+        "unzigzag",
         "urlencoding",
         "utoipa",
         "varint"

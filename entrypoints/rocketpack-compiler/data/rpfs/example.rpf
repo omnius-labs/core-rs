@@ -1,0 +1,73 @@
+edition 2025;
+package omnius::demo::v1;
+
+// comment1
+/* comment2 */
+
+struct PrimitiveShowcase1 {
+  @1 bool_field: bool;
+  @2 u8_field: u8;
+  @3 i16_field: i16;
+  @4 i32_field: i32;
+  @5 i12_field: i128;
+  @6 u16_field: u16;
+  @7 u32_field: u32;
+  @8 u64_field: u64;
+  @9 u12_field: u128;
+  @10 f32_field: f32;
+  @11 f64_field: f64;
+  @12 string_field: string;
+  @13 bytes_field: bytes;
+  @14 vec_field_1: Vec<u8>;
+  @15 vec_field_2: Vec<string>;
+  @16 vec_field_3: Vec<bytes>;
+  @17 map_field_1: Map<u8, string>;
+  @18 map_field_2: Map<string, u8>;
+  @19 map_vec_field_1: Map<string, Vec<u32>>;
+  @20 map_vec_field_2: Map<string, Vec<bytes>>;
+  @21 slice_field: [i64; 4];
+  @22 struct_field: SimpleMessage;
+}
+
+struct PrimitiveShowcase2 {
+  @1 bool_field: Option<bool>;
+  @2 u8_field: Option<u8>;
+  @3 i16_field: Option<i16>;
+  @4 i32_field: Option<i32>;
+  @5 i12_field: Option<i128>;
+  @6 u16_field: Option<u16>;
+  @7 u32_field: Option<u32>;
+  @8 u64_field: Option<u64>;
+  @9 u12_field: Option<u128>;
+  @10 f32_field: Option<f32>;
+  @11 f64_field: Option<f64>;
+  @12 string_field: Option<string>;
+  @13 bytes_field: Option<bytes>;
+  @14 vec_field_1: Option<Vec<u8>>;
+  @15 vec_field_2: Option<Vec<string>>;
+  @16 vec_field_3: Option<Vec<bytes>>;
+  @17 map_field_1: Option<Map<u8, string>>;
+  @18 map_field_2: Option<Map<string, u8>>;
+  @19 map_vec_field_1: Option<Map<string, Vec<u32>>>;
+  @20 map_vec_field_2: Option<Map<string, Vec<bytes>>>;
+  @21 struct_field: Option<SimpleMessage>;
+}
+
+enum PrimitiveShowcase3 {
+  @1 First;
+  @2 Second(entity: string, payload: ByteBuffer);
+  @3 Third {
+    @1 entity: string;
+    @2 status: Status;
+    @4 retries: u32 = 0;
+    @5 struct_field: Option<SimpleMessage>;
+  };
+}
+
+struct SimpleMessage {
+  @1 bool_field: Option<bool>;
+}
+
+
+type ByteList = Vec<bytes>;
+const MAX_SAMPLE_SIZE: u32 = 1_048_576;

@@ -77,20 +77,35 @@ impl FromStr for OmniHash {
     }
 }
 
-impl RocketMessage for OmniHash {
-    fn pack(writer: &mut RocketMessageWriter, value: &Self, _depth: u32) -> RocketPackResult<()> {
-        writer.put_u32(value.typ.bits());
-        writer.put_bytes(&value.value);
+impl RocketPackStruct for OmniHash {
+    fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        encoder.write_map(2)?;
+
+        encoder.write_u64(0)?;
+        encoder.write_u32(value.typ.bits())?;
+
+        encoder.write_u32(1)?;
+        encoder.write_bytes(&value.value)?;
 
         Ok(())
     }
 
-    fn unpack(reader: &mut RocketMessageReader, _depth: u32) -> RocketPackResult<Self>
+    fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let typ = OmniHashAlgorithmType::from_bits_truncate(reader.get_u32()?);
-        let value = reader.get_bytes(1024)?;
+        let mut typ: OmniHashAlgorithmType = OmniHashAlgorithmType::None;
+        let mut value: Vec<u8> = Vec::new();
+
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                0 => typ = OmniHashAlgorithmType::from_bits_truncate(decoder.read_u32()?),
+                1 => value = decoder.read_bytes_vec()?,
+                _ => decoder.skip_field()?,
+            }
+        }
 
         Ok(Self { typ, value })
     }
