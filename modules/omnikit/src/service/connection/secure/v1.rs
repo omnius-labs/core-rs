@@ -20,10 +20,7 @@ mod tests {
     use futures_util::SinkExt as _;
     use parking_lot::Mutex;
     use testresult::TestResult;
-    use tokio::{
-        net::{TcpListener, TcpStream},
-        time::sleep,
-    };
+    use tokio::{net::TcpListener, time::sleep};
     use tokio_stream::StreamExt as _;
 
     use omnius_core_base::{
@@ -39,16 +36,15 @@ mod tests {
 
     use super::*;
 
-    #[ignore]
     #[tokio::test]
-    async fn simple_test() -> TestResult {
+    async fn communication_test() -> TestResult {
         let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
         let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
 
-        let addr = "127.0.0.1:50001";
-        let listener = TcpListener::bind(addr).await?;
-        let (client_reader, client_writer) = TcpStream::connect(addr).await?.into_split();
-        let (server_reader, server_writer) = listener.accept().await?.0.into_split();
+        let (client_side, server_side) = tokio::io::duplex(4096);
+
+        let (client_reader, client_writer) = tokio::io::split(client_side);
+        let (server_reader, server_writer) = tokio::io::split(server_side);
 
         let secure_client = OmniSecureStream::new(
             client_reader,
@@ -78,11 +74,13 @@ mod tests {
         for &case in cases.iter() {
             let mut buffer = vec![0u8; case];
             random_bytes_provider.clone().lock().fill_bytes(&mut buffer);
-            let buffer = Bytes::from(buffer);
+            let expected = Bytes::from(buffer);
 
-            secure_client_sender.send(buffer.clone()).await?;
-            let received = secure_server_receiver.recv().await?;
-            assert_eq!(buffer, received);
+            let send_future = secure_client_sender.send(expected.clone());
+            let recv_future = secure_server_receiver.recv();
+            let (_, received) = tokio::try_join!(send_future, recv_future)?;
+
+            assert_eq!(expected, received);
         }
 
         Ok(())

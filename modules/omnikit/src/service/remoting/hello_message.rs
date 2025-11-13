@@ -1,36 +1,16 @@
+use std::str::FromStr;
+
+use strum;
+
 use crate::prelude::*;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[repr(u32)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::EnumString, strum::AsRefStr, strum::Display)]
 pub enum OmniRemotingVersion {
+    #[strum(serialize = "unknown")]
     Unknown,
+    #[strum(serialize = "v1")]
     V1,
-}
-
-impl OmniRemotingVersion {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            &Self::V1 => "v1",
-            _ => "unknown",
-        }
-    }
-}
-
-impl std::fmt::Display for OmniRemotingVersion {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-impl<T> From<T> for OmniRemotingVersion
-where
-    T: AsRef<str>,
-{
-    fn from(value: T) -> Self {
-        match value.as_ref() {
-            "v1" => OmniRemotingVersion::V1,
-            _ => OmniRemotingVersion::Unknown,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,7 +24,7 @@ impl RocketPackStruct for HelloMessage {
         encoder.write_map(2)?;
 
         encoder.write_u64(0)?;
-        encoder.write_string(value.version.as_str())?;
+        encoder.write_string(value.version.as_ref())?;
 
         encoder.write_u64(1)?;
         encoder.write_u32(value.function_id)?;
@@ -63,7 +43,7 @@ impl RocketPackStruct for HelloMessage {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => version = OmniRemotingVersion::from(decoder.read_string()?),
+                0 => version = OmniRemotingVersion::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
                 1 => function_id = decoder.read_u32()?,
                 _ => decoder.skip_field()?,
             }

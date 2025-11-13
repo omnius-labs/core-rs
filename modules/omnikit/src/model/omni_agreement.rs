@@ -1,4 +1,5 @@
-use bitflags::bitflags;
+use std::str::FromStr;
+
 use chrono::{DateTime, Utc};
 use omnius_core_rocketpack::primitive::Timestamp64;
 use rand::TryRngCore;
@@ -6,38 +7,18 @@ use rand_core::OsRng;
 
 use crate::prelude::*;
 
-bitflags! {
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct OmniAgreementAlgorithmType: u32 {
-        const None = 0;
-        const X25519 = 1;
-    }
-}
-
-impl std::fmt::Display for OmniAgreementAlgorithmType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-impl<T> From<T> for OmniAgreementAlgorithmType
-where
-    T: AsRef<str>,
-{
-    fn from(value: T) -> Self {
-        match value.as_ref() {
-            "x25519" => OmniAgreementAlgorithmType::X25519,
-            _ => OmniAgreementAlgorithmType::None,
-        }
-    }
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::AsRefStr, strum::Display, strum::FromRepr)]
+pub enum OmniAgreementAlgorithmType {
+    #[strum(serialize = "none")]
+    None = 0,
+    #[strum(serialize = "x25519")]
+    X25519 = 1,
 }
 
 impl OmniAgreementAlgorithmType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            &Self::X25519 => "x25519",
-            _ => "none",
-        }
+    pub const fn bits(self) -> u32 {
+        self as u32
     }
 }
 
@@ -67,7 +48,7 @@ impl OmniAgreement {
 
     pub fn gen_agreement_public_key(&self) -> OmniAgreementPublicKey {
         OmniAgreementPublicKey {
-            algorithm_type: self.algorithm_type.clone(),
+            algorithm_type: self.algorithm_type,
             public_key: self.public_key.clone(),
             created_time: self.created_time,
         }
@@ -75,7 +56,7 @@ impl OmniAgreement {
 
     pub fn gen_agreement_private_key(&self) -> OmniAgreementPrivateKey {
         OmniAgreementPrivateKey {
-            algorithm_type: self.algorithm_type.clone(),
+            algorithm_type: self.algorithm_type,
             secret_key: self.secret_key.clone(),
             created_time: self.created_time,
         }
@@ -107,7 +88,7 @@ impl RocketPackStruct for OmniAgreement {
         encoder.write_map(4)?;
 
         encoder.write_u64(0)?;
-        encoder.write_string(value.algorithm_type.as_str())?;
+        encoder.write_string(value.algorithm_type.as_ref())?;
 
         encoder.write_u64(1)?;
         encoder.write_bytes(&value.secret_key)?;
@@ -134,7 +115,7 @@ impl RocketPackStruct for OmniAgreement {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => algorithm_type = OmniAgreementAlgorithmType::from(decoder.read_string()?),
+                0 => algorithm_type = OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
                 1 => secret_key = decoder.read_bytes_vec()?,
                 2 => public_key = decoder.read_bytes_vec()?,
                 3 => {
@@ -168,7 +149,7 @@ impl RocketPackStruct for OmniAgreementPublicKey {
         encoder.write_map(3)?;
 
         encoder.write_u64(0)?;
-        encoder.write_string(value.algorithm_type.as_str())?;
+        encoder.write_string(value.algorithm_type.as_ref())?;
 
         encoder.write_u64(1)?;
         encoder.write_bytes(&value.public_key)?;
@@ -191,7 +172,7 @@ impl RocketPackStruct for OmniAgreementPublicKey {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => algorithm_type = OmniAgreementAlgorithmType::from(decoder.read_string()?),
+                0 => algorithm_type = OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
                 1 => public_key = decoder.read_bytes_vec()?,
                 2 => {
                     created_time = decoder
@@ -223,7 +204,7 @@ impl RocketPackStruct for OmniAgreementPrivateKey {
         encoder.write_map(3)?;
 
         encoder.write_u64(0)?;
-        encoder.write_string(value.algorithm_type.as_str())?;
+        encoder.write_string(value.algorithm_type.as_ref())?;
 
         encoder.write_u64(1)?;
         encoder.write_bytes(&value.secret_key)?;
@@ -246,7 +227,7 @@ impl RocketPackStruct for OmniAgreementPrivateKey {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => algorithm_type = OmniAgreementAlgorithmType::from(decoder.read_string()?),
+                0 => algorithm_type = OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
                 1 => secret_key = decoder.read_bytes_vec()?,
                 2 => {
                     created_time = decoder
