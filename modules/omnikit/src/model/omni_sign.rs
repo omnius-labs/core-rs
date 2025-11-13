@@ -1,4 +1,5 @@
-use bitflags::bitflags;
+use std::str::FromStr;
+
 use ed25519_dalek::{
     Signer as _,
     pkcs8::{DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _},
@@ -9,39 +10,14 @@ use sha3::{Digest, Sha3_256};
 
 use crate::{prelude::*, service::converter::OmniBase};
 
-bitflags! {
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct OmniSignType: u32 {
-        const None = 0;
-        const Ed25519_Sha3_256_Base64Url = 1;
-    }
-}
-
-impl std::fmt::Display for OmniSignType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-impl<T> From<T> for OmniSignType
-where
-    T: AsRef<str>,
-{
-    fn from(value: T) -> Self {
-        match value.as_ref() {
-            "ed25519_sha3_256_base64url" => OmniSignType::Ed25519_Sha3_256_Base64Url,
-            _ => OmniSignType::None,
-        }
-    }
-}
-
-impl OmniSignType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            &Self::Ed25519_Sha3_256_Base64Url => "ed25519_sha3_256_base64url",
-            _ => "none",
-        }
-    }
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::AsRefStr, strum::Display, strum::FromRepr)]
+pub enum OmniSignType {
+    #[strum(serialize = "none")]
+    None = 0,
+    #[allow(non_camel_case_types)]
+    #[strum(serialize = "ed25519_sha3_256_base64url")]
+    Ed25519_Sha3_256_Base64Url = 1,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,7 +45,7 @@ impl OmniSigner {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(self.key.as_slice())?;
 
-                let typ = self.typ.clone();
+                let typ = self.typ;
                 let name = self.name.clone();
                 let public_key = signing_key.verifying_key().to_public_key_der()?.into_vec();
                 let value = signing_key.sign(msg).to_vec();
@@ -85,12 +61,12 @@ impl RocketPackStruct for OmniSigner {
         encoder.write_map(3)?;
 
         encoder.write_u64(0)?;
-        encoder.write_string(value.typ.as_str())?;
+        encoder.write_string(value.typ.as_ref())?;
 
-        encoder.write_u32(1)?;
+        encoder.write_u64(1)?;
         encoder.write_string(&value.name)?;
 
-        encoder.write_u32(2)?;
+        encoder.write_u64(2)?;
         encoder.write_bytes(&value.key)?;
 
         Ok(())
@@ -108,7 +84,7 @@ impl RocketPackStruct for OmniSigner {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => typ = OmniSignType::from(decoder.read_string()?),
+                0 => typ = OmniSignType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
                 1 => name = decoder.read_string()?,
                 2 => key = decoder.read_bytes_vec()?,
                 _ => decoder.skip_field()?,
@@ -172,15 +148,15 @@ impl RocketPackStruct for OmniCert {
         encoder.write_map(4)?;
 
         encoder.write_u64(0)?;
-        encoder.write_string(value.typ.as_str())?;
+        encoder.write_string(value.typ.as_ref())?;
 
-        encoder.write_u32(1)?;
+        encoder.write_u64(1)?;
         encoder.write_string(&value.name)?;
 
-        encoder.write_u32(2)?;
+        encoder.write_u64(2)?;
         encoder.write_bytes(&value.public_key)?;
 
-        encoder.write_u32(3)?;
+        encoder.write_u64(3)?;
         encoder.write_bytes(&value.value)?;
 
         Ok(())
@@ -199,7 +175,7 @@ impl RocketPackStruct for OmniCert {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => typ = OmniSignType::from(decoder.read_string()?),
+                0 => typ = OmniSignType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
                 1 => name = decoder.read_string()?,
                 2 => public_key = decoder.read_bytes_vec()?,
                 3 => value = decoder.read_bytes_vec()?,

@@ -1,27 +1,16 @@
 use std::str::FromStr;
 
-use bitflags::bitflags;
 use sha3::{Digest, Sha3_256};
 
 use crate::{prelude::*, service::converter::OmniBase};
 
-bitflags! {
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct OmniHashAlgorithmType: u32 {
-        const None = 0;
-        const Sha3_256 = 1;
-    }
-}
-
-impl std::fmt::Display for OmniHashAlgorithmType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let typ = match self {
-            &OmniHashAlgorithmType::Sha3_256 => "sha3_256",
-            _ => "none",
-        };
-
-        write!(f, "{typ}",)
-    }
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumString, strum::AsRefStr, strum::Display, strum::FromRepr)]
+pub enum OmniHashAlgorithmType {
+    #[strum(serialize = "none")]
+    None = 0,
+    #[strum(serialize = "sha3_256")]
+    Sha3_256 = 1,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -82,9 +71,9 @@ impl RocketPackStruct for OmniHash {
         encoder.write_map(2)?;
 
         encoder.write_u64(0)?;
-        encoder.write_u32(value.typ.bits())?;
+        encoder.write_u32(value.typ as u32)?;
 
-        encoder.write_u32(1)?;
+        encoder.write_u64(1)?;
         encoder.write_bytes(&value.value)?;
 
         Ok(())
@@ -101,7 +90,7 @@ impl RocketPackStruct for OmniHash {
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => typ = OmniHashAlgorithmType::from_bits_truncate(decoder.read_u32()?),
+                0 => typ = OmniHashAlgorithmType::from_repr(decoder.read_u32()?).ok_or(RocketPackDecoderError::Other("parse error"))?,
                 1 => value = decoder.read_bytes_vec()?,
                 _ => decoder.skip_field()?,
             }
