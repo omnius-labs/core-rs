@@ -194,8 +194,8 @@ mod tests {
             let mut p10: Option<f64> = None;
             let mut p11: Option<Vec<u8>> = None;
             let mut p12: Option<String> = None;
-            let mut p13: Vec<String> = vec![];
-            let mut p14: BTreeMap<u32, String> = BTreeMap::new();
+            let mut p13: Option<Vec<String>> = None;
+            let mut p14: Option<BTreeMap<u32, String>> = None;
             let mut p15: Option<Rc<NormalTestStruct>> = None;
 
             let count = decoder.read_map()?;
@@ -217,17 +217,21 @@ mod tests {
                     12 => p12 = Some(decoder.read_string()?),
                     13 => {
                         let count = decoder.read_array()?;
+                        let mut vs: Vec<String> = Vec::with_capacity(count as usize);
                         for _ in 0..count {
-                            p13.push(decoder.read_string()?);
+                            vs.push(decoder.read_string()?);
                         }
+                        p13 = Some(vs);
                     }
                     14 => {
                         let count = decoder.read_map()?;
+                        let mut map: BTreeMap<u32, String> = BTreeMap::new();
                         for _ in 0..count {
                             let key = decoder.read_u32()?;
                             let value = decoder.read_string()?;
-                            p14.insert(key, value);
+                            map.insert(key, value);
                         }
+                        p14 = Some(map);
                     }
                     15 => p15 = Some(Rc::new(decoder.read_struct::<NormalTestStruct>()?)),
                     _ => decoder.skip_field()?,
@@ -248,8 +252,8 @@ mod tests {
                 p10: p10.ok_or(RocketPackDecoderError::Other("missing field: p10"))?,
                 p11: p11.ok_or(RocketPackDecoderError::Other("missing field: p11"))?,
                 p12: p12.ok_or(RocketPackDecoderError::Other("missing field: p12"))?,
-                p13,
-                p14,
+                p13: p13.ok_or(RocketPackDecoderError::Other("missing field: p13"))?,
+                p14: p14.ok_or(RocketPackDecoderError::Other("missing field: p14"))?,
                 p15,
             })
         }
