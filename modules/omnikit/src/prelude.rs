@@ -1,5 +1,5 @@
 #[allow(unused)]
-pub use omnius_core_rocketpack::{FieldType, RocketPackBytesDecoder, RocketPackDecoder, RocketPackDecoderError, RocketPackEncoder, RocketPackEncoderError, RocketPackStruct};
+pub use omnius_core_rocketpack::{FieldType, RocketPackDecoder, RocketPackDecoderError, RocketPackEncoder, RocketPackEncoderError, RocketPackStruct};
 
 #[allow(unused)]
 pub use crate::error::{Error, ErrorKind};
