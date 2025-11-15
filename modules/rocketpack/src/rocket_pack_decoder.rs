@@ -4,6 +4,8 @@ use crate::{FieldType, RocketPackStruct};
 
 type Result<T> = std::result::Result<T, RocketPackDecoderError>;
 
+// https://cborbook.com/part_1/practical_introduction_to_cbor.html
+
 #[derive(Error, Debug)]
 pub enum RocketPackDecoderError {
     #[error("unexpected end of buffer")]
@@ -38,6 +40,7 @@ pub trait RocketPackDecoder {
     fn read_string(&mut self) -> Result<String>;
     fn read_array(&mut self) -> Result<u64>;
     fn read_map(&mut self) -> Result<u64>;
+    fn read_null(&mut self) -> Result<()>;
     fn read_struct<T: RocketPackStruct>(&mut self) -> Result<T>;
     fn skip_field(&mut self) -> Result<()>;
 }
@@ -422,6 +425,23 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         };
 
         Ok(len)
+    }
+
+    fn read_null(&mut self) -> Result<()> {
+        let p = self.pos;
+        let v = self.read_raw_byte()?;
+        let (major, info) = self.decompose(v);
+
+        #[allow(clippy::unit_arg)]
+        Ok(match (major, info) {
+            (7, 22) => (),
+            _ => {
+                return Err(RocketPackDecoderError::MismatchFieldType {
+                    position: p,
+                    field_type: self.type_of(major, info)?,
+                });
+            }
+        })
     }
 
     fn read_struct<T: RocketPackStruct>(&mut self) -> Result<T> {

@@ -6,6 +6,8 @@ use crate::RocketPackStruct;
 
 type Result<T> = std::result::Result<T, RocketPackEncoderError>;
 
+// https://cborbook.com/part_1/practical_introduction_to_cbor.html
+
 #[derive(Error, Debug)]
 pub enum RocketPackEncoderError {
     #[error("I/O error occurred")]
@@ -30,6 +32,7 @@ pub trait RocketPackEncoder {
     fn write_string(&mut self, value: &str) -> Result<()>;
     fn write_array(&mut self, len: usize) -> Result<()>;
     fn write_map(&mut self, len: usize) -> Result<()>;
+    fn write_null(&mut self) -> Result<()>;
     fn write_struct<T: RocketPackStruct>(&mut self, value: &T) -> Result<()>;
 }
 
@@ -202,6 +205,10 @@ impl<W: Write> RocketPackEncoder for RocketPackBytesEncoder<W> {
 
     fn write_map(&mut self, len: usize) -> Result<()> {
         self.write_raw_len(5, len)
+    }
+
+    fn write_null(&mut self) -> Result<()> {
+        self.write_raw_bytes(&[self.compose(7, 22)])
     }
 
     fn write_struct<T: RocketPackStruct>(&mut self, value: &T) -> Result<()> {

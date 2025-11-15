@@ -106,33 +106,35 @@ impl RocketPackStruct for OmniAgreement {
     where
         Self: Sized,
     {
-        let mut algorithm_type: OmniAgreementAlgorithmType = OmniAgreementAlgorithmType::None;
-        let mut secret_key: Vec<u8> = Vec::new();
-        let mut public_key: Vec<u8> = Vec::new();
-        let mut created_time: DateTime<Utc> = DateTime::<Utc>::from_timestamp(0, 0).unwrap();
+        let mut algorithm_type: Option<OmniAgreementAlgorithmType> = None;
+        let mut secret_key: Option<Vec<u8>> = None;
+        let mut public_key: Option<Vec<u8>> = None;
+        let mut created_time: Option<DateTime<Utc>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => algorithm_type = OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
-                1 => secret_key = decoder.read_bytes_vec()?,
-                2 => public_key = decoder.read_bytes_vec()?,
+                0 => algorithm_type = Some(OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?),
+                1 => secret_key = Some(decoder.read_bytes_vec()?),
+                2 => public_key = Some(decoder.read_bytes_vec()?),
                 3 => {
-                    created_time = decoder
-                        .read_struct::<Timestamp64>()?
-                        .to_date_time()
-                        .ok_or(RocketPackDecoderError::Other("created_time parse error"))?
+                    created_time = Some(
+                        decoder
+                            .read_struct::<Timestamp64>()?
+                            .to_date_time()
+                            .ok_or(RocketPackDecoderError::Other("created_time parse error"))?,
+                    )
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            algorithm_type,
-            secret_key,
-            public_key,
-            created_time,
+            algorithm_type: algorithm_type.ok_or(RocketPackDecoderError::Other("missing field: algorithm_type"))?,
+            secret_key: secret_key.ok_or(RocketPackDecoderError::Other("missing field: secret_key"))?,
+            public_key: public_key.ok_or(RocketPackDecoderError::Other("missing field: public_key"))?,
+            created_time: created_time.ok_or(RocketPackDecoderError::Other("missing field: created_time"))?,
         })
     }
 }
@@ -164,30 +166,32 @@ impl RocketPackStruct for OmniAgreementPublicKey {
     where
         Self: Sized,
     {
-        let mut algorithm_type: OmniAgreementAlgorithmType = OmniAgreementAlgorithmType::None;
-        let mut public_key: Vec<u8> = Vec::new();
-        let mut created_time: DateTime<Utc> = DateTime::<Utc>::from_timestamp(0, 0).unwrap();
+        let mut algorithm_type: Option<OmniAgreementAlgorithmType> = None;
+        let mut public_key: Option<Vec<u8>> = None;
+        let mut created_time: Option<DateTime<Utc>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => algorithm_type = OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
-                1 => public_key = decoder.read_bytes_vec()?,
+                0 => algorithm_type = Some(OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?),
+                1 => public_key = Some(decoder.read_bytes_vec()?),
                 2 => {
-                    created_time = decoder
-                        .read_struct::<Timestamp64>()?
-                        .to_date_time()
-                        .ok_or(RocketPackDecoderError::Other("created_time parse error"))?
+                    created_time = Some(
+                        decoder
+                            .read_struct::<Timestamp64>()?
+                            .to_date_time()
+                            .ok_or(RocketPackDecoderError::Other("created_time parse error"))?,
+                    )
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            algorithm_type,
-            public_key,
-            created_time,
+            algorithm_type: algorithm_type.ok_or(RocketPackDecoderError::Other("missing field: algorithm_type"))?,
+            public_key: public_key.ok_or(RocketPackDecoderError::Other("missing field: public_key"))?,
+            created_time: created_time.ok_or(RocketPackDecoderError::Other("missing field: created_time"))?,
         })
     }
 }
@@ -219,30 +223,32 @@ impl RocketPackStruct for OmniAgreementPrivateKey {
     where
         Self: Sized,
     {
-        let mut algorithm_type: OmniAgreementAlgorithmType = OmniAgreementAlgorithmType::None;
-        let mut secret_key: Vec<u8> = Vec::new();
-        let mut created_time: DateTime<Utc> = DateTime::<Utc>::from_timestamp(0, 0).unwrap();
+        let mut algorithm_type: Option<OmniAgreementAlgorithmType> = None;
+        let mut secret_key: Option<Vec<u8>> = None;
+        let mut created_time: Option<DateTime<Utc>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => algorithm_type = OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
-                1 => secret_key = decoder.read_bytes_vec()?,
+                0 => algorithm_type = Some(OmniAgreementAlgorithmType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?),
+                1 => secret_key = Some(decoder.read_bytes_vec()?),
                 2 => {
-                    created_time = decoder
-                        .read_struct::<Timestamp64>()?
-                        .to_date_time()
-                        .ok_or(RocketPackDecoderError::Other("created_time parse error"))?
+                    created_time = Some(
+                        decoder
+                            .read_struct::<Timestamp64>()?
+                            .to_date_time()
+                            .ok_or(RocketPackDecoderError::Other("created_time parse error"))?,
+                    )
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            algorithm_type,
-            secret_key,
-            created_time,
+            algorithm_type: algorithm_type.ok_or(RocketPackDecoderError::Other("missing field: algorithm_type"))?,
+            secret_key: secret_key.ok_or(RocketPackDecoderError::Other("missing field: secret_key"))?,
+            created_time: created_time.ok_or(RocketPackDecoderError::Other("missing field: created_time"))?,
         })
     }
 }

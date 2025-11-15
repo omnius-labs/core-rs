@@ -86,34 +86,34 @@ impl RocketPackStruct for ProfileMessage {
     where
         Self: Sized,
     {
-        let mut session_id: Vec<u8> = Vec::new();
-        let mut auth_type = AuthType::None;
-        let mut key_exchange_algorithm_type_flags = BitFlags::<KeyExchangeAlgorithmType>::empty();
-        let mut key_derivation_algorithm_type_flags = BitFlags::<KeyDerivationAlgorithmType>::empty();
-        let mut cipher_algorithm_type_flags = BitFlags::<CipherAlgorithmType>::empty();
-        let mut hash_algorithm_type_flags = BitFlags::<HashAlgorithmType>::empty();
+        let mut session_id: Option<Vec<u8>> = None;
+        let mut auth_type: Option<AuthType> = None;
+        let mut key_exchange_algorithm_type_flags: Option<BitFlags<KeyExchangeAlgorithmType>> = None;
+        let mut key_derivation_algorithm_type_flags: Option<BitFlags<KeyDerivationAlgorithmType>> = None;
+        let mut cipher_algorithm_type_flags: Option<BitFlags<CipherAlgorithmType>> = None;
+        let mut hash_algorithm_type_flags: Option<BitFlags<HashAlgorithmType>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => session_id = decoder.read_bytes_vec()?,
-                1 => auth_type = AuthType::from_repr(decoder.read_u32()?).ok_or(RocketPackDecoderError::Other("parse error"))?,
-                2 => key_exchange_algorithm_type_flags = BitFlags::<KeyExchangeAlgorithmType>::from_bits_truncate(decoder.read_u32()?),
-                3 => key_derivation_algorithm_type_flags = BitFlags::<KeyDerivationAlgorithmType>::from_bits_truncate(decoder.read_u32()?),
-                4 => cipher_algorithm_type_flags = BitFlags::<CipherAlgorithmType>::from_bits_truncate(decoder.read_u32()?),
-                5 => hash_algorithm_type_flags = BitFlags::<HashAlgorithmType>::from_bits_truncate(decoder.read_u32()?),
+                0 => session_id = Some(decoder.read_bytes_vec()?),
+                1 => auth_type = Some(AuthType::from_repr(decoder.read_u32()?).ok_or(RocketPackDecoderError::Other("parse error"))?),
+                2 => key_exchange_algorithm_type_flags = Some(BitFlags::<KeyExchangeAlgorithmType>::from_bits_truncate(decoder.read_u32()?)),
+                3 => key_derivation_algorithm_type_flags = Some(BitFlags::<KeyDerivationAlgorithmType>::from_bits_truncate(decoder.read_u32()?)),
+                4 => cipher_algorithm_type_flags = Some(BitFlags::<CipherAlgorithmType>::from_bits_truncate(decoder.read_u32()?)),
+                5 => hash_algorithm_type_flags = Some(BitFlags::<HashAlgorithmType>::from_bits_truncate(decoder.read_u32()?)),
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            session_id,
-            auth_type,
-            key_exchange_algorithm_type_flags,
-            key_derivation_algorithm_type_flags,
-            cipher_algorithm_type_flags,
-            hash_algorithm_type_flags,
+            session_id: session_id.ok_or(RocketPackDecoderError::Other("missing field: session_id"))?,
+            auth_type: auth_type.ok_or(RocketPackDecoderError::Other("missing field: auth_type"))?,
+            key_exchange_algorithm_type_flags: key_exchange_algorithm_type_flags.ok_or(RocketPackDecoderError::Other("missing field: key_exchange_algorithm_type_flags"))?,
+            key_derivation_algorithm_type_flags: key_derivation_algorithm_type_flags.ok_or(RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
+            cipher_algorithm_type_flags: cipher_algorithm_type_flags.ok_or(RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
+            hash_algorithm_type_flags: hash_algorithm_type_flags.ok_or(RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
         })
     }
 }

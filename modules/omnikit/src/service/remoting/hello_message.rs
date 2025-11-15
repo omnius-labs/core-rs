@@ -36,19 +36,22 @@ impl RocketPackStruct for HelloMessage {
     where
         Self: Sized,
     {
-        let mut version: OmniRemotingVersion = OmniRemotingVersion::Unknown;
-        let mut function_id: u32 = 0;
+        let mut version: Option<OmniRemotingVersion> = None;
+        let mut function_id: Option<u32> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => version = OmniRemotingVersion::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
-                1 => function_id = decoder.read_u32()?,
+                0 => version = Some(OmniRemotingVersion::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?),
+                1 => function_id = Some(decoder.read_u32()?),
                 _ => decoder.skip_field()?,
             }
         }
 
-        Ok(Self { version, function_id })
+        Ok(Self {
+            version: version.ok_or(RocketPackDecoderError::Other("missing field: version"))?,
+            function_id: function_id.ok_or(RocketPackDecoderError::Other("missing field: function_id"))?,
+        })
     }
 }

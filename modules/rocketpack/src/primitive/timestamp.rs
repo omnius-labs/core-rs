@@ -79,16 +79,19 @@ impl RocketPackStruct for Timestamp96 {
     {
         let count = decoder.read_map()?;
 
-        let mut seconds: i64 = 0;
-        let mut nanos: u32 = 0;
+        let mut seconds: Option<i64> = None;
+        let mut nanos: Option<u32> = None;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => seconds = decoder.read_i64()?,
-                1 => nanos = decoder.read_u32()?,
+                0 => seconds = Some(decoder.read_i64()?),
+                1 => nanos = Some(decoder.read_u32()?),
                 _ => decoder.skip_field()?,
             }
         }
+
+        let seconds = seconds.unwrap_or(0);
+        let nanos = nanos.unwrap_or(0);
 
         Ok(Self::new(seconds, nanos))
     }

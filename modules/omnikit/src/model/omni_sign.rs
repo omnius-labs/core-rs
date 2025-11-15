@@ -76,22 +76,26 @@ impl RocketPackStruct for OmniSigner {
     where
         Self: Sized,
     {
-        let mut typ: OmniSignType = OmniSignType::None;
-        let mut name: String = "".to_string();
-        let mut key: Vec<u8> = Vec::new();
+        let mut typ: Option<OmniSignType> = None;
+        let mut name: Option<String> = None;
+        let mut key: Option<Vec<u8>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => typ = OmniSignType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
-                1 => name = decoder.read_string()?,
-                2 => key = decoder.read_bytes_vec()?,
+                0 => typ = Some(OmniSignType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?),
+                1 => name = Some(decoder.read_string()?),
+                2 => key = Some(decoder.read_bytes_vec()?),
                 _ => decoder.skip_field()?,
             }
         }
 
-        Ok(Self { typ, name, key })
+        Ok(Self {
+            typ: typ.ok_or(RocketPackDecoderError::Other("missing field: typ"))?,
+            name: name.ok_or(RocketPackDecoderError::Other("missing field: name"))?,
+            key: key.ok_or(RocketPackDecoderError::Other("missing field: key"))?,
+        })
     }
 }
 
@@ -166,24 +170,29 @@ impl RocketPackStruct for OmniCert {
     where
         Self: Sized,
     {
-        let mut typ: OmniSignType = OmniSignType::None;
-        let mut name: String = "".to_string();
-        let mut public_key: Vec<u8> = Vec::new();
-        let mut value: Vec<u8> = Vec::new();
+        let mut typ: Option<OmniSignType> = None;
+        let mut name: Option<String> = None;
+        let mut public_key: Option<Vec<u8>> = None;
+        let mut value: Option<Vec<u8>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => typ = OmniSignType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?,
-                1 => name = decoder.read_string()?,
-                2 => public_key = decoder.read_bytes_vec()?,
-                3 => value = decoder.read_bytes_vec()?,
+                0 => typ = Some(OmniSignType::from_str(&decoder.read_string()?).map_err(|_| RocketPackDecoderError::Other("parse error"))?),
+                1 => name = Some(decoder.read_string()?),
+                2 => public_key = Some(decoder.read_bytes_vec()?),
+                3 => value = Some(decoder.read_bytes_vec()?),
                 _ => decoder.skip_field()?,
             }
         }
 
-        Ok(Self { typ, name, public_key, value })
+        Ok(Self {
+            typ: typ.ok_or(RocketPackDecoderError::Other("missing field: typ"))?,
+            name: name.ok_or(RocketPackDecoderError::Other("missing field: name"))?,
+            public_key: public_key.ok_or(RocketPackDecoderError::Other("missing field: public_key"))?,
+            value: value.ok_or(RocketPackDecoderError::Other("missing field: value"))?,
+        })
     }
 }
 
