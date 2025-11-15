@@ -71,61 +71,56 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
     }
 
     fn read_bool(&mut self) -> Result<bool> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         Ok(match (major, info) {
             (7, 20) => false,
             (7, 21) => true,
             _ => {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             }
         })
     }
 
     fn read_u8(&mut self) -> Result<u8> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         Ok(match (major, info) {
             (0, 0..=23) => info,
             (0, 24) => u8::from_be_bytes(self.read_raw_fixed_bytes()?),
             _ => {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             }
         })
     }
 
     fn read_u16(&mut self) -> Result<u16> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         Ok(match (major, info) {
             (0, 0..=23) => info as u16,
             (0, 24) => u8::from_be_bytes(self.read_raw_fixed_bytes()?) as u16,
             (0, 25) => u16::from_be_bytes(self.read_raw_fixed_bytes()?),
             _ => {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             }
         })
     }
 
     fn read_u32(&mut self) -> Result<u32> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         Ok(match (major, info) {
             (0, 0..=23) => info as u32,
@@ -133,18 +128,16 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (0, 25) => u16::from_be_bytes(self.read_raw_fixed_bytes()?) as u32,
             (0, 26) => u32::from_be_bytes(self.read_raw_fixed_bytes()?),
             _ => {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             }
         })
     }
 
     fn read_u64(&mut self) -> Result<u64> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         Ok(match (major, info) {
             (0, 0..=23) => info as u64,
@@ -153,18 +146,16 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (0, 26) => u32::from_be_bytes(self.read_raw_fixed_bytes()?) as u64,
             (0, 27) => u64::from_be_bytes(self.read_raw_fixed_bytes()?),
             _ => {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             }
         })
     }
 
     fn read_i8(&mut self) -> Result<i8> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         match (major, info) {
             (0, 0..=23) => return Ok(info as i8),
@@ -183,16 +174,14 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             _ => {}
         }
 
-        Err(RocketPackDecoderError::MismatchFieldType {
-            position: p,
-            field_type: self.type_of(major, info)?,
-        })
+        Err(RocketPackDecoderError::MismatchFieldType { position, field_type })
     }
 
     fn read_i16(&mut self) -> Result<i16> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         match (major, info) {
             (0, 0..=23) => return Ok(info as i16),
@@ -218,16 +207,14 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             _ => {}
         }
 
-        Err(RocketPackDecoderError::MismatchFieldType {
-            position: p,
-            field_type: self.type_of(major, info)?,
-        })
+        Err(RocketPackDecoderError::MismatchFieldType { position, field_type })
     }
 
     fn read_i32(&mut self) -> Result<i32> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         match (major, info) {
             (0, 0..=23) => return Ok(info as i32),
@@ -255,16 +242,14 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             _ => {}
         }
 
-        Err(RocketPackDecoderError::MismatchFieldType {
-            position: p,
-            field_type: self.type_of(major, info)?,
-        })
+        Err(RocketPackDecoderError::MismatchFieldType { position, field_type })
     }
 
     fn read_i64(&mut self) -> Result<i64> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         match (major, info) {
             (0, 0..=23) => return Ok(info as i64),
@@ -295,61 +280,50 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             _ => {}
         }
 
-        Err(RocketPackDecoderError::MismatchFieldType {
-            position: p,
-            field_type: self.type_of(major, info)?,
-        })
+        Err(RocketPackDecoderError::MismatchFieldType { position, field_type })
     }
 
     fn read_f32(&mut self) -> Result<f32> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         if (major, info) == (7, 26) {
             return Ok(f32::from_be_bytes(self.read_raw_fixed_bytes()?));
         }
 
-        Err(RocketPackDecoderError::MismatchFieldType {
-            position: p,
-            field_type: self.type_of(major, info)?,
-        })
+        Err(RocketPackDecoderError::MismatchFieldType { position, field_type })
     }
 
     fn read_f64(&mut self) -> Result<f64> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         if (major, info) == (7, 27) {
             return Ok(f64::from_be_bytes(self.read_raw_fixed_bytes()?));
         }
 
-        Err(RocketPackDecoderError::MismatchFieldType {
-            position: p,
-            field_type: self.type_of(major, info)?,
-        })
+        Err(RocketPackDecoderError::MismatchFieldType { position, field_type })
     }
 
     fn read_bytes(&mut self) -> Result<&'a [u8]> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         if major != 2 {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         }
 
         let Some(len) = self.read_raw_len(info)? else {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
-        let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position: p })?;
+
+        let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position })?;
         self.read_raw_bytes(len)
     }
 
@@ -358,88 +332,72 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
     }
 
     fn read_string(&mut self) -> Result<String> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         if major != 3 {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         }
 
         let Some(len) = self.read_raw_len(info)? else {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
-        let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position: p })?;
+
+        let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position })?;
         let bytes = self.read_raw_bytes(len)?;
 
         std::str::from_utf8(bytes)
             .map(|n| n.to_owned())
-            .map_err(|e| RocketPackDecoderError::Utf8 { position: p, error: e })
+            .map_err(|e| RocketPackDecoderError::Utf8 { position, error: e })
     }
 
     fn read_array(&mut self) -> Result<u64> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         if major != 4 {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         }
 
         let Some(len) = self.read_raw_len(info)? else {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
 
         Ok(len)
     }
 
     fn read_map(&mut self) -> Result<u64> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         if major != 5 {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         }
 
         let Some(len) = self.read_raw_len(info)? else {
-            return Err(RocketPackDecoderError::MismatchFieldType {
-                position: p,
-                field_type: self.type_of(major, info)?,
-            });
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
 
         Ok(len)
     }
 
     fn read_null(&mut self) -> Result<()> {
-        let p = self.pos;
-        let v = self.read_raw_byte()?;
-        let (major, info) = self.decompose(v);
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
 
         #[allow(clippy::unit_arg)]
         Ok(match (major, info) {
             (7, 22) => (),
             _ => {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             }
         })
     }
@@ -452,9 +410,10 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         let mut remain: u64 = 1;
 
         while remain > 0 {
-            let p = self.pos;
-            let v = self.read_raw_byte()?;
-            let (major, info) = self.decompose(v);
+            let position = self.pos;
+            let (major, info) = self.decompose(self.current_raw_byte()?);
+            let field_type = self.type_of(major, info)?;
+            self.skip_raw_bytes(1)?;
 
             let len = match major {
                 0 | 1 => match info {
@@ -469,15 +428,15 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
                 2 | 3 => self.read_raw_len(info)?,
                 4 => match self.read_raw_len(info)? {
                     Some(count) => {
-                        remain = remain.checked_add(count).ok_or(RocketPackDecoderError::LengthOverflow { position: p })?;
+                        remain = remain.checked_add(count).ok_or(RocketPackDecoderError::LengthOverflow { position })?;
                         Some(0)
                     }
                     _ => None,
                 },
                 5 => match self.read_raw_len(info)? {
                     Some(count) => {
-                        let count = count.checked_mul(2).ok_or(RocketPackDecoderError::LengthOverflow { position: p })?;
-                        remain = remain.checked_add(count).ok_or(RocketPackDecoderError::LengthOverflow { position: p })?;
+                        let count = count.checked_mul(2).ok_or(RocketPackDecoderError::LengthOverflow { position })?;
+                        remain = remain.checked_add(count).ok_or(RocketPackDecoderError::LengthOverflow { position })?;
                         Some(0)
                     }
                     _ => None,
@@ -493,12 +452,9 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             };
 
             let Some(len) = len else {
-                return Err(RocketPackDecoderError::MismatchFieldType {
-                    position: p,
-                    field_type: self.type_of(major, info)?,
-                });
+                return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
             };
-            let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position: p })?;
+            let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position })?;
             self.skip_raw_bytes(len)?;
 
             remain -= 1;
@@ -586,15 +542,6 @@ impl<'a> RocketPackBytesDecoder<'a> {
             return Err(RocketPackDecoderError::UnexpectedEof);
         }
         Ok(self.buf[self.pos + 1])
-    }
-
-    fn read_raw_byte(&mut self) -> Result<u8> {
-        if self.remaining() < 1 {
-            return Err(RocketPackDecoderError::UnexpectedEof);
-        }
-        let v = self.buf[self.pos];
-        self.pos += 1;
-        Ok(v)
     }
 
     fn read_raw_fixed_bytes<const N: usize>(&mut self) -> Result<[u8; N]> {
