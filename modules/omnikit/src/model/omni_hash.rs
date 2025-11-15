@@ -83,19 +83,22 @@ impl RocketPackStruct for OmniHash {
     where
         Self: Sized,
     {
-        let mut typ: OmniHashAlgorithmType = OmniHashAlgorithmType::None;
-        let mut value: Vec<u8> = Vec::new();
+        let mut typ: Option<OmniHashAlgorithmType> = None;
+        let mut value: Option<Vec<u8>> = None;
 
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
-                0 => typ = OmniHashAlgorithmType::from_repr(decoder.read_u32()?).ok_or(RocketPackDecoderError::Other("parse error"))?,
-                1 => value = decoder.read_bytes_vec()?,
+                0 => typ = Some(OmniHashAlgorithmType::from_repr(decoder.read_u32()?).ok_or(RocketPackDecoderError::Other("parse error"))?),
+                1 => value = Some(decoder.read_bytes_vec()?),
                 _ => decoder.skip_field()?,
             }
         }
 
-        Ok(Self { typ, value })
+        Ok(Self {
+            typ: typ.ok_or(RocketPackDecoderError::Other("missing field: typ"))?,
+            value: value.ok_or(RocketPackDecoderError::Other("missing field: value"))?,
+        })
     }
 }

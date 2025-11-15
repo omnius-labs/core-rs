@@ -95,16 +95,18 @@ mod tests {
         {
             let count = decoder.read_map()?;
 
-            let mut value: i32 = 0;
+            let mut value: Option<i32> = None;
 
             for _ in 0..count {
                 match decoder.read_u64()? {
-                    0 => value = decoder.read_i32()?,
+                    0 => value = Some(decoder.read_i32()?),
                     _ => decoder.skip_field()?,
                 }
             }
 
-            Ok(Self { value })
+            Ok(Self {
+                value: value.ok_or(RocketPackDecoderError::Other("missing field: test"))?,
+            })
         }
     }
 }

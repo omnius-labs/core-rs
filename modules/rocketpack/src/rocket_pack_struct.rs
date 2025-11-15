@@ -181,40 +181,40 @@ mod tests {
         where
             Self: Sized,
         {
-            let count = decoder.read_map()?;
-
-            let mut p0: bool = false;
-            let mut p1: u8 = 0;
-            let mut p2: u16 = 0;
-            let mut p3: u32 = 0;
-            let mut p4: u64 = 0;
-            let mut p5: i8 = 0;
-            let mut p6: i16 = 0;
-            let mut p7: i32 = 0;
-            let mut p8: i64 = 0;
-            let mut p9: f32 = 0.0;
-            let mut p10: f64 = 0.0;
-            let mut p11: Vec<u8> = vec![];
-            let mut p12: String = "".to_string();
+            let mut p0: Option<bool> = None;
+            let mut p1: Option<u8> = None;
+            let mut p2: Option<u16> = None;
+            let mut p3: Option<u32> = None;
+            let mut p4: Option<u64> = None;
+            let mut p5: Option<i8> = None;
+            let mut p6: Option<i16> = None;
+            let mut p7: Option<i32> = None;
+            let mut p8: Option<i64> = None;
+            let mut p9: Option<f32> = None;
+            let mut p10: Option<f64> = None;
+            let mut p11: Option<Vec<u8>> = None;
+            let mut p12: Option<String> = None;
             let mut p13: Vec<String> = vec![];
             let mut p14: BTreeMap<u32, String> = BTreeMap::new();
             let mut p15: Option<Rc<NormalTestStruct>> = None;
 
+            let count = decoder.read_map()?;
+
             for _ in 0..count {
                 match decoder.read_u64()? {
-                    0 => p0 = decoder.read_bool()?,
-                    1 => p1 = decoder.read_u8()?,
-                    2 => p2 = decoder.read_u16()?,
-                    3 => p3 = decoder.read_u32()?,
-                    4 => p4 = decoder.read_u64()?,
-                    5 => p5 = decoder.read_i8()?,
-                    6 => p6 = decoder.read_i16()?,
-                    7 => p7 = decoder.read_i32()?,
-                    8 => p8 = decoder.read_i64()?,
-                    9 => p9 = decoder.read_f32()?,
-                    10 => p10 = decoder.read_f64()?,
-                    11 => p11 = decoder.read_bytes_vec()?,
-                    12 => p12 = decoder.read_string()?,
+                    0 => p0 = Some(decoder.read_bool()?),
+                    1 => p1 = Some(decoder.read_u8()?),
+                    2 => p2 = Some(decoder.read_u16()?),
+                    3 => p3 = Some(decoder.read_u32()?),
+                    4 => p4 = Some(decoder.read_u64()?),
+                    5 => p5 = Some(decoder.read_i8()?),
+                    6 => p6 = Some(decoder.read_i16()?),
+                    7 => p7 = Some(decoder.read_i32()?),
+                    8 => p8 = Some(decoder.read_i64()?),
+                    9 => p9 = Some(decoder.read_f32()?),
+                    10 => p10 = Some(decoder.read_f64()?),
+                    11 => p11 = Some(decoder.read_bytes_vec()?),
+                    12 => p12 = Some(decoder.read_string()?),
                     13 => {
                         let count = decoder.read_array()?;
                         for _ in 0..count {
@@ -235,19 +235,19 @@ mod tests {
             }
 
             Ok(Self {
-                p0,
-                p1,
-                p2,
-                p3,
-                p4,
-                p5,
-                p6,
-                p7,
-                p8,
-                p9,
-                p10,
-                p11,
-                p12,
+                p0: p0.ok_or(RocketPackDecoderError::Other("missing field: p0"))?,
+                p1: p1.ok_or(RocketPackDecoderError::Other("missing field: p1"))?,
+                p2: p2.ok_or(RocketPackDecoderError::Other("missing field: p2"))?,
+                p3: p3.ok_or(RocketPackDecoderError::Other("missing field: p3"))?,
+                p4: p4.ok_or(RocketPackDecoderError::Other("missing field: p4"))?,
+                p5: p5.ok_or(RocketPackDecoderError::Other("missing field: p5"))?,
+                p6: p6.ok_or(RocketPackDecoderError::Other("missing field: p6"))?,
+                p7: p7.ok_or(RocketPackDecoderError::Other("missing field: p7"))?,
+                p8: p8.ok_or(RocketPackDecoderError::Other("missing field: p8"))?,
+                p9: p9.ok_or(RocketPackDecoderError::Other("missing field: p9"))?,
+                p10: p10.ok_or(RocketPackDecoderError::Other("missing field: p10"))?,
+                p11: p11.ok_or(RocketPackDecoderError::Other("missing field: p11"))?,
+                p12: p12.ok_or(RocketPackDecoderError::Other("missing field: p12"))?,
                 p13,
                 p14,
                 p15,

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::RocketPackStruct;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmptyRocketMessage;
 
 impl RocketPackStruct for EmptyRocketMessage {
