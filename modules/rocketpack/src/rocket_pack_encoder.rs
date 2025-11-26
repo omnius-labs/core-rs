@@ -48,7 +48,7 @@ impl<W: Write> RocketPackBytesEncoder<W> {
 
 impl<W: Write> RocketPackEncoder for RocketPackBytesEncoder<W> {
     fn write_bool(&mut self, value: bool) -> Result<()> {
-        self.write_raw_bytes(&[self.compose(7, if !value { 20 } else { 21 })])
+        self.write_raw_bytes(&[self.compose(7, if value { 21 } else { 20 })])
     }
 
     fn write_u8(&mut self, value: u8) -> Result<()> {
