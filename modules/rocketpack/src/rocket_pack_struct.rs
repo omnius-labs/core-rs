@@ -216,9 +216,9 @@ mod tests {
                     11 => p11 = Some(decoder.read_bytes_vec()?),
                     12 => p12 = Some(decoder.read_string()?),
                     13 => {
-                        let count = decoder.read_array()?;
-                        let mut vs: Vec<String> = Vec::with_capacity(count as usize);
-                        for _ in 0..count {
+                        let len = decoder.read_array()?;
+                        let mut vs: Vec<String> = Vec::with_capacity(len as usize);
+                        for _ in 0..len {
                             vs.push(decoder.read_string()?);
                         }
                         p13 = Some(vs);
