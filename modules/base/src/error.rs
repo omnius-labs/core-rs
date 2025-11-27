@@ -76,7 +76,7 @@ mod tests {
                 kind,
                 message: None,
                 source: Some(source.into()),
-                backtrace: Backtrace::disabled(),
+                backtrace: Backtrace::capture(),
             }
         }
 
