@@ -54,7 +54,7 @@ mod tests {
             configuration_set_name: None,
         };
         let r = sender
-            .send_mail_simple_text("lyrise1984@gmail.com", "no-reply@opxs-dev.omnius-labs.com", "test subject", "test body")
+            .send_mail_simple_text("lyrise1984@gmail.com", "no-reply@opxs.omnius-labs.com", "test subject", "test body")
             .await;
         if let Err(e) = r {
             println!("{e:?}");
