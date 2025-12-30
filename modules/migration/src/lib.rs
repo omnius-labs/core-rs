@@ -1,10 +1,6 @@
 mod error;
 mod prelude;
-
-mod result {
-    #[allow(unused)]
-    pub type Result<T> = std::result::Result<T, crate::error::Error>;
-}
+mod result;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
