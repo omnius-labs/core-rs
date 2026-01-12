@@ -8,6 +8,7 @@
         "ciphertext",
         "codegen",
         "dalek",
+        "Deque",
         "diffie",
         "exif",
         "hasher",
@@ -19,6 +20,7 @@
         "nanos",
         "Omni",
         "omnius",
+        "oneshot",
         "opxs",
         "pkcs",
         "presigning",
@@ -42,7 +44,8 @@
         "unzigzag",
         "urlencoding",
         "utoipa",
-        "varint"
+        "varint",
+        "Yamux"
     ],
     "rust-analyzer.showUnlinkedFileNotification": false,
     "rust-analyzer.cargo.features": "all",

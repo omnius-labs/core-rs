@@ -10,6 +10,7 @@ members = [
   "modules/omnikit",
   "modules/rocketpack",
   "modules/testkit",
+  "modules/yamux",
   "entrypoints/rocketpack-compiler",
 ]
 exclude = ["entrypoints/rocketpack-compiled-example/rust"]
@@ -29,6 +30,7 @@ omnius-core-migration = { path = "./modules/migration", features = [
 omnius-core-omnikit = { path = "./modules/omnikit" }
 omnius-core-rocketpack = { path = "./modules/rocketpack" }
 omnius-core-testkit = { path = "./modules/testkit" }
+omnius-core-yamux = { path = "./modules/yamux" }
 
 omnius-core-rocketpack-compiler = { path = "./entrypoints/rocketpack-compiler" }
 
@@ -114,6 +116,7 @@ clap = { version = "4.5.53", features = ["wrap_help", "derive"] }
 serde_yaml_ng = "0.10.0"
 strum = { version = "0.27.2", features = ["derive"] }
 enumflags2 = "0.7.12"
+yamux = "0.13.8"
 
 [workspace.lints.clippy]
 uninlined_format_args = "allow"
