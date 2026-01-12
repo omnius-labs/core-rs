@@ -1,0 +1,21 @@
+[package]
+name = "omnius-core-yamux"
+version = "0.1.0"
+edition = { workspace = true }
+authors = { workspace = true }
+
+[features]
+stable-test = []
+
+[dependencies]
+omnius-core-base = { workspace = true }
+
+chrono = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+yamux = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
