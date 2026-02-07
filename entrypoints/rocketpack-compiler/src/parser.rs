@@ -436,11 +436,11 @@ impl Parser {
     }
 
     fn is_ident_kw(&mut self, kw: &str) -> bool {
-        if let Some(SpannedToken { token: Token::Ident(s), .. }) = self.peek() {
-            if s == kw {
-                self.bump();
-                return true;
-            }
+        if let Some(SpannedToken { token: Token::Ident(s), .. }) = self.peek()
+            && s == kw
+        {
+            self.bump();
+            return true;
         }
         false
     }
