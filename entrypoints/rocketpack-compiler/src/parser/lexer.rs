@@ -88,11 +88,11 @@ fn parse_string_literal(s: &str) -> String {
                     let hi = it.next();
                     let lo = it.next();
                     if let (Some(hi), Some(lo)) = (hi, lo) {
-                        if let Some(val) = hex_pair(hi, lo) {
-                            if let Some(ch) = char::from_u32(val as u32) {
-                                out.push(ch);
-                                continue;
-                            }
+                        if let Some(val) = hex_pair(hi, lo)
+                            && let Some(ch) = char::from_u32(val as u32)
+                        {
+                            out.push(ch);
+                            continue;
                         }
                         out.push('\\');
                         out.push('x');

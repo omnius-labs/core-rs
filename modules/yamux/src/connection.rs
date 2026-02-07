@@ -166,15 +166,16 @@ impl YamuxConnection {
 
 impl Drop for YamuxConnection {
     fn drop(&mut self) {
-        if let Ok(mut shutdown_tx) = self.shutdown_tx.try_lock() {
-            if let Some(tx) = shutdown_tx.take() {
-                let _ = tx.send(());
-            }
+        if let Ok(mut shutdown_tx) = self.shutdown_tx.try_lock()
+            && let Some(tx) = shutdown_tx.take()
+        {
+            let _ = tx.send(());
         }
-        if let Ok(mut driver) = self.driver.try_lock() {
-            if let Some(handle) = driver.take() {
-                handle.abort();
-            }
+
+        if let Ok(mut driver) = self.driver.try_lock()
+            && let Some(handle) = driver.take()
+        {
+            handle.abort();
         }
     }
 }
