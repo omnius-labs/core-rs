@@ -13,9 +13,11 @@ mod tests {
     use std::time::Duration;
 
     use testresult::TestResult;
-    use tokio::io::{AsyncRead, AsyncWrite};
 
-    use crate::prelude::*;
+    use crate::{
+        prelude::*,
+        service::connection::codec::{FramedRecv, FramedSend},
+    };
 
     use super::*;
 
@@ -25,18 +27,15 @@ mod tests {
 
         let (client_side, server_side) = tokio::io::duplex(4096);
 
-        let (client_reader, client_writer) = tokio::io::split(client_side);
-        let (server_reader, server_writer) = tokio::io::split(server_side);
-
         let listener_result = tokio::time::timeout(
             Duration::from_secs(30),
             tokio::spawn(async {
-                let listener = OmniRemotingListener::<_, _>::new(server_reader, server_writer, 1024 * 1024).await.unwrap();
+                let listener = OmniRemotingListener::<_>::new(server_side, 1024 * 1024).await.unwrap();
 
                 async fn callback<R, W>(stream: OmniRemotingStream<R, W>)
                 where
-                    R: AsyncRead + Send + Unpin + 'static,
-                    W: AsyncWrite + Send + Unpin + 'static,
+                    R: FramedRecv + Send + Unpin + 'static,
+                    W: FramedSend + Send + Unpin + 'static,
                 {
                     let received = stream.recv::<TestMessage>().await.unwrap();
                     info!(value = received.value, "listener receive");
@@ -54,7 +53,7 @@ mod tests {
         let caller_result = tokio::time::timeout(
             Duration::from_secs(30),
             tokio::spawn(async {
-                let caller = OmniRemotingCaller::<_, _>::new(client_reader, client_writer, 1024 * 1024, FUNCTION_ID).await.unwrap();
+                let caller = OmniRemotingCaller::<_>::new(client_side, 1024 * 1024, FUNCTION_ID).await.unwrap();
 
                 let stream = caller.call_stream();
 

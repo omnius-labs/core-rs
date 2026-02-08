@@ -1,30 +1,27 @@
 use std::sync::Arc;
 
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::Mutex as TokioMutex,
-};
+use tokio::sync::Mutex as TokioMutex;
 
 use crate::{
     prelude::*,
-    service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
+    service::connection::codec::{FramedRecv, FramedSend},
 };
 
 pub struct OmniRemotingStream<R, W>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    R: FramedRecv + Send + Unpin + 'static,
+    W: FramedSend + Send + Unpin + 'static,
 {
-    receiver: Arc<TokioMutex<FramedReceiver<R>>>,
-    sender: Arc<TokioMutex<FramedSender<W>>>,
+    receiver: Arc<TokioMutex<R>>,
+    sender: Arc<TokioMutex<W>>,
 }
 
 impl<R, W> OmniRemotingStream<R, W>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    R: FramedRecv + Send + Unpin + 'static,
+    W: FramedSend + Send + Unpin + 'static,
 {
-    pub fn new(receiver: Arc<TokioMutex<FramedReceiver<R>>>, sender: Arc<TokioMutex<FramedSender<W>>>) -> Self {
+    pub(crate) fn new(receiver: Arc<TokioMutex<R>>, sender: Arc<TokioMutex<W>>) -> Self {
         Self { receiver, sender }
     }
 
