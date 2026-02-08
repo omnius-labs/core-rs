@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use tokio::{
-    io::{AsyncRead, AsyncWrite},
+    io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf},
     sync::Mutex as TokioMutex,
 };
 
@@ -13,22 +13,21 @@ use crate::{
 use super::{HelloMessage, OmniRemotingStream, OmniRemotingVersion};
 
 #[allow(unused)]
-pub struct OmniRemotingListener<R, W>
+pub struct OmniRemotingListener<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
 {
-    receiver: Arc<TokioMutex<FramedReceiver<R>>>,
-    sender: Arc<TokioMutex<FramedSender<W>>>,
+    receiver: Arc<TokioMutex<FramedReceiver<ReadHalf<T>>>>,
+    sender: Arc<TokioMutex<FramedSender<WriteHalf<T>>>>,
     function_id: u32,
 }
 
-impl<R, W> OmniRemotingListener<R, W>
+impl<T> OmniRemotingListener<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + Unpin + 'static,
 {
-    pub async fn new(reader: R, writer: W, max_frame_length: usize) -> Result<Self> {
+    pub async fn new(stream: T, max_frame_length: usize) -> Result<Self> {
+        let (reader, writer) = tokio::io::split(stream);
         let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
         let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
 
@@ -37,7 +36,7 @@ where
         Ok(OmniRemotingListener { sender, receiver, function_id })
     }
 
-    async fn handshake(receiver: Arc<TokioMutex<FramedReceiver<R>>>) -> Result<u32> {
+    async fn handshake(receiver: Arc<TokioMutex<FramedReceiver<ReadHalf<T>>>>) -> Result<u32> {
         let v = receiver.lock().await.recv().await?;
         let hello_message = HelloMessage::import(&v)?;
 
@@ -54,7 +53,7 @@ where
 
     pub async fn listen_stream<F>(&self, callback: F) -> Result<()>
     where
-        F: AsyncFnOnce(OmniRemotingStream<R, W>),
+        F: AsyncFnOnce(OmniRemotingStream<FramedReceiver<ReadHalf<T>>, FramedSender<WriteHalf<T>>>),
     {
         callback(OmniRemotingStream::new(self.receiver.clone(), self.sender.clone())).await;
         Ok(())
