@@ -14,10 +14,7 @@ mod tests {
 
     use testresult::TestResult;
 
-    use crate::{
-        prelude::*,
-        service::connection::codec::{FramedRecv, FramedSend},
-    };
+    use crate::prelude::*;
 
     use super::*;
 
@@ -30,13 +27,9 @@ mod tests {
         let listener_result = tokio::time::timeout(
             Duration::from_secs(30),
             tokio::spawn(async {
-                let listener = OmniRemotingListener::<_>::new(server_side, 1024 * 1024).await.unwrap();
+                let listener = OmniRemotingListener::new(server_side, 1024 * 1024).await.unwrap();
 
-                async fn callback<R, W>(stream: OmniRemotingStream<R, W>)
-                where
-                    R: FramedRecv + Send + Unpin + 'static,
-                    W: FramedSend + Send + Unpin + 'static,
-                {
+                async fn callback(stream: OmniRemotingStream) {
                     let received = stream.recv::<TestMessage>().await.unwrap();
                     info!(value = received.value, "listener receive");
 
@@ -53,7 +46,7 @@ mod tests {
         let caller_result = tokio::time::timeout(
             Duration::from_secs(30),
             tokio::spawn(async {
-                let caller = OmniRemotingCaller::<_>::new(client_side, 1024 * 1024, FUNCTION_ID).await.unwrap();
+                let caller = OmniRemotingCaller::new(client_side, 1024 * 1024, FUNCTION_ID).await.unwrap();
 
                 let stream = caller.call_stream();
 
