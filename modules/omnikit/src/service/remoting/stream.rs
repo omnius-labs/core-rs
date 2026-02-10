@@ -7,21 +7,13 @@ use crate::{
     service::connection::codec::{FramedRecv, FramedSend},
 };
 
-pub struct OmniRemotingStream<R, W>
-where
-    R: FramedRecv + Send + Unpin + 'static,
-    W: FramedSend + Send + Unpin + 'static,
-{
-    receiver: Arc<TokioMutex<R>>,
-    sender: Arc<TokioMutex<W>>,
+pub struct OmniRemotingStream {
+    receiver: Arc<TokioMutex<Box<dyn FramedRecv + Send>>>,
+    sender: Arc<TokioMutex<Box<dyn FramedSend + Send>>>,
 }
 
-impl<R, W> OmniRemotingStream<R, W>
-where
-    R: FramedRecv + Send + Unpin + 'static,
-    W: FramedSend + Send + Unpin + 'static,
-{
-    pub(crate) fn new(receiver: Arc<TokioMutex<R>>, sender: Arc<TokioMutex<W>>) -> Self {
+impl OmniRemotingStream {
+    pub(crate) fn new(receiver: Arc<TokioMutex<Box<dyn FramedRecv + Send>>>, sender: Arc<TokioMutex<Box<dyn FramedSend + Send>>>) -> Self {
         Self { receiver, sender }
     }
 
