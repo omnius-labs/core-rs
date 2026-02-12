@@ -2,20 +2,13 @@ use std::{pin::Pin, sync::Arc, vec};
 
 use chrono::Utc;
 use parking_lot::Mutex;
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::Mutex as TokioMutex,
-};
+use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 use tokio_util::bytes::{Buf as _, Bytes, BytesMut};
 use tracing::trace;
 
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
 
-use crate::{
-    model::OmniSigner,
-    prelude::*,
-    service::connection::codec::{FramedReceiver, FramedSender},
-};
+use crate::{model::OmniSigner, prelude::*};
 
 use super::*;
 
@@ -29,13 +22,12 @@ pub enum OmniSecureStreamType {
 }
 
 #[allow(unused)]
-pub struct OmniSecureStream<R, W>
+pub struct OmniSecureStream<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + 'static,
 {
-    reader: R,
-    writer: W,
+    reader: ReadHalf<T>,
+    writer: WriteHalf<T>,
     read_state: ReadState,
     write_state: WriteState,
     sign: Option<String>,
@@ -71,34 +63,22 @@ struct SendBody {
 }
 
 #[allow(unused)]
-impl<R, W> OmniSecureStream<R, W>
+impl<T> OmniSecureStream<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + 'static,
 {
     pub async fn new(
-        reader: R,
-        writer: W,
+        stream: T,
         stream_type: OmniSecureStreamType,
         max_frame_length: usize,
         signer: Option<OmniSigner>,
         random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
     ) -> Result<Self> {
-        let receiver = Arc::new(TokioMutex::new(FramedReceiver::new(reader, max_frame_length)));
-        let sender = Arc::new(TokioMutex::new(FramedSender::new(writer, max_frame_length)));
-        let authenticator = Authenticator::new(stream_type, receiver.clone(), sender.clone(), signer, random_bytes_provider, clock).await?;
+        let (reader, writer) = tokio::io::split(stream);
+        let mut authenticator = Authenticator::new(stream_type, reader, writer, max_frame_length, signer, random_bytes_provider, clock).await?;
         let auth_result = authenticator.auth().await?;
-        drop(authenticator);
-
-        let reader = Arc::try_unwrap(receiver)
-            .map_err(|_| Error::new(ErrorKind::UnexpectedError).with_message("Arc try_unwrap error"))?
-            .into_inner()
-            .into_inner();
-        let writer = Arc::try_unwrap(sender)
-            .map_err(|_| Error::new(ErrorKind::UnexpectedError).with_message("Arc try_unwrap error"))?
-            .into_inner()
-            .into_inner();
+        let (reader, writer) = authenticator.into_inner();
 
         Ok(Self {
             reader,
@@ -116,10 +96,9 @@ where
     }
 }
 
-impl<R, W> AsyncRead for OmniSecureStream<R, W>
+impl<T> AsyncRead for OmniSecureStream<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + 'static,
 {
     fn poll_read(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>, read_buf: &mut tokio::io::ReadBuf<'_>) -> std::task::Poll<std::io::Result<()>> {
         let this = self.get_mut();
@@ -194,10 +173,9 @@ where
 }
 
 #[allow(unused)]
-impl<R, W> AsyncWrite for OmniSecureStream<R, W>
+impl<T> AsyncWrite for OmniSecureStream<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + 'static,
 {
     fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, write_buf: &[u8]) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
         let this = Pin::into_inner(self);

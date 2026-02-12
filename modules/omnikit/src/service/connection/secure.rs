@@ -41,29 +41,9 @@ mod tests {
         let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
         let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
 
-        let (client_side, server_side) = tokio::io::duplex(4096);
-
-        let (client_reader, client_writer) = tokio::io::split(client_side);
-        let (server_reader, server_writer) = tokio::io::split(server_side);
-
-        let secure_client = OmniSecureStream::new(
-            client_reader,
-            client_writer,
-            OmniSecureStreamType::Connected,
-            1024,
-            None,
-            random_bytes_provider.clone(),
-            clock.clone(),
-        );
-        let secure_server = OmniSecureStream::new(
-            server_reader,
-            server_writer,
-            OmniSecureStreamType::Accepted,
-            1024,
-            None,
-            random_bytes_provider.clone(),
-            clock.clone(),
-        );
+        let (client_stream, server_stream) = tokio::io::duplex(4096);
+        let secure_client = OmniSecureStream::new(client_stream, OmniSecureStreamType::Connected, 1024, None, random_bytes_provider.clone(), clock.clone());
+        let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, random_bytes_provider.clone(), clock.clone());
 
         let (secure_client, secure_server) = tokio::try_join!(secure_client, secure_server)?;
 
@@ -95,18 +75,8 @@ mod tests {
 
             let addr = "0.0.0.0:50000";
             let listener = TcpListener::bind(addr).await?;
-            let (server_reader, server_writer) = listener.accept().await?.0.into_split();
-
-            let secure_server = OmniSecureStream::new(
-                server_reader,
-                server_writer,
-                OmniSecureStreamType::Accepted,
-                1024,
-                None,
-                random_bytes_provider.clone(),
-                clock.clone(),
-            )
-            .await?;
+            let (server_stream, _) = listener.accept().await?;
+            let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, random_bytes_provider.clone(), clock.clone()).await?;
 
             let codec = tokio_util::codec::LengthDelimitedCodec::builder().max_frame_length(1024).little_endian().new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);
