@@ -5,30 +5,26 @@ use enumflags2::{BitFlags, make_bitflags};
 use hkdf::Hkdf;
 use parking_lot::Mutex;
 use sha3::{Digest, Sha3_256};
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::Mutex as TokioMutex,
-};
 
 use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
+use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 
 use crate::{
     model::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner},
     prelude::*,
-    service::connection::codec::{FramedReceiver, FramedRecv as _, FramedSend as _, FramedSender},
+    service::connection::codec::{FramedReceiver, FramedRecv, FramedSend, FramedSender},
 };
 
 use super::*;
 
 #[allow(unused)]
-pub(crate) struct Authenticator<R, W>
+pub(crate) struct Authenticator<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + 'static,
 {
     typ: OmniSecureStreamType,
-    receiver: Arc<TokioMutex<FramedReceiver<R>>>,
-    sender: Arc<TokioMutex<FramedSender<W>>>,
+    receiver: FramedReceiver<ReadHalf<T>>,
+    sender: FramedSender<WriteHalf<T>>,
     signer: Option<OmniSigner>,
     random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
     clock: Arc<dyn Clock<Utc> + Send + Sync>,
@@ -45,30 +41,34 @@ pub(crate) struct AuthResult {
 }
 
 #[allow(unused)]
-impl<R, W> Authenticator<R, W>
+impl<T> Authenticator<T>
 where
-    R: AsyncRead + Send + Unpin + 'static,
-    W: AsyncWrite + Send + Unpin + 'static,
+    T: AsyncRead + AsyncWrite + Send + 'static,
 {
     pub async fn new(
         typ: OmniSecureStreamType,
-        receiver: Arc<TokioMutex<FramedReceiver<R>>>,
-        sender: Arc<TokioMutex<FramedSender<W>>>,
+        reader: ReadHalf<T>,
+        writer: WriteHalf<T>,
+        max_frame_length: usize,
         signer: Option<OmniSigner>,
         random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
     ) -> Result<Self> {
         Ok(Self {
             typ,
-            receiver,
-            sender,
+            receiver: FramedReceiver::new(reader, max_frame_length),
+            sender: FramedSender::new(writer, max_frame_length),
             signer,
             random_bytes_provider,
             clock,
         })
     }
 
-    pub async fn auth(&self) -> Result<AuthResult> {
+    pub fn into_inner(self) -> (ReadHalf<T>, WriteHalf<T>) {
+        (self.receiver.into_inner(), self.sender.into_inner())
+    }
+
+    pub async fn auth(&mut self) -> Result<AuthResult> {
         let my_profile = ProfileMessage {
             session_id: self.random_bytes_provider.lock().get_bytes(32),
             auth_type: match self.signer {
@@ -81,8 +81,8 @@ where
             hash_algorithm_type_flags: make_bitflags!(HashAlgorithmType::Sha3_256),
         };
         let other_profile = {
-            self.sender.lock().await.send(my_profile.export()?.into()).await?;
-            ProfileMessage::import(&self.receiver.lock().await.recv().await?)?
+            self.sender.send(my_profile.export()?.into()).await?;
+            ProfileMessage::import(&self.receiver.recv().await?)?
         };
 
         let key_exchange_algorithm_type_flags = my_profile.key_exchange_algorithm_type_flags & other_profile.key_exchange_algorithm_type_flags;
@@ -94,18 +94,18 @@ where
             let now = self.clock.now();
             let my_agreement = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, now)?;
             let other_agreement_public_key = {
-                self.sender.lock().await.send(my_agreement.gen_agreement_public_key().export()?.into()).await?;
-                OmniAgreementPublicKey::import(&self.receiver.lock().await.recv().await?)?
+                self.sender.send(my_agreement.gen_agreement_public_key().export()?.into()).await?;
+                OmniAgreementPublicKey::import(&self.receiver.recv().await?)?
             };
 
             if let Some(my_signer) = self.signer.as_ref() {
                 let my_hash = Self::gen_hash(&my_profile, &my_agreement.gen_agreement_public_key(), &hash_algorithm_type_flags)?;
                 let my_sign = my_signer.sign(&my_hash)?;
-                self.sender.lock().await.send(my_sign.export()?.into()).await?;
+                self.sender.send(my_sign.export()?.into()).await?;
             }
 
             let other_sign = if other_profile.auth_type == AuthType::Sign {
-                let other_cert = OmniCert::import(&self.receiver.lock().await.recv().await?)?;
+                let other_cert = OmniCert::import(&self.receiver.recv().await?)?;
                 let other_hash = Self::gen_hash(&other_profile, &other_agreement_public_key, &hash_algorithm_type_flags)?;
                 other_cert.verify(&other_hash)?;
 
