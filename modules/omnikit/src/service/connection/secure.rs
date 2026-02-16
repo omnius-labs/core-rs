@@ -25,7 +25,7 @@ mod tests {
 
     use omnius_core_base::{
         clock::FakeClockUtc,
-        random_bytes::{RandomBytesProvider, RandomBytesProviderImpl},
+        random_bytes::{RandomBytesProvider, RandomBytesProviderChaCha20},
     };
     use tokio_util::bytes::Bytes;
 
@@ -39,7 +39,7 @@ mod tests {
     #[tokio::test]
     async fn communication_test() -> TestResult {
         let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
-        let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
+        let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderChaCha20::new()));
 
         let (client_stream, server_stream) = tokio::io::duplex(4096);
         let secure_client = OmniSecureStream::new(client_stream, OmniSecureStreamType::Connected, 1024, None, random_bytes_provider.clone(), clock.clone());
@@ -71,7 +71,7 @@ mod tests {
     async fn server_echo_test() -> TestResult {
         loop {
             let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
-            let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderImpl::new()));
+            let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderChaCha20::new()));
 
             let addr = "0.0.0.0:50000";
             let listener = TcpListener::bind(addr).await?;

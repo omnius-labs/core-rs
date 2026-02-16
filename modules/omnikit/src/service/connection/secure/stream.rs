@@ -30,7 +30,7 @@ where
     writer: WriteHalf<T>,
     read_state: ReadState,
     write_state: WriteState,
-    sign: Option<String>,
+    sign_id: Option<String>,
     encoder: Aes256GcmEncoder,
     decoder: Aes256GcmDecoder,
 }
@@ -85,14 +85,14 @@ where
             writer,
             read_state: ReadState::Init,
             write_state: WriteState::Init,
-            sign: auth_result.sign,
+            sign_id: auth_result.sign_id,
             encoder: Aes256GcmEncoder::new(&auth_result.enc_key, &auth_result.enc_nonce),
             decoder: Aes256GcmDecoder::new(&auth_result.dec_key, &auth_result.dec_nonce),
         })
     }
 
-    pub fn sign(&self) -> Option<&str> {
-        self.sign.as_deref()
+    pub fn sign_id(&self) -> Option<&str> {
+        self.sign_id.as_deref()
     }
 }
 
