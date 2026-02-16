@@ -34,7 +34,7 @@ omnius-core-yamux = { path = "./modules/yamux" }
 
 omnius-core-rocketpack-compiler = { path = "./entrypoints/rocketpack-compiler" }
 
-aws-smithy-runtime-api = "1.11.4"
+aws-smithy-runtime-api = "1.11.5"
 aws-config = "1.8.14"
 aws-sdk-secretsmanager = "1.100.0"
 aws-sdk-s3 = "1.123.0"
@@ -60,7 +60,7 @@ tokio-util = { version = "0.7.18", features = ["full"] }
 tokio-stream = "0.1.18"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
-uuid = { version = "1.20.0", features = ["serde", "v4"] }
+uuid = { version = "1.21.0", features = ["serde", "v4"] }
 sqlx = { version = "0.8.6", features = [
   "postgres",
   "sqlite",
@@ -96,7 +96,7 @@ crc = "3.3.0"
 sha3 = "0.10.8"
 nom = "8.0.0"
 fast-socks5 = "1.0.0"
-futures = "0.3.31"
+futures = "0.3.32"
 futures-util = "0.3.31"
 local-ip-address = "0.6.10"
 pin-utils = "0.1.0"
