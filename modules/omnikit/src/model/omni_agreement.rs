@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use omnius_core_rocketpack::primitive::Timestamp64;
-use rand::TryRngCore;
-use rand_core::OsRng;
+use rand::rngs::SysRng;
+use rand_core::UnwrapErr;
 
 use crate::prelude::*;
 
@@ -32,7 +32,7 @@ pub struct OmniAgreement {
 
 impl OmniAgreement {
     pub fn new(algorithm_type: OmniAgreementAlgorithmType, created_time: DateTime<Utc>) -> Result<Self> {
-        let secret_key = x25519_dalek::StaticSecret::random_from_rng(&mut OsRng.unwrap_err());
+        let secret_key = x25519_dalek::StaticSecret::random_from_rng(&mut UnwrapErr(SysRng));
         let public_key = x25519_dalek::PublicKey::from(&secret_key);
 
         let secret_key = secret_key.as_bytes().to_vec();

@@ -32,7 +32,7 @@ where
 
 #[allow(unused)]
 pub(crate) struct AuthResult {
-    pub sign: Option<String>,
+    pub sign_id: Option<String>,
     pub cipher_algorithm_type: CipherAlgorithmType,
     pub enc_key: Vec<u8>,
     pub enc_nonce: Vec<u8>,
@@ -161,7 +161,7 @@ where
         };
 
         Ok(AuthResult {
-            sign: other_sign,
+            sign_id: other_sign,
             cipher_algorithm_type,
             enc_key,
             enc_nonce,

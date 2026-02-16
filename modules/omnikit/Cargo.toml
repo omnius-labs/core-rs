@@ -13,7 +13,6 @@ omnius-core-rocketpack = { workspace = true }
 
 rand = { workspace = true }
 rand_core = { workspace = true }
-rand_chacha = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

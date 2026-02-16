@@ -1,29 +1,33 @@
-use rand_chacha::ChaCha20Rng;
-use rand_core::{RngCore, SeedableRng};
+use rand::{
+    SeedableRng,
+    rngs::{ChaCha20Rng, SysRng},
+};
+use rand_core::{Rng, UnwrapErr};
 
 pub trait RandomBytesProvider {
     fn get_bytes(&mut self, len: usize) -> Vec<u8>;
     fn fill_bytes(&mut self, bytes: &mut [u8]);
 }
 
-pub struct RandomBytesProviderImpl {
+pub struct RandomBytesProviderChaCha20 {
     rng: ChaCha20Rng,
 }
 
-impl RandomBytesProviderImpl {
+impl RandomBytesProviderChaCha20 {
     pub fn new() -> Self {
-        let rng = ChaCha20Rng::from_os_rng();
+        let mut sys_rng = UnwrapErr(SysRng);
+        let rng = ChaCha20Rng::from_rng(&mut sys_rng);
         Self { rng }
     }
 }
 
-impl Default for RandomBytesProviderImpl {
+impl Default for RandomBytesProviderChaCha20 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl RandomBytesProvider for RandomBytesProviderImpl {
+impl RandomBytesProvider for RandomBytesProviderChaCha20 {
     fn get_bytes(&mut self, len: usize) -> Vec<u8> {
         let mut data: Vec<u8> = vec![0; len];
         self.rng.fill_bytes(&mut data);
@@ -71,7 +75,7 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn random_base16_string_provider_test() {
-        let mut p = RandomBytesProviderImpl::new();
+        let mut p = RandomBytesProviderChaCha20::new();
         let result = p.get_bytes(10);
         println!("{text}", text = hex::encode(result));
     }
