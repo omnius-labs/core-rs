@@ -9,11 +9,14 @@ pub enum CodegenError {
     #[error("unexpected token: {0}")]
     Unexpected(&'static str),
 
-    #[error("parse error")]
+    #[error("{0}")]
     Parse(#[from] ParseErrorBundle),
 
     #[error("config error: {0}")]
     Config(#[from] ConfigError),
+
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
 
     #[error("other error: {0}")]
     Other(String),
@@ -42,6 +45,14 @@ impl std::fmt::Display for ParseErrorBundle {
 }
 
 impl ParseErrorBundle {
+    pub fn new(path: impl Into<PathBuf>, text: impl Into<String>, errors: Vec<ParseError>) -> Self {
+        Self {
+            path: path.into(),
+            text: text.into(),
+            errors,
+        }
+    }
+
     fn offset_to_line_col(source: &str, offset: usize) -> (usize, usize) {
         let clamped = offset.min(source.len());
         let line = source[..clamped].chars().filter(|&c| c == '\n').count() + 1;
