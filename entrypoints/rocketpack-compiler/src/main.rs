@@ -30,7 +30,8 @@ async fn main() {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,sqlx=off"));
     tracing_subscriber::fmt().with_env_filter(filter).with_target(false).init();
 
-    if let Err(_err) = run().await {
+    if let Err(err) = run().await {
+        eprintln!("{err}");
         std::process::exit(1);
     }
 }
@@ -47,17 +48,8 @@ async fn run() -> Result<(), CodegenError> {
 
 async fn run_compile(dir: &Path) -> Result<(), CodegenError> {
     let conf = AppConfig::load(dir.join("rocketpack.yaml")).await?;
-
-    if let Err(e) = generate(conf).await {
-        match e {
-            CodegenError::Unexpected(_) => todo!(),
-            CodegenError::Parse(parse_errors) => todo!(),
-            CodegenError::Config(config_error) => todo!(),
-            CodegenError::Other(_) => todo!(),
-        }
-    }
-
-    todo!()
+    generate(conf).await?;
+    Ok(())
 }
 
 // let input_path = cli.input;

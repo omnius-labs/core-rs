@@ -1,21 +1,41 @@
+use std::{fs, path::PathBuf};
+
 use crate::{
-    error::{ParseError, ParseErrorKind},
+    error::{ParseError, ParseErrorBundle, ParseErrorKind},
     parser::{ast::*, lexer::*},
 };
 
 pub mod ast;
 pub mod lexer;
 
-pub fn parse(path: &Path) -> (File, Vec<ParseError>) {
-    let (tokens, lex_errors) = lexer::lex("");
+pub fn parse(path: &std::path::Path) -> Result<File, ParseErrorBundle> {
+    let source = fs::read_to_string(path).map_err(|err| {
+        ParseErrorBundle::new(
+            path,
+            String::new(),
+            vec![ParseError::new(ParseErrorKind::Other(format!("failed to read file: {err}")), 0, 0)],
+        )
+    })?;
 
+    parse_source(path.to_path_buf(), &source)
+}
+
+pub fn parse_source(path: impl Into<PathBuf>, source: &str) -> Result<File, ParseErrorBundle> {
+    let path = path.into();
+    let text = source.to_owned();
+
+    let (tokens, lex_errors) = lexer::lex(source);
     if !lex_errors.is_empty() {
-        return (File::default(), lex_errors);
+        return Err(ParseErrorBundle::new(path, text, lex_errors));
     }
 
     let mut p = Parser::new(tokens);
     let file = p.parse_file();
-    (file, p.errors)
+    if p.errors.is_empty() {
+        Ok(file)
+    } else {
+        Err(ParseErrorBundle::new(path, text, p.errors))
+    }
 }
 
 pub struct Parser {
@@ -531,5 +551,46 @@ impl Parser {
     }
     fn prev_end(&self) -> usize {
         if self.i == 0 { 0 } else { self.tokens[self.i - 1].span.end }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs,
+        path::PathBuf,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    use super::{parse, parse_source};
+
+    fn unique_temp_path(name: &str) -> PathBuf {
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).expect("system time before unix epoch").as_nanos();
+        std::env::temp_dir().join(format!("omnius-core-rocketpack-compiler-{}-{}-{}.rpf", std::process::id(), nanos, name))
+    }
+
+    #[test]
+    fn parse_reads_actual_file_contents() {
+        let path = unique_temp_path("parse_reads");
+        fs::write(&path, "version 1;\npackage demo::sample;\n").expect("write temp file");
+
+        let file = parse(&path).expect("parse success");
+
+        assert_eq!(file.version.as_ref().map(|v| v.value), Some(1));
+        assert_eq!(
+            file.package.as_ref().map(|p| p.value.segments.iter().map(|s| s.value.as_str()).collect::<Vec<_>>()),
+            Some(vec!["demo", "sample"])
+        );
+
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn parse_source_returns_bundle_for_errors() {
+        let err = parse_source("virtual.rpf", "version foo;").expect_err("parse should fail");
+        let rendered = err.to_string();
+
+        assert!(rendered.contains("virtual.rpf"));
+        assert!(rendered.contains("expected integer"));
     }
 }

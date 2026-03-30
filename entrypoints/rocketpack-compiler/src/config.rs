@@ -12,6 +12,8 @@ pub struct AppConfig {
     pub sources: Vec<SourceConfig>,
     #[serde(default)]
     pub generators: Vec<GeneratorConfig>,
+    #[serde(skip)]
+    pub root_dir: PathBuf,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,7 +47,9 @@ impl AppConfig {
     pub async fn load(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let path_buf: PathBuf = path.as_ref().into();
         let contents = tokio::fs::read_to_string(&path_buf).await?;
-        Self::from_yaml(&contents)
+        let mut config = Self::from_yaml(&contents)?;
+        config.root_dir = path_buf.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
+        Ok(config)
     }
 
     pub fn from_yaml(yaml: &str) -> Result<Self, ConfigError> {
@@ -66,6 +70,7 @@ mod tests {
         let config_path = Path::new("./data/rocketpack.yaml");
         let config = AppConfig::load(config_path).await?;
         println!("{:?}", config);
+        assert_eq!(config.root_dir, Path::new("./data"));
 
         Ok(())
     }
