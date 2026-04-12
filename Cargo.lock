@@ -3116,6 +3116,7 @@ dependencies = [
  "omnius-core-base",
  "serde",
  "serde_yaml_ng",
+ "tempfile",
  "testresult",
  "thiserror 2.0.18",
  "tokio",

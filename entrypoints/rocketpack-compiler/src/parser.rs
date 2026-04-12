@@ -562,6 +562,9 @@ mod tests {
         time::{SystemTime, UNIX_EPOCH},
     };
 
+    use tempfile::TempDir;
+    use testresult::TestResult;
+
     use super::{parse, parse_source};
 
     fn unique_temp_path(name: &str) -> PathBuf {

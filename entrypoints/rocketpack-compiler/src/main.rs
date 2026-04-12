@@ -51,37 +51,3 @@ async fn run_compile(dir: &Path) -> Result<(), CodegenError> {
     generate(conf).await?;
     Ok(())
 }
-
-// let input_path = cli.input;
-// let source = match fs::read_to_string(&input_path) {
-//     Ok(contents) => contents,
-//     Err(err) => {
-//         eprintln!("読み込み失敗: {}: {}", input_path.display(), err);
-//         return Err(1);
-//     }
-// };
-
-// match generate(&source) {
-//     Ok(code) => {
-//         if let Some(path) = cli.output.as_deref() {
-//             if let Some(parent) = path.parent() {
-//                 if let Err(err) = fs::create_dir_all(parent) {
-//                     eprintln!("ディレクトリ作成失敗: {}: {}", parent.display(), err);
-//                     return Err(1);
-//                 }
-//             }
-//             if let Err(err) = fs::write(path, code) {
-//                 eprintln!("書き込み失敗: {}: {}", path.display(), err);
-//                 return Err(1);
-//             }
-//         } else {
-//             print!("{code}");
-//         }
-//         Ok(())
-//     }
-//     Err(errors) => {
-//         display_parse_errors(input_path.display().to_string(), &source, &errors);
-//         Err(1)
-//     }
-// }
-//}
