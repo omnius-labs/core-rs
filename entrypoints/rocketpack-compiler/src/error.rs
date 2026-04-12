@@ -9,7 +9,7 @@ pub enum CodegenError {
     #[error("unexpected token: {0}")]
     Unexpected(&'static str),
 
-    #[error("{0}")]
+    #[error("parse error: {0}")]
     Parse(#[from] ParseErrorBundle),
 
     #[error("config error: {0}")]
