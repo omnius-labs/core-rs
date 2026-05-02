@@ -6,7 +6,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 use tokio_util::bytes::{Buf as _, Bytes, BytesMut};
 use tracing::trace;
 
-use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
+use omnius_core_base::clock::Clock;
 
 use crate::{model::OmniSigner, prelude::*};
 
@@ -72,11 +72,11 @@ where
         stream_type: OmniSecureStreamType,
         max_frame_length: usize,
         signer: Option<OmniSigner>,
-        random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
+        rng: Arc<Mutex<dyn rand::Rng + Send + Sync>>,
     ) -> Result<Self> {
         let (reader, writer) = tokio::io::split(stream);
-        let mut authenticator = Authenticator::new(stream_type, reader, writer, max_frame_length, signer, random_bytes_provider, clock).await?;
+        let mut authenticator = Authenticator::new(stream_type, reader, writer, max_frame_length, signer, clock, rng).await?;
         let auth_result = authenticator.auth().await?;
         let (reader, writer) = authenticator.into_inner();
 

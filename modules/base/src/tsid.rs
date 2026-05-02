@@ -4,20 +4,20 @@ use std::fmt::Display;
 
 use chrono::{DateTime, Utc};
 
-use crate::{clock::Clock, random_bytes::RandomBytesProvider};
+use crate::clock::Clock;
 
 pub trait TsidProvider {
     fn create(&mut self) -> Tsid;
 }
 
-pub struct TsidProviderImpl<TClock, TRandomBytesProvider>
+pub struct TsidProviderImpl<TClock, TRng>
 where
     TClock: Clock<Utc>,
-    TRandomBytesProvider: RandomBytesProvider,
+    TRng: rand::Rng,
 {
-    pub clock: TClock,
-    pub random_bytes_provider: TRandomBytesProvider,
-    pub random_byte_count: usize,
+    clock: TClock,
+    rng: TRng,
+    random_byte_count: usize,
 }
 
 pub struct Tsid {
@@ -25,28 +25,25 @@ pub struct Tsid {
     pub random_bytes: Vec<u8>,
 }
 
-impl<TSystemClock, TRandomBytesProvider> TsidProviderImpl<TSystemClock, TRandomBytesProvider>
+impl<TSystemClock, TRng> TsidProviderImpl<TSystemClock, TRng>
 where
     TSystemClock: Clock<Utc>,
-    TRandomBytesProvider: RandomBytesProvider,
+    TRng: rand::Rng,
 {
-    pub fn new(clock: TSystemClock, random_bytes_provider: TRandomBytesProvider, random_byte_count: usize) -> Self {
-        Self {
-            clock,
-            random_bytes_provider,
-            random_byte_count,
-        }
+    pub fn new(clock: TSystemClock, rng: TRng, random_byte_count: usize) -> Self {
+        Self { clock, rng, random_byte_count }
     }
 }
 
-impl<TSystemClock, TRandomBytesProvider> TsidProvider for TsidProviderImpl<TSystemClock, TRandomBytesProvider>
+impl<TSystemClock, TRng> TsidProvider for TsidProviderImpl<TSystemClock, TRng>
 where
     TSystemClock: Clock<Utc>,
-    TRandomBytesProvider: RandomBytesProvider,
+    TRng: rand::Rng,
 {
     fn create(&mut self) -> Tsid {
         let timestamp = self.clock.now();
-        let random_bytes = self.random_bytes_provider.get_bytes(self.random_byte_count);
+        let mut random_bytes = vec![0; self.random_byte_count];
+        self.rng.fill_bytes(&mut random_bytes);
         Tsid { timestamp, random_bytes }
     }
 }
@@ -62,6 +59,9 @@ impl Display for Tsid {
 
 #[cfg(test)]
 mod tests {
+    use rand::rngs::{ChaCha20Rng, SysRng};
+    use rand_core::UnwrapErr;
+
     use crate::{clock::ClockUtc, random_bytes::FakeRandomBytesProvider};
 
     use super::*;
@@ -69,7 +69,7 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn print_test() {
-        let mut p = TsidProviderImpl::new(ClockUtc, FakeRandomBytesProvider::new(), 16);
+        let mut p = TsidProviderImpl::new(ClockUtc, ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng)), 16);
         println!("{:}", p.create());
     }
 }

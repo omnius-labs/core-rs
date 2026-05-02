@@ -4,9 +4,10 @@ use chrono::Utc;
 use enumflags2::{BitFlags, make_bitflags};
 use hkdf::Hkdf;
 use parking_lot::Mutex;
+use rand::RngExt;
 use sha3::{Digest, Sha3_256};
 
-use omnius_core_base::{clock::Clock, random_bytes::RandomBytesProvider};
+use omnius_core_base::clock::Clock;
 use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 
 use crate::{
@@ -26,8 +27,8 @@ where
     receiver: FramedReceiver<ReadHalf<T>>,
     sender: FramedSender<WriteHalf<T>>,
     signer: Option<OmniSigner>,
-    random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
     clock: Arc<dyn Clock<Utc> + Send + Sync>,
+    rng: Arc<Mutex<dyn rand::Rng + Send + Sync>>,
 }
 
 #[allow(unused)]
@@ -51,16 +52,16 @@ where
         writer: WriteHalf<T>,
         max_frame_length: usize,
         signer: Option<OmniSigner>,
-        random_bytes_provider: Arc<Mutex<dyn RandomBytesProvider + Send + Sync>>,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
+        rng: Arc<Mutex<dyn rand::Rng + Send + Sync>>,
     ) -> Result<Self> {
         Ok(Self {
             typ,
             receiver: FramedReceiver::new(reader, max_frame_length),
             sender: FramedSender::new(writer, max_frame_length),
             signer,
-            random_bytes_provider,
             clock,
+            rng,
         })
     }
 
@@ -70,7 +71,7 @@ where
 
     pub async fn auth(&mut self) -> Result<AuthResult> {
         let my_profile = ProfileMessage {
-            session_id: self.random_bytes_provider.lock().get_bytes(32),
+            session_id: self.rng.lock().random::<[u8; 32]>().to_vec(),
             auth_type: match self.signer {
                 Some(_) => AuthType::Sign,
                 None => AuthType::None,
