@@ -19,14 +19,16 @@ mod tests {
     use chrono::DateTime;
     use futures_util::SinkExt as _;
     use parking_lot::Mutex;
+    use rand::{
+        SeedableRng as _, TryRng as _,
+        rngs::{ChaCha20Rng, SysRng},
+    };
+    use rand_core::UnwrapErr;
     use testresult::TestResult;
     use tokio::{net::TcpListener, time::sleep};
     use tokio_stream::StreamExt as _;
 
-    use omnius_core_base::{
-        clock::FakeClockUtc,
-        random_bytes::{RandomBytesProvider, RandomBytesProviderChaCha20},
-    };
+    use omnius_core_base::clock::FakeClockUtc;
     use tokio_util::bytes::Bytes;
 
     use crate::{
@@ -39,11 +41,11 @@ mod tests {
     #[tokio::test]
     async fn communication_test() -> TestResult {
         let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
-        let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderChaCha20::new()));
+        let rng = Arc::new(Mutex::new(ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng))));
 
         let (client_stream, server_stream) = tokio::io::duplex(4096);
-        let secure_client = OmniSecureStream::new(client_stream, OmniSecureStreamType::Connected, 1024, None, random_bytes_provider.clone(), clock.clone());
-        let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, random_bytes_provider.clone(), clock.clone());
+        let secure_client = OmniSecureStream::new(client_stream, OmniSecureStreamType::Connected, 1024, None, clock.clone(), rng.clone());
+        let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, clock.clone(), rng.clone());
 
         let (secure_client, secure_server) = tokio::try_join!(secure_client, secure_server)?;
 
@@ -53,7 +55,7 @@ mod tests {
         let cases = [1, 2, 3, 10, 100, 1000, 1024 * 1024];
         for &case in cases.iter() {
             let mut buffer = vec![0u8; case];
-            random_bytes_provider.clone().lock().fill_bytes(&mut buffer);
+            rng.clone().lock().try_fill_bytes(&mut buffer);
             let expected = Bytes::from(buffer);
 
             let send_future = secure_client_sender.send(expected.clone());
@@ -71,12 +73,12 @@ mod tests {
     async fn server_echo_test() -> TestResult {
         loop {
             let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
-            let random_bytes_provider = Arc::new(Mutex::new(RandomBytesProviderChaCha20::new()));
+            let rng = Arc::new(Mutex::new(ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng))));
 
             let addr = "0.0.0.0:50000";
             let listener = TcpListener::bind(addr).await?;
             let (server_stream, _) = listener.accept().await?;
-            let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, random_bytes_provider.clone(), clock.clone()).await?;
+            let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, clock.clone(), rng.clone()).await?;
 
             let codec = tokio_util::codec::LengthDelimitedCodec::builder().max_frame_length(1024).little_endian().new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);

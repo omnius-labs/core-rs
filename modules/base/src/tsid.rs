@@ -59,10 +59,13 @@ impl Display for Tsid {
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::{ChaCha20Rng, SysRng};
+    use rand::{
+        SeedableRng as _,
+        rngs::{ChaCha20Rng, SysRng},
+    };
     use rand_core::UnwrapErr;
 
-    use crate::{clock::ClockUtc, random_bytes::FakeRandomBytesProvider};
+    use crate::clock::ClockUtc;
 
     use super::*;
 
