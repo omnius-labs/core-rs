@@ -59,20 +59,20 @@ impl Display for Tsid {
 
 #[cfg(test)]
 mod tests {
-    use rand::{
-        SeedableRng as _,
-        rngs::{ChaCha20Rng, SysRng},
-    };
-    use rand_core::UnwrapErr;
+    use rand::{SeedableRng as _, rngs::ChaCha20Rng};
+    use testresult::TestResult;
 
-    use crate::clock::ClockUtc;
+    use crate::clock::FakeClockUtc;
 
     use super::*;
 
     #[ignore]
     #[tokio::test]
-    async fn print_test() {
-        let mut p = TsidProviderImpl::new(ClockUtc, ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng)), 16);
-        println!("{:}", p.create());
+    async fn print_test() -> TestResult<()> {
+        let clock = FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into());
+        let mut tsid_provider = TsidProviderImpl::new(clock, ChaCha20Rng::seed_from_u64(0), 16);
+        println!("{:}", tsid_provider.create());
+
+        Ok(())
     }
 }
