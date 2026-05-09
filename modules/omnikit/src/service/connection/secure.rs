@@ -20,7 +20,7 @@ mod tests {
     use futures_util::SinkExt as _;
     use parking_lot::Mutex;
     use rand::{
-        SeedableRng as _, TryRng as _,
+        Rng as _, SeedableRng as _,
         rngs::{ChaCha20Rng, SysRng},
     };
     use rand_core::UnwrapErr;
@@ -55,7 +55,7 @@ mod tests {
         let cases = [1, 2, 3, 10, 100, 1000, 1024 * 1024];
         for &case in cases.iter() {
             let mut buffer = vec![0u8; case];
-            rng.clone().lock().try_fill_bytes(&mut buffer);
+            rng.clone().lock().fill_bytes(&mut buffer);
             let expected = Bytes::from(buffer);
 
             let send_future = secure_client_sender.send(expected.clone());
