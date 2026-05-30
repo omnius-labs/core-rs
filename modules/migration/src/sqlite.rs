@@ -57,10 +57,11 @@ SELECT name, executed_at FROM _migrations
     async fn execute_migration_queries(db: &SqlitePool, requests: Vec<MigrationRequest>) -> Result<()> {
         for r in requests {
             for query in r.queries.split(';') {
-                if query.trim().is_empty() {
+                let query = query.trim();
+                if query.is_empty() {
                     continue;
                 }
-                sqlx::query(query).execute(db).await?;
+                sqlx::query(sqlx::AssertSqlSafe(query)).execute(db).await?;
             }
 
             Self::insert_migration_history(db, r.name.as_str(), r.queries.as_str()).await?;
