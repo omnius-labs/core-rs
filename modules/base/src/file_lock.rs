@@ -22,6 +22,7 @@ impl FileLock {
 
         let mut file = OpenOptions::new().write(true).create_new(true).open(path).await?;
         file.write_all(std::process::id().to_string().as_bytes()).await?;
+        file.flush().await?;
 
         Ok(Self {
             path: path.to_path_buf(),
