@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use enumflags2::{BitFlags, make_bitflags};
-use hkdf::Hkdf;
+use hkdf::SimpleHkdf;
 use parking_lot::Mutex;
 use rand::RngExt;
 use sha3::{Digest, Sha3_256};
@@ -137,7 +137,7 @@ where
 
             let okm = if hash_algorithm_type_flags.contains(HashAlgorithmType::Sha3_256) {
                 let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
-                let kdf = Hkdf::<Sha3_256>::new(Some(&salt), &secret);
+                let kdf = SimpleHkdf::<Sha3_256>::new(Some(&salt), &secret);
                 kdf.expand(&[], &mut okm)
                     .map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("Failed to expand key"))?;
 

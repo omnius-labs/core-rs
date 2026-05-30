@@ -163,6 +163,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (1, 0..=23) => return Ok(-1 - (info as i8)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
+                #[allow(clippy::collapsible_match)]
                 if (self.current_raw_byte()? & 0x80) != 0x80 {
                     #[allow(clippy::single_match)]
                     match info {
