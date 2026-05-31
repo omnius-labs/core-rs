@@ -10,6 +10,17 @@ install_crate = "clippy"
 command = "cargo"
 args = ["clippy", "--", "-D", "warnings"]
 
+[tasks.install-cargo-audit]
+workspace = false
+command = "cargo"
+args = ["install", "--locked", "--force", "cargo-audit", "--features=fix"]
+
+[tasks.audit-fix]
+workspace = false
+dependencies = ["install-cargo-audit"]
+command = "cargo"
+args = ["audit", "fix"]
+
 [tasks.lint]
 workspace = false
 dependencies = ["fmt-check", "clippy"]
