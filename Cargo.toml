@@ -36,10 +36,25 @@ omnius-core-rocketpack-compiler = { path = "./entrypoints/rocketpack-compiler" }
 
 aws-smithy-runtime-api = "1.12.1"
 aws-config = "1.8.17"
-aws-sdk-secretsmanager = "1.106.0"
-aws-sdk-s3 = "1.134.0"
-aws-sdk-sqs = "1.100.0"
-aws-sdk-sesv2 = "1.121.0"
+aws-sdk-secretsmanager = { version = "1.106.0", default-features = false, features = [
+  "default-https-client",
+  "rt-tokio",
+] }
+aws-sdk-s3 = { version = "1.134.0", default-features = false, features = [
+  "default-https-client",
+  "http-1x",
+  "rt-tokio",
+  "sigv4a",
+] }
+aws-sdk-sqs = { version = "1.100.0", default-features = false, features = [
+  "default-https-client",
+  "rt-tokio",
+] }
+aws-sdk-sesv2 = { version = "1.121.0", default-features = false, features = [
+  "default-https-client",
+  "rt-tokio",
+  "sigv4a",
+] }
 
 gcloud-sdk = { version = "0.30.0", features = [
   "google-cloud-secretmanager-v1",
