@@ -6,22 +6,21 @@ authors = { workspace = true }
 
 [features]
 stable-test = []
-postgres = ["tokio-postgres"]
+postgres = ["tokio", "tokio-postgres"]
 sqlite = []
 
 [dependencies]
 omnius-core-base = { workspace = true }
 
 chrono = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, optional = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-serial_test = { workspace = true }
 sqlx = { workspace = true }
 tokio-postgres = { workspace = true, optional = true }
-tempfile = { workspace = true }
 
 [dev-dependencies]
 omnius-core-testkit = { workspace = true }
-testcontainers = { workspace = true }
+serial_test = { workspace = true }
+tempfile = { workspace = true }
 testresult = { workspace = true }
+tokio = { workspace = true }
