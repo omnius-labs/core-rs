@@ -1019,33 +1019,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ciborium"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42e69ffd6f0917f5c029256a24d0161db17cea3997d185db0d35926308770f0e"
-dependencies = [
- "ciborium-io",
- "ciborium-ll",
- "serde",
-]
-
-[[package]]
-name = "ciborium-io"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05afea1e0a06c9be33d539b876f1ce3692f4afea2cb41f740e7743225ed1c757"
-
-[[package]]
-name = "ciborium-ll"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57663b653d948a338bfb3eeba9bb2fd5fcfaecb9e199e87e1eda4d9e8b240fd9"
-dependencies = [
- "ciborium-io",
- "half",
-]
-
-[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1240,12 +1213,6 @@ name = "crossbeam-utils"
 version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
-
-[[package]]
-name = "crunchy"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-bigint"
@@ -1597,21 +1564,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
-name = "fast-socks5"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9545787d8304a71e1bf1b711705070a4c400cce9b332c4a11800627b7c9a2067"
-dependencies = [
- "anyhow",
- "async-trait",
- "log",
- "socket2 0.5.10",
- "thiserror 1.0.69",
- "tokio",
- "tokio-stream",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1942,16 +1894,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
-]
-
-[[package]]
-name = "half"
-version = "2.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "459196ed295495a68f7d7fe1d84f6c4b7ff0e21fe3017b2f283c6fac3ad803c9"
-dependencies = [
- "cfg-if",
- "crunchy",
 ]
 
 [[package]]
@@ -2872,17 +2814,10 @@ dependencies = [
  "hex",
  "parking_lot",
  "rand 0.10.1",
- "rand_core 0.10.1",
  "serde",
- "serde_json",
  "tempfile",
- "testcontainers",
  "testresult",
  "tokio",
- "tokio-postgres",
- "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
@@ -2938,12 +2873,10 @@ dependencies = [
  "serial_test",
  "sqlx",
  "tempfile",
- "testcontainers",
  "testresult",
  "tokio",
  "tokio-postgres",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2954,40 +2887,24 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "chrono",
- "ciborium",
- "crc",
  "ed25519-dalek",
  "enumflags2",
- "fast-socks5",
- "futures",
  "futures-util",
  "hex",
  "hkdf",
  "nom",
  "omnius-core-base",
  "omnius-core-rocketpack",
- "once_cell",
  "parking_lot",
- "pin-utils",
  "rand 0.10.1",
  "rand_core 0.10.1",
- "ring",
- "serde",
- "serde_json",
- "serial_test",
  "sha3",
- "sqlx",
  "strum",
- "tempfile",
- "testcontainers",
  "testresult",
  "tokio",
  "tokio-stream",
  "tokio-util",
  "tracing",
- "tracing-subscriber",
- "urlencoding",
- "uuid",
  "x25519-dalek",
 ]
 
@@ -2995,24 +2912,13 @@ dependencies = [
 name = "omnius-core-rocketpack"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "base64 0.22.1",
  "chrono",
  "hex",
  "omnius-core-base",
- "parking_lot",
- "rand 0.10.1",
  "serde",
- "serde_json",
- "testcontainers",
  "testresult",
  "thiserror 2.0.18",
- "tokio",
- "tokio-postgres",
- "tokio-util",
  "tracing",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
@@ -3038,13 +2944,9 @@ dependencies = [
 name = "omnius-core-testkit"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "omnius-core-base",
  "testcontainers",
- "tokio",
- "tokio-postgres",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -5164,9 +5066,7 @@ version = "1.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d258b83ceec21034727ecee8c382cfa6c3e133699b0742c64571814fb420c9f7"
 dependencies = [
- "getrandom 0.4.1",
  "js-sys",
- "serde_core",
  "wasm-bindgen",
 ]
 

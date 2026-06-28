@@ -4,28 +4,14 @@ version = "0.1.0"
 edition = { workspace = true }
 authors = { workspace = true }
 
-[features]
-stable-test = []
-
 [dependencies]
 omnius-core-base = { workspace = true }
 
-async-trait = { workspace = true }
 chrono = { workspace = true }
-hex = { workspace = true }
-rand = { workspace = true }
-tokio = { workspace = true }
-tokio-postgres = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-uuid = { workspace = true }
-parking_lot = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
-base64 = { workspace = true }
-tokio-util = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
-testcontainers = { workspace = true }
+hex = { workspace = true }
 testresult = { workspace = true }
