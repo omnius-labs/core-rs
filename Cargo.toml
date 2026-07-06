@@ -119,8 +119,8 @@ pin-utils = "0.1.0"
 hkdf = "0.13.0"
 aes-gcm = "0.10.3"
 parking_lot = "0.12.5"
-x25519-dalek = { version = "=3.0.0-rc.0", features = ["static_secrets"] }
-ed25519-dalek = { version = "=3.0.0-rc.0", features = [
+x25519-dalek = { version = "=3.0.0-rc.1", features = ["static_secrets"] }
+ed25519-dalek = { version = "=3.0.0-rc.1", features = [
   "alloc",
   "rand_core",
   "serde",
@@ -131,7 +131,7 @@ clap = { version = "4.6.1", features = ["wrap_help", "derive"] }
 serde_yaml_ng = "0.10.0"
 strum = { version = "0.28.0", features = ["derive"] }
 enumflags2 = "0.7.12"
-yamux = "0.13.10"
+yamux = "0.14.0"
 
 [workspace.lints.clippy]
 uninlined_format_args = "allow"
