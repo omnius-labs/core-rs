@@ -15,26 +15,19 @@ struct PrimitiveShowcase1 {
   @8 u64_field: u64;
   @10 f32_field: f32;
   @11 f64_field: f64;
-  @12 string_field: string;
-  @13 bytes_field: bytes;
-  @14 vec_field_1: Vec<u8>;
-  @15 vec_field_2: Vec<string>;
-  @16 vec_field_3: Vec<bytes>;
-  @17 map_field_1: Map<u8, string>;
-  @18 map_field_2: Map<string, u8>;
-  @19 map_vec_field_1: Map<string, Vec<u32>>;
-  @20 map_vec_field_2: Map<string, Vec<bytes>>;
-  @21 slice_field: [i64; 4];
-  @22 struct_field: SimpleMessage;
-  @23 string_field_constrained: string[1..=MAX_TEXT_LEN];
-  @24 bytes_field_constrained: bytes[1..=MAX_SAMPLE_SIZE];
-  @25 vec_field_1_constrained: Vec<u8>[1..=8];
-  @26 vec_field_2_constrained: Vec<string[1..=16]>[1..=8];
-  @27 vec_field_3_constrained: Vec<bytes[1..=8]>[1..=4];
-  @28 map_field_1_constrained: Map<u8, string[1..=16]>[1..=4];
-  @29 map_field_2_constrained: Map<string[1..=8], u8>[..=4];
-  @30 map_vec_field_1_constrained: Map<string[1..=8], Vec<u32>[..=8]>[..=4];
-  @31 map_vec_field_2_constrained: Map<string[1..=8], Vec<bytes[1..=8]>[..=4]>[..=4];
+  @12 slice_field: [i64; 4];
+  @13 struct_field: SimpleMessage;
+  @14 string_field: string[1..=MAX_TEXT_LEN];
+  @15 bytes_field: bytes[1..=MAX_SAMPLE_SIZE];
+  @16 vec_field_1: Vec<u8>[1..=8];
+  @17 vec_field_2: Vec<string[1..=16]>[1..=8];
+  @18 vec_field_3: Vec<bytes[1..=8]>[1..=4];
+  @19 map_field_1: Map<u8, string[1..=16]>[1..=4];
+  @20 map_field_2: Map<string[1..=8], u8>[..=4];
+  @21 map_vec_field_1: Map<string[1..=8], Vec<u32>[..=8]>[..=4];
+  @22 map_vec_field_2: Map<string[1..=8], Vec<bytes[1..=8]>[..=4]>[..=4];
+  @23 timestamp_64: Timestamp64;
+  @24 timestamp_96: Timestamp96;
 }
 
 struct PrimitiveShowcase2 {
@@ -48,36 +41,28 @@ struct PrimitiveShowcase2 {
   @8 u64_field: Option<u64>;
   @10 f32_field: Option<f32>;
   @11 f64_field: Option<f64>;
-  @12 string_field: Option<string>;
-  @13 bytes_field: Option<bytes>;
-  @14 vec_field_1: Option<Vec<u8>>;
-  @15 vec_field_2: Option<Vec<string>>;
-  @16 vec_field_3: Option<Vec<bytes>>;
-  @17 map_field_1: Option<Map<u8, string>>;
-  @18 map_field_2: Option<Map<string, u8>>;
-  @19 map_vec_field_1: Option<Map<string, Vec<u32>>>;
-  @20 map_vec_field_2: Option<Map<string, Vec<bytes>>>;
-  @21 struct_field: Option<SimpleMessage>;
-  @22 string_field_constrained: Option<string[1..=MAX_TEXT_LEN]>;
-  @23 bytes_field_constrained: Option<bytes[1..=MAX_SAMPLE_SIZE]>;
-  @24 vec_field_1_constrained: Option<Vec<u8>[1..=8]>;
-  @25 vec_field_2_constrained: Option<Vec<string[1..=16]>[1..=8]>;
-  @26 vec_field_3_constrained: Option<Vec<bytes[1..=8]>[1..=4]>;
-  @27 map_field_1_constrained: Option<Map<u8, string[1..=16]>[1..=4]>;
-  @28 map_field_2_constrained: Option<Map<string[1..=8], u8>[..=4]>;
-  @29 map_vec_field_1_constrained: Option<Map<string[1..=8], Vec<u32>[..=8]>[..=4]>;
-  @30 map_vec_field_2_constrained: Option<Map<string[1..=8], Vec<bytes[1..=8]>[..=4]>[..=4]>;
+  @12 struct_field: Option<SimpleMessage>;
+  @13 string_field: Option<string[1..=MAX_TEXT_LEN]>;
+  @14 bytes_field: Option<bytes[1..=MAX_SAMPLE_SIZE]>;
+  @15 vec_field_1: Option<Vec<u8>[1..=8]>;
+  @16 vec_field_2: Option<Vec<string[1..=16]>[1..=8]>;
+  @17 vec_field_3: Option<Vec<bytes[1..=8]>[1..=4]>;
+  @18 map_field_1: Option<Map<u8, string[1..=16]>[1..=4]>;
+  @19 map_field_2: Option<Map<string[1..=8], u8>[..=4]>;
+  @20 map_vec_field_1: Option<Map<string[1..=8], Vec<u32>[..=8]>[..=4]>;
+  @21 map_vec_field_2: Option<Map<string[1..=8], Vec<bytes[1..=8]>[..=4]>[..=4]>;
+  @22 timestamp_64: Option<Timestamp64>;
+  @23 timestamp_96: Option<Timestamp96>;
 }
 
 enum PrimitiveShowcase3 {
   @1 First;
-  @2 Second(entity: string, entity_constrained: string[1..=MAX_TEXT_LEN], payload: ByteList);
+  @2 Second(entity: string[1..=MAX_TEXT_LEN], payload: ByteList);
   @3 Third {
-    @1 entity: string;
-    @1 entity_constrained: string[1..=MAX_TEXT_LEN];
+    @1 entity: string[1..=MAX_TEXT_LEN];
     @2 status: Status;
-    @4 retries: u32 = 0;
-    @5 struct_field: Option<SimpleMessage>;
+    @3 retries: u32 = 0;
+    @4 struct_field: Option<SimpleMessage>;
   };
 }
 

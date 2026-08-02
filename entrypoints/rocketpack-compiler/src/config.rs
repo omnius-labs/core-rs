@@ -67,10 +67,10 @@ mod tests {
 
     #[tokio::test]
     async fn config_load_test() -> TestResult {
-        let config_path = Path::new("./data/rocketpack.yaml");
+        let config_path = Path::new("../rocketpack-compiled-example/rocketpack.yaml");
         let config = AppConfig::load(config_path).await?;
         println!("{:?}", config);
-        assert_eq!(config.root_dir, Path::new("./data"));
+        assert_eq!(config.root_dir, Path::new("../rocketpack-compiled-example"));
 
         Ok(())
     }

@@ -78,6 +78,8 @@ enum BuiltinType {
     F64,
     String,
     Bytes,
+    Timestamp64,
+    Timestamp96,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -270,6 +272,8 @@ fn build_schema_index(file: &File) -> SchemaIndex {
 
 fn validate_sources(parsed_sources: &[ParsedSource], package_indexes: &BTreeMap<Vec<String>, SchemaIndex>) -> Result<(), CodegenError> {
     for parsed_source in parsed_sources {
+        validate_reserved_type_names(parsed_source)?;
+
         let index = package_indexes
             .get(&package_key(&parsed_source.file))
             .expect("package index must exist for every parsed source");
@@ -306,6 +310,34 @@ fn validate_sources(parsed_sources: &[ParsedSource], package_indexes: &BTreeMap<
                 }
                 Item::Const(item) => validate_const(parsed_source, item)?,
             }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_reserved_type_names(parsed_source: &ParsedSource) -> Result<(), CodegenError> {
+    for use_decl in &parsed_source.file.uses {
+        let path = path_segments(&use_decl.path.value);
+        let import_name = use_decl.alias.as_ref().map(|alias| alias.value.as_str()).or_else(|| path.last().map(String::as_str));
+        if let Some(name) = import_name
+            && is_reserved_type_name(name)
+        {
+            return Err(schema_error(parsed_source, name, "reserved built-in type name cannot be imported"));
+        }
+    }
+
+    for item in &parsed_source.file.items {
+        let name = match item {
+            Item::Struct(item) => Some(item.name.value.as_str()),
+            Item::Enum(item) => Some(item.name.value.as_str()),
+            Item::TypeAlias(item) => Some(item.name.value.as_str()),
+            Item::Const(_) => None,
+        };
+        if let Some(name) = name
+            && is_reserved_type_name(name)
+        {
+            return Err(schema_error(parsed_source, name, "reserved built-in type name cannot be declared"));
         }
     }
 
@@ -380,6 +412,10 @@ fn validate_constrained_children(index: &SchemaIndex, parsed_source: &ParsedSour
 
 fn validate_default(index: &SchemaIndex, parsed_source: &ParsedSource, ty: &Type, default: &Literal, context: &str) -> Result<(), CodegenError> {
     let resolved = resolve_type(index, ty).map_err(|error| schema_error(parsed_source, context, error.to_string()))?;
+    if contains_timestamp_type(&resolved) {
+        return Err(schema_error(parsed_source, context, "timestamp types do not support default literals"));
+    }
+
     let Some((builtin, constraint)) = direct_literal_constraint(&resolved) else {
         return Ok(());
     };
@@ -398,6 +434,15 @@ fn validate_default(index: &SchemaIndex, parsed_source: &ParsedSource, ty: &Type
     }
 
     Ok(())
+}
+
+fn contains_timestamp_type(resolved: &ResolvedType) -> bool {
+    match resolved {
+        ResolvedType::Builtin(BuiltinType::Timestamp64 | BuiltinType::Timestamp96) => true,
+        ResolvedType::Option(inner) | ResolvedType::Vec(inner) | ResolvedType::Array(inner, _) | ResolvedType::Constrained(inner, _) => contains_timestamp_type(inner),
+        ResolvedType::Map(key, value) => contains_timestamp_type(key) || contains_timestamp_type(value),
+        ResolvedType::Builtin(_) | ResolvedType::Named(_) => false,
+    }
 }
 
 fn direct_literal_constraint(resolved: &ResolvedType) -> Option<(BuiltinType, LengthConstraint)> {
@@ -684,6 +729,16 @@ fn write_validate_value(out: &mut String, resolved: &ResolvedType, expr: &str, d
             )
             .ok();
         }
+        ResolvedType::Builtin(BuiltinType::Timestamp64 | BuiltinType::Timestamp96) => {
+            writeln!(
+                out,
+                "{}<{} as omnius_core_rocketpack::RocketPackStruct>::validate({})?;",
+                indent(depth),
+                render_resolved_type(resolved),
+                expr
+            )
+            .ok();
+        }
         ResolvedType::Builtin(_) => {}
     }
 
@@ -695,6 +750,7 @@ fn has_length_constraints(resolved: &ResolvedType) -> bool {
         ResolvedType::Constrained(_, _) => true,
         ResolvedType::Option(inner) | ResolvedType::Vec(inner) | ResolvedType::Array(inner, _) => has_length_constraints(inner),
         ResolvedType::Map(key, value) => has_length_constraints(key) || has_length_constraints(value),
+        ResolvedType::Builtin(BuiltinType::Timestamp64 | BuiltinType::Timestamp96) => true,
         ResolvedType::Builtin(_) => false,
         ResolvedType::Named(_) => true,
     }
@@ -741,6 +797,9 @@ fn write_encode_value(out: &mut String, resolved: &ResolvedType, expr: &str, dep
             }
             BuiltinType::Bytes => {
                 writeln!(out, "{}encoder.write_bytes(({}).as_slice())?;", indent(depth), expr).ok();
+            }
+            BuiltinType::Timestamp64 | BuiltinType::Timestamp96 => {
+                writeln!(out, "{}encoder.write_struct({})?;", indent(depth), expr).ok();
             }
             BuiltinType::U128 => {
                 writeln!(
@@ -898,6 +957,9 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             BuiltinType::F64 => format!("{decoder_ident}.read_f64()?"),
             BuiltinType::String => format!("{decoder_ident}.read_string()?"),
             BuiltinType::Bytes => format!("{decoder_ident}.read_bytes_vec()?"),
+            BuiltinType::Timestamp64 | BuiltinType::Timestamp96 => {
+                format!("{decoder_ident}.read_struct::<{}>()?", render_resolved_type(resolved))
+            }
             BuiltinType::U128 => "return Err(omnius_core_rocketpack::RocketPackDecoderError::Other(\"u128 decode is not supported\"))".to_string(),
             BuiltinType::I128 => "return Err(omnius_core_rocketpack::RocketPackDecoderError::Other(\"i128 decode is not supported\"))".to_string(),
         }),
@@ -1074,6 +1136,8 @@ fn render_resolved_type(resolved: &ResolvedType) -> String {
             BuiltinType::F64 => "f64".to_string(),
             BuiltinType::String => "String".to_string(),
             BuiltinType::Bytes => "Vec<u8>".to_string(),
+            BuiltinType::Timestamp64 => "omnius_core_rocketpack::primitive::Timestamp64".to_string(),
+            BuiltinType::Timestamp96 => "omnius_core_rocketpack::primitive::Timestamp96".to_string(),
         },
         ResolvedType::Named(named) => render_named_type(named),
         ResolvedType::Option(inner) => format!("Option<{}>", render_resolved_type(inner)),
@@ -1619,6 +1683,8 @@ fn render_path_type(_index: &SchemaIndex, path: &AstPath) -> String {
             BuiltinType::F64 => "f64".to_string(),
             BuiltinType::String => "String".to_string(),
             BuiltinType::Bytes => "Vec<u8>".to_string(),
+            BuiltinType::Timestamp64 => "omnius_core_rocketpack::primitive::Timestamp64".to_string(),
+            BuiltinType::Timestamp96 => "omnius_core_rocketpack::primitive::Timestamp96".to_string(),
         };
     }
 
@@ -1793,8 +1859,14 @@ fn builtin_type(path: &AstPath) -> Option<BuiltinType> {
         "f64" => Some(BuiltinType::F64),
         "string" => Some(BuiltinType::String),
         "bytes" => Some(BuiltinType::Bytes),
+        "Timestamp64" => Some(BuiltinType::Timestamp64),
+        "Timestamp96" => Some(BuiltinType::Timestamp96),
         _ => None,
     }
+}
+
+fn is_reserved_type_name(name: &str) -> bool {
+    matches!(name, "Timestamp64" | "Timestamp96")
 }
 
 fn glob_matches(pattern: &str, candidate: &str) -> bool {
@@ -1884,6 +1956,67 @@ mod tests {
         assert!(output[0].contents.contains("pub label: Label"));
         assert!(output[0].contents.contains("validate_length(\"Sample.label\", 1, 4"));
         assert!(output[0].contents.contains("read_map_bounded(\"Sample.attributes\", 0, 2"));
+    }
+
+    #[test]
+    fn renders_timestamp_builtins_in_all_type_positions() {
+        let source = parsed_source(
+            "version 1; package test; type CreatedAt = Timestamp64; struct Sample { @1 required: Timestamp64; @2 optional: Option<Timestamp96>; @3 values: Vec<Timestamp64>[..=2]; @4 entries: Map<Timestamp64, Timestamp96>[..=2]; @5 array: [Timestamp96; 2]; @6 alias: CreatedAt; } enum Event { @1 Tuple(value: Timestamp64); @2 Record { @1 value: Timestamp96; }; }",
+        );
+        let rendered = render_sources(&[source]).expect("timestamp schema must render")[0].contents.clone();
+        let timestamp64 = "omnius_core_rocketpack::primitive::Timestamp64";
+        let timestamp96 = "omnius_core_rocketpack::primitive::Timestamp96";
+
+        assert!(rendered.contains(&format!("pub type CreatedAt = {timestamp64};")));
+        assert!(rendered.contains(&format!("pub required: {timestamp64}")));
+        assert!(rendered.contains(&format!("pub optional: Option<{timestamp96}>")));
+        assert!(rendered.contains(&format!("Vec<{timestamp64}>")));
+        assert!(rendered.contains(&format!("std::collections::BTreeMap<{timestamp64}, {timestamp96}>")));
+        assert!(rendered.contains(&format!("[{timestamp96}; 2]")));
+        assert!(rendered.contains(&format!("<{timestamp64} as omnius_core_rocketpack::RocketPackStruct>::validate(&value.required)?;")));
+        assert!(rendered.contains("encoder.write_struct(&value.required)?;"));
+        assert!(rendered.contains(&format!("decoder.read_struct::<{timestamp64}>()?")));
+        assert!(rendered.contains(&format!("decoder.read_struct::<{timestamp96}>()?")));
+    }
+
+    #[test]
+    fn rejects_timestamp_defaults_including_aliases() {
+        for schema in [
+            "version 1; package test; struct Sample { @1 value: Timestamp64 = 0; }",
+            "version 1; package test; struct Sample { @1 value: Option<Timestamp96> = 0; }",
+            "version 1; package test; type CreatedAt = Timestamp64; struct Sample { @1 value: CreatedAt = 0; }",
+        ] {
+            let error = render_sources(&[parsed_source(schema)]).expect_err("timestamp defaults must fail");
+            assert!(error.to_string().contains("timestamp types do not support default literals"), "{schema}: {error}");
+        }
+    }
+
+    #[test]
+    fn rejects_reserved_timestamp_type_names() {
+        for schema in [
+            "version 1; package test; struct Timestamp64 {}",
+            "version 1; package test; enum Timestamp96 { @1 Value; }",
+            "version 1; package test; type Timestamp64 = i64;",
+            "version 1; package test; use external::Value as Timestamp96;",
+            "version 1; package test; use external::Timestamp64;",
+        ] {
+            let error = render_sources(&[parsed_source(schema)]).expect_err("reserved timestamp names must fail");
+            assert!(error.to_string().contains("reserved built-in type name"), "{schema}: {error}");
+        }
+    }
+
+    #[test]
+    fn keeps_qualified_timestamp_names_external() {
+        let source = parsed_source(
+            "version 1; package test; use external::Timestamp64 as ExternalTimestamp64; struct Sample { @1 qualified: external::Timestamp64; @2 imported: ExternalTimestamp64; }",
+        );
+        let rendered = render_sources(&[source]).expect("qualified timestamp name must remain external")[0].contents.clone();
+
+        assert!(rendered.contains("use external::Timestamp64 as ExternalTimestamp64;"));
+        assert!(rendered.contains("pub qualified: external::Timestamp64"));
+        assert!(rendered.contains("pub imported: ExternalTimestamp64"));
+        assert!(rendered.contains("encoder.write_struct(&value.qualified)?;"));
+        assert!(rendered.contains("decoder.read_struct::<external::Timestamp64>()?"));
     }
 
     #[test]

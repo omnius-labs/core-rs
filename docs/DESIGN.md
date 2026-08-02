@@ -114,6 +114,28 @@ bounded wrapper 型は生成 API を重くするため採用しない。
 decode だけの検査は local の不正値を wire へ出力できるため採用しない。
 構築時に不正値を表現できない wrapper 型は既存 field 型を変えるため採用しない。
 
+<a id="d-timestamp-builtins"></a>
+#### Timestamp を runtime 組み込み型として解決する
+
+**決定**
+非修飾かつ完全一致の `Timestamp64` と `Timestamp96` は予約済みの組み込み型とし、大小文字が異なる表記を alias として認めない。
+struct、enum、type alias、import の短い名前が予約名と衝突する schema は compile error とする。
+修飾付きの同名型は外部型として扱い、予約名ではない alias を付けた import を認める。
+組み込み timestamp は field、enum payload、type alias、`Option`、`Vec`、`Map` の key と value、固定長 array の型位置で利用できる。
+Rust generator はそれぞれ `omnius_core_rocketpack::primitive::Timestamp64` と `omnius_core_rocketpack::primitive::Timestamp96` へ解決し、生成する validate、encode、decode を runtime の `RocketPackStruct` に委譲する。
+type alias の解決後に timestamp を含む field の default literal は schema compile 時に拒否する。
+runtime wrapper は `Debug`、`Clone`、`PartialEq`、`Eq`、`PartialOrd`、`Ord` だけを実装要件とし、`Timestamp96.nanos` の意味と既存の wire encoding は変更しない。
+
+**理由**
+schema と生成 API が timestamp の精度を明示したまま、wire contract の正本を runtime の一か所に保てる。
+予約名の衝突を生成前に拒否すると、組み込み型と利用者定義型のどちらへ解決されたかが一意になる。
+runtime wrapper の比較 trait は生成型の derive と `BTreeMap` key の要件を満たすために限定する。
+
+**却下案**
+大小文字や snake case の別名は、同じ型を表す schema 表記を増やすため採用しない。
+`DateTime<Utc>` への暗黙変換は schema 型と生成型の対応を不明瞭にするため採用しない。
+generator 内での wire encoding の再実装は runtime と二重管理になるため採用しない。
+
 <a id="d-bound-resolution"></a>
 #### 境界値と type alias の解決範囲を限定する
 
@@ -167,16 +189,8 @@ encoder と decoder は `LengthOutOfRange` を返し、`Request.tags[]`、`Reque
 
 ## 7. 現状と残作業
 
-可変長型は現在、制約なしで parse され、生成 codec も長さを検査しない。
-合意済みの contract は [実装計画](./plans/rocketpack-variable-length-constraints.md) に従って実装する。
-
-ロードマップの順序は暫定であり、守る必要があるのは依存関係だけである。
-
-| 番号 | 内容 | 前提とする依存 |
-| --- | --- | --- |
-| 1 | 現行 wire byte 列を golden test で固定する | なし |
-| 2 | `.rpf` の可変長型制約を parser と Rust generation pipeline へ通す | 1、§6.1 の決定済み contract |
-| 3 | Runtime と生成 codec の境界検査を追加する | 2 |
-| 4 | Sample を再生成して受け入れ検証する | 3 |
+可変長型の制約は parser、意味検査、Rust generator、runtime の境界検査へ反映されている。
+`Timestamp64` と `Timestamp96` は Rust generator と生成例で利用できる。
+§6.1 の決定済み contract に残作業はない。
 
 確認済みの不具合を記録する `ISSUES.md` は現時点で存在しない。
