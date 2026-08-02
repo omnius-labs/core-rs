@@ -1,0 +1,98 @@
+version 1;
+package omnius::core::omnikit;
+
+enum OmniHashAlgorithmType {
+  @1 None;
+  @2 Sha3256;
+}
+
+struct OmniHash {
+  @1 typ: OmniHashAlgorithmType;
+  @2 value: bytes[..=MAX_HASH_LENGTH];
+}
+
+enum OmniSignType {
+  @1 None;
+  @2 Ed25519Sha3256Base64Url;
+}
+
+struct OmniSigner {
+  @1 typ: OmniSignType;
+  @2 name: string[..=MAX_NAME_LENGTH];
+  @3 key: bytes[..=MAX_KEY_LENGTH];
+}
+
+struct OmniCert {
+  @1 typ: OmniSignType;
+  @2 name: string[..=MAX_NAME_LENGTH];
+  @3 public_key: bytes[..=MAX_KEY_LENGTH];
+  @4 value: bytes[..=MAX_SIGNATURE_LENGTH];
+}
+
+enum OmniAgreementAlgorithmType {
+  @1 None;
+  @2 X25519;
+}
+
+struct OmniAgreement {
+  @1 algorithm_type: OmniAgreementAlgorithmType;
+  @2 secret_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @3 public_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @4 created_time: Timestamp64;
+}
+
+struct OmniAgreementPublicKey {
+  @1 algorithm_type: OmniAgreementAlgorithmType;
+  @2 public_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @3 created_time: Timestamp64;
+}
+
+struct OmniAgreementPrivateKey {
+  @1 algorithm_type: OmniAgreementAlgorithmType;
+  @2 secret_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @3 created_time: Timestamp64;
+}
+
+enum OmniRemotingVersion {
+  @1 Unknown;
+  @2 V1;
+}
+
+struct HelloMessage {
+  @1 version: OmniRemotingVersion;
+  @2 function_id: u32;
+}
+
+enum AuthType {
+  @1 None;
+  @2 Sign;
+}
+
+enum CipherAlgorithmType {
+  @1 Aes256Gcm;
+}
+
+struct ProfileMessage {
+  @1 session_id: bytes[SESSION_ID_LENGTH..=SESSION_ID_LENGTH];
+  @2 auth_type: AuthType;
+  @3 key_exchange_algorithm_type_flags: u32;
+  @4 key_derivation_algorithm_type_flags: u32;
+  @5 cipher_algorithm_type_flags: u32;
+  @6 hash_algorithm_type_flags: u32;
+}
+
+struct TestMessage {
+  @1 value: i32;
+}
+
+const MAX_HASH_LENGTH: u32 = 64;
+const MAX_NAME_LENGTH: u32 = 256;
+const MAX_KEY_LENGTH: u32 = 4096;
+const MAX_SIGNATURE_LENGTH: u32 = 128;
+const X25519_KEY_LENGTH: u32 = 32;
+const SESSION_ID_LENGTH: u32 = 32;
+
+const KEY_EXCHANGE_X25519: u32 = 1;
+const KEY_DERIVATION_HKDF: u32 = 2;
+const CIPHER_AES_256_GCM: u32 = 1;
+const HASH_SHA3_256: u32 = 1;

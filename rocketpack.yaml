@@ -1,0 +1,14 @@
+version: 1
+
+sources:
+  - base_dir: rpfs
+    includes:
+      - "**/*.rpf"
+
+generators:
+  - id: rust
+    plugin: rocketpack-rust
+    targets:
+      - pattern: omnikit.rpf
+        options:
+          dir: modules/omnikit/src/generated

@@ -1,10 +1,10 @@
 mod caller;
-mod hello_message;
 mod listener;
 mod stream;
 
+use crate::generated::omnius::core::omnikit::{HelloMessage, OmniRemotingVersion};
+
 pub use caller::*;
-use hello_message::*;
 pub use listener::*;
 pub use stream::*;
 
@@ -14,6 +14,7 @@ mod tests {
 
     use testresult::TestResult;
 
+    use crate::generated::omnius::core::omnikit::TestMessage;
     use crate::prelude::*;
 
     use super::*;
@@ -64,41 +65,5 @@ mod tests {
         assert_eq!(2, caller_result.await??);
 
         Ok(())
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct TestMessage {
-        pub value: i32,
-    }
-
-    impl RocketPackStruct for TestMessage {
-        fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
-            encoder.write_map(1)?;
-
-            encoder.write_u64(0)?;
-            encoder.write_i32(value.value)?;
-
-            Ok(())
-        }
-
-        fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>
-        where
-            Self: Sized,
-        {
-            let count = decoder.read_map()?;
-
-            let mut value: Option<i32> = None;
-
-            for _ in 0..count {
-                match decoder.read_u64()? {
-                    0 => value = Some(decoder.read_i32()?),
-                    _ => decoder.skip_field()?,
-                }
-            }
-
-            Ok(Self {
-                value: value.ok_or(RocketPackDecoderError::Other("missing field: test"))?,
-            })
-        }
     }
 }

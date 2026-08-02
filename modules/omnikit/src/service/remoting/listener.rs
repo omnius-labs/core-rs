@@ -41,7 +41,7 @@ impl OmniRemotingListener {
             return Ok(hello_message.function_id);
         }
 
-        Err(Error::new(ErrorKind::UnsupportedType).with_message(format!("unsupported version: {}", hello_message.version)))
+        Err(Error::new(ErrorKind::UnsupportedType).with_message(format!("unsupported version: {:?}", hello_message.version)))
     }
 
     pub fn function_id(&self) -> u32 {
