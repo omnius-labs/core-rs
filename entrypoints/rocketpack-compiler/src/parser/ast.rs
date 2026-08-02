@@ -65,6 +65,19 @@ pub enum Type {
     Vec(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Array(Box<Type>, u64), // [T; N]
+    Constrained(Box<Type>, LengthRange),
+}
+
+#[derive(Debug, Clone)]
+pub struct LengthRange {
+    pub min: Option<Spanned<LengthBound>>,
+    pub max: Spanned<LengthBound>,
+}
+
+#[derive(Debug, Clone)]
+pub enum LengthBound {
+    Literal(u128),
+    Const(String),
 }
 
 #[derive(Debug, Clone)]

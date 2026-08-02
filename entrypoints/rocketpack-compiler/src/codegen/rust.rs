@@ -13,7 +13,7 @@ use crate::{
     error::CodegenError,
     parser::{
         self,
-        ast::{Const, Enum, Field, File, Item, Literal, Path as AstPath, Struct, Type, Use, VariantKind},
+        ast::{Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Struct, Type, Use, VariantKind},
     },
 };
 
@@ -43,6 +43,7 @@ struct SchemaIndex {
     uses: Vec<UseBinding>,
     imported_paths: BTreeMap<String, Vec<String>>,
     type_aliases: BTreeMap<String, Type>,
+    constants: BTreeMap<String, u64>,
     user_types: BTreeMap<String, NamedTypeKind>,
 }
 
@@ -93,6 +94,13 @@ enum ResolvedType {
     Vec(Box<ResolvedType>),
     Map(Box<ResolvedType>, Box<ResolvedType>),
     Array(Box<ResolvedType>, u64),
+    Constrained(Box<ResolvedType>, LengthConstraint),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct LengthConstraint {
+    min: u64,
+    max: u64,
 }
 
 pub async fn generate(root_dir: &FsPath, sources: &[SourceConfig], conf: &GeneratorConfig) -> Result<(), CodegenError> {
@@ -125,16 +133,40 @@ fn parse_sources(sources: &[DiscoveredSource]) -> Result<Vec<ParsedSource>, Code
 }
 
 fn render_sources(parsed_sources: &[ParsedSource]) -> Result<Vec<GeneratedRustFile>, CodegenError> {
+    let package_indexes = build_package_indexes(parsed_sources);
+    validate_sources(parsed_sources, &package_indexes)?;
     let mut generated_files = Vec::with_capacity(parsed_sources.len());
 
     for parsed_source in parsed_sources {
+        let package = package_key(&parsed_source.file);
+        let index = package_indexes.get(&package).expect("package index must exist for every parsed source");
         generated_files.push(GeneratedRustFile {
             source: parsed_source.source.clone(),
-            contents: render_rust_file(parsed_source)?,
+            contents: render_rust_file(parsed_source, index)?,
         });
     }
 
     Ok(generated_files)
+}
+
+fn build_package_indexes(parsed_sources: &[ParsedSource]) -> BTreeMap<Vec<String>, SchemaIndex> {
+    let mut package_files = BTreeMap::<Vec<String>, File>::new();
+
+    for parsed_source in parsed_sources {
+        let key = package_key(&parsed_source.file);
+        let file = package_files.entry(key).or_default();
+        if file.package.is_none() {
+            file.package = parsed_source.file.package.clone();
+        }
+        file.uses.extend(parsed_source.file.uses.clone());
+        file.items.extend(parsed_source.file.items.clone());
+    }
+
+    package_files.into_iter().map(|(key, file)| (key, build_schema_index(&file))).collect()
+}
+
+fn package_key(file: &File) -> Vec<String> {
+    file.package.as_ref().map(|package| path_segments(&package.value)).unwrap_or_default()
 }
 
 fn write_generated_files(root_dir: &FsPath, conf: &GeneratorConfig, generated_files: &[GeneratedRustFile]) -> Result<usize, CodegenError> {
@@ -222,15 +254,208 @@ fn build_schema_index(file: &File) -> SchemaIndex {
                 index.user_types.insert(item.name.value.clone(), NamedTypeKind::Alias);
                 index.type_aliases.insert(item.name.value.clone(), item.ty.value.clone());
             }
-            Item::Const(_) => {}
+            Item::Const(item) => {
+                if is_unsigned_integer_type(&item.ty.value)
+                    && let Literal::Int(value) = &item.value.value
+                    && let Ok(value) = u64::try_from(*value)
+                {
+                    index.constants.insert(item.name.value.clone(), value);
+                }
+            }
         }
     }
 
     index
 }
 
-fn render_rust_file(parsed_source: &ParsedSource) -> Result<String, CodegenError> {
-    let index = build_schema_index(&parsed_source.file);
+fn validate_sources(parsed_sources: &[ParsedSource], package_indexes: &BTreeMap<Vec<String>, SchemaIndex>) -> Result<(), CodegenError> {
+    for parsed_source in parsed_sources {
+        let index = package_indexes
+            .get(&package_key(&parsed_source.file))
+            .expect("package index must exist for every parsed source");
+
+        for item in &parsed_source.file.items {
+            match item {
+                Item::Struct(item) => {
+                    for field in &item.fields {
+                        let context = format!("{}.{}", item.name.value, field.name.value);
+                        validate_field(index, parsed_source, field, &context)?;
+                    }
+                }
+                Item::Enum(item) => {
+                    for variant in &item.variants {
+                        let variant_context = format!("{}.{}", item.name.value, variant.name.value);
+                        match &variant.kind {
+                            VariantKind::Unit => {}
+                            VariantKind::Tuple(fields) => {
+                                for (position, (_, ty)) in fields.iter().enumerate() {
+                                    validate_type(index, parsed_source, &ty.value, &format!("{variant_context}.{position}"))?;
+                                }
+                            }
+                            VariantKind::Record(fields) => {
+                                for field in fields {
+                                    validate_field(index, parsed_source, field, &format!("{variant_context}.{}", field.name.value))?;
+                                }
+                            }
+                        }
+                    }
+                }
+                Item::TypeAlias(item) => {
+                    validate_type(index, parsed_source, &item.ty.value, &item.name.value)?;
+                    resolve_type(index, &item.ty.value).map_err(|error| schema_error(parsed_source, &item.name.value, error.to_string()))?;
+                }
+                Item::Const(item) => validate_const(parsed_source, item)?,
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_field(index: &SchemaIndex, parsed_source: &ParsedSource, field: &Field, context: &str) -> Result<(), CodegenError> {
+    validate_type(index, parsed_source, &field.ty.value, context)?;
+
+    if let Some(default) = &field.default {
+        validate_default(index, parsed_source, &field.ty.value, &default.value, context)?;
+    }
+
+    Ok(())
+}
+
+fn validate_const(parsed_source: &ParsedSource, item: &Const) -> Result<(), CodegenError> {
+    let Some(maximum) = unsigned_integer_max(&item.ty.value) else {
+        return Ok(());
+    };
+    let Literal::Int(value) = &item.value.value else {
+        return Ok(());
+    };
+    if *value > maximum {
+        return Err(schema_error(
+            parsed_source,
+            &item.name.value,
+            format!("constant value {value} exceeds the declared unsigned integer range"),
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_type(index: &SchemaIndex, parsed_source: &ParsedSource, ty: &Type, context: &str) -> Result<(), CodegenError> {
+    match ty {
+        Type::Path(path) if matches!(builtin_type(path), Some(BuiltinType::String | BuiltinType::Bytes)) => {
+            Err(schema_error(parsed_source, context, "variable-length type is missing an inclusive finite range"))
+        }
+        Type::Path(_) => Ok(()),
+        Type::Option(inner) | Type::Array(inner, _) => validate_type(index, parsed_source, inner, context),
+        Type::Vec(inner) => {
+            let _ = inner;
+            Err(schema_error(parsed_source, context, "variable-length type is missing an inclusive finite range"))
+        }
+        Type::Map(_, _) => Err(schema_error(parsed_source, context, "variable-length type is missing an inclusive finite range")),
+        Type::Constrained(inner, range) => {
+            if !is_direct_variable_length_type(inner) {
+                return Err(schema_error(
+                    parsed_source,
+                    context,
+                    "only string, bytes, Vec, and Map occurrences may carry a range; type aliases cannot be re-constrained",
+                ));
+            }
+            resolve_length_range(index, range).map_err(|error| schema_error(parsed_source, context, error.to_string()))?;
+            validate_constrained_children(index, parsed_source, inner, context)
+        }
+    }
+}
+
+fn validate_constrained_children(index: &SchemaIndex, parsed_source: &ParsedSource, ty: &Type, context: &str) -> Result<(), CodegenError> {
+    match ty {
+        Type::Path(_) => Ok(()),
+        Type::Vec(inner) => validate_type(index, parsed_source, inner, &format!("{context}[]")),
+        Type::Map(key, value) => {
+            validate_type(index, parsed_source, key, &format!("{context}.key"))?;
+            validate_type(index, parsed_source, value, &format!("{context}.value"))
+        }
+        _ => Err(schema_error(parsed_source, context, "invalid constrained type")),
+    }
+}
+
+fn validate_default(index: &SchemaIndex, parsed_source: &ParsedSource, ty: &Type, default: &Literal, context: &str) -> Result<(), CodegenError> {
+    let resolved = resolve_type(index, ty).map_err(|error| schema_error(parsed_source, context, error.to_string()))?;
+    let Some((builtin, constraint)) = direct_literal_constraint(&resolved) else {
+        return Ok(());
+    };
+
+    let actual = match (builtin, default) {
+        (BuiltinType::String, Literal::String(value)) => value.len() as u64,
+        (BuiltinType::Bytes, Literal::Bytes(value)) => value.len() as u64,
+        _ => return Ok(()),
+    };
+    if actual < constraint.min || actual > constraint.max {
+        return Err(schema_error(
+            parsed_source,
+            context,
+            format!("default literal length {actual} is outside {}..={}", constraint.min, constraint.max),
+        ));
+    }
+
+    Ok(())
+}
+
+fn direct_literal_constraint(resolved: &ResolvedType) -> Option<(BuiltinType, LengthConstraint)> {
+    match resolved {
+        ResolvedType::Constrained(inner, constraint) => match inner.as_ref() {
+            ResolvedType::Builtin(BuiltinType::String) => Some((BuiltinType::String, *constraint)),
+            ResolvedType::Builtin(BuiltinType::Bytes) => Some((BuiltinType::Bytes, *constraint)),
+            _ => None,
+        },
+        ResolvedType::Option(inner) => direct_literal_constraint(inner),
+        _ => None,
+    }
+}
+
+fn is_direct_variable_length_type(ty: &Type) -> bool {
+    matches!(ty, Type::Vec(_) | Type::Map(_, _)) || matches!(ty, Type::Path(path) if matches!(builtin_type(path), Some(BuiltinType::String | BuiltinType::Bytes)))
+}
+
+fn resolve_length_range(index: &SchemaIndex, range: &LengthRange) -> Result<LengthConstraint, CodegenError> {
+    let min = range.min.as_ref().map(|bound| resolve_length_bound(index, &bound.value)).transpose()?.unwrap_or(0);
+    let max = resolve_length_bound(index, &range.max.value)?;
+    if min > max {
+        return Err(CodegenError::Other(format!("length range is reversed: {min}..={max}")));
+    }
+    Ok(LengthConstraint { min, max })
+}
+
+fn resolve_length_bound(index: &SchemaIndex, bound: &LengthBound) -> Result<u64, CodegenError> {
+    match bound {
+        LengthBound::Literal(value) => u64::try_from(*value).map_err(|_| CodegenError::Other("length bound exceeds u64".to_string())),
+        LengthBound::Const(name) => index
+            .constants
+            .get(name)
+            .copied()
+            .ok_or_else(|| CodegenError::Other(format!("length bound constant `{name}` is unresolved or is not a u8, u16, u32, or u64 literal"))),
+    }
+}
+
+fn schema_error(parsed_source: &ParsedSource, context: &str, message: impl std::fmt::Display) -> CodegenError {
+    CodegenError::Other(format!("schema error in {} at {context}: {message}", parsed_source.source.absolute_path.display()))
+}
+
+fn is_unsigned_integer_type(ty: &Type) -> bool {
+    unsigned_integer_max(ty).is_some()
+}
+
+fn unsigned_integer_max(ty: &Type) -> Option<u128> {
+    let Type::Path(path) = ty else { return None };
+    match builtin_type(path)? {
+        BuiltinType::U8 => Some(u8::MAX as u128),
+        BuiltinType::U16 => Some(u16::MAX as u128),
+        BuiltinType::U32 => Some(u32::MAX as u128),
+        BuiltinType::U64 => Some(u64::MAX as u128),
+        _ => None,
+    }
+}
+
+fn render_rust_file(parsed_source: &ParsedSource, index: &SchemaIndex) -> Result<String, CodegenError> {
     let mut out = String::new();
 
     writeln!(&mut out, "// @generated by rocketpack-compiler").ok();
@@ -238,6 +463,9 @@ fn render_rust_file(parsed_source: &ParsedSource) -> Result<String, CodegenError
     writeln!(&mut out, "#[allow(clippy::all)]").ok();
 
     let mut depth = 0usize;
+    if !index.package.is_empty() {
+        writeln!(&mut out, "#[rustfmt::skip]").ok();
+    }
     for segment in &index.package {
         writeln!(&mut out, "{}pub mod {} {{", indent(depth), sanitize_ident(segment)).ok();
         depth += 1;
@@ -258,17 +486,17 @@ fn render_rust_file(parsed_source: &ParsedSource) -> Result<String, CodegenError
     for item in &parsed_source.file.items {
         match item {
             Item::Struct(item) => {
-                write_struct_declaration(&mut out, &index, item, depth);
+                write_struct_declaration(&mut out, index, item, depth);
                 writeln!(&mut out).ok();
-                write_struct_codec_impl(&mut out, &index, item, depth)?;
+                write_struct_codec_impl(&mut out, index, item, depth)?;
             }
             Item::Enum(item) => {
-                write_enum_declaration(&mut out, &index, item, depth);
+                write_enum_declaration(&mut out, index, item, depth);
                 writeln!(&mut out).ok();
-                write_enum_codec_impl(&mut out, &index, item, depth)?;
+                write_enum_codec_impl(&mut out, index, item, depth)?;
             }
-            Item::TypeAlias(item) => write_type_alias_declaration(&mut out, &index, item, depth),
-            Item::Const(item) => write_const_declaration(&mut out, &index, item, depth)?,
+            Item::TypeAlias(item) => write_type_alias_declaration(&mut out, index, item, depth),
+            Item::Const(item) => write_const_declaration(&mut out, index, item, depth)?,
         }
         writeln!(&mut out).ok();
     }
@@ -303,6 +531,8 @@ fn write_struct_codec_impl(out: &mut String, index: &SchemaIndex, item: &Struct,
     let sorted_fields = resolve_sorted_struct_fields(index, item)?;
 
     writeln!(out, "{}impl omnius_core_rocketpack::RocketPackStruct for {} {{", indent(depth), struct_name).ok();
+    write_struct_validate_fn(out, index, item, &sorted_fields, depth + 1)?;
+    writeln!(out).ok();
     write_struct_pack_fn(out, index, item, &sorted_fields, depth + 1)?;
     writeln!(out).ok();
     write_struct_unpack_fn(out, index, item, &sorted_fields, depth + 1)?;
@@ -322,11 +552,48 @@ fn resolve_sorted_struct_fields<'a>(index: &SchemaIndex, item: &'a Struct) -> Re
     Ok(sorted_fields)
 }
 
-fn write_struct_pack_fn(out: &mut String, index: &SchemaIndex, _item: &Struct, fields: &[(&Field, ResolvedType)], depth: usize) -> Result<(), CodegenError> {
+fn write_struct_validate_fn(out: &mut String, index: &SchemaIndex, item: &Struct, fields: &[(&Field, ResolvedType)], depth: usize) -> Result<(), CodegenError> {
+    let value_name = if fields.iter().any(|(_, resolved)| has_length_constraints(resolved)) {
+        "value"
+    } else {
+        "_value"
+    };
+    writeln!(
+        out,
+        "{}fn validate({value_name}: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {{",
+        indent(depth)
+    )
+    .ok();
+
+    for (field, resolved) in fields {
+        if !has_length_constraints(resolved) {
+            continue;
+        }
+        let field_ident = sanitize_ident(&field.name.value);
+        let context = format!("{}.{}", item.name.value, field.name.value);
+        match resolved {
+            ResolvedType::Option(inner) => {
+                writeln!(out, "{}if let Some({}) = &value.{} {{", indent(depth + 1), field_ident, field_ident).ok();
+                write_validate_value(out, inner, &field_ident, depth + 2, &context)?;
+                writeln!(out, "{}}}", indent(depth + 1)).ok();
+            }
+            _ => write_validate_value(out, resolved, &format!("&value.{field_ident}"), depth + 1, &context)?,
+        }
+    }
+
+    writeln!(out, "{}Ok(())", indent(depth + 1)).ok();
+    writeln!(out, "{}}}", indent(depth)).ok();
+
+    let _ = index;
+    Ok(())
+}
+
+fn write_struct_pack_fn(out: &mut String, index: &SchemaIndex, item: &Struct, fields: &[(&Field, ResolvedType)], depth: usize) -> Result<(), CodegenError> {
     writeln!(out, "{}fn pack(", indent(depth)).ok();
     writeln!(out, "{}encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,", indent(depth + 1)).ok();
     writeln!(out, "{}value: &Self,", indent(depth + 1)).ok();
     writeln!(out, "{}) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {{", indent(depth)).ok();
+    writeln!(out, "{}Self::validate(value)?;", indent(depth + 1)).ok();
 
     let required_count = fields.iter().filter(|(_, resolved)| !matches!(resolved, ResolvedType::Option(_))).count();
     let has_optional = fields.iter().any(|(_, resolved)| matches!(resolved, ResolvedType::Option(_)));
@@ -347,16 +614,17 @@ fn write_struct_pack_fn(out: &mut String, index: &SchemaIndex, _item: &Struct, f
 
     for (field, resolved) in fields {
         let field_ident = sanitize_ident(&field.name.value);
+        let context = format!("{}.{}", item.name.value, field.name.value);
         match resolved {
             ResolvedType::Option(inner) => {
                 writeln!(out, "{}if let Some({}) = &value.{} {{", indent(depth + 1), field_ident, field_ident).ok();
                 writeln!(out, "{}encoder.write_u64({})?;", indent(depth + 2), field.tag.value).ok();
-                write_encode_value(out, inner, &field_ident, depth + 2)?;
+                write_encode_value(out, inner, &field_ident, depth + 2, &context)?;
                 writeln!(out, "{}}}", indent(depth + 1)).ok();
             }
             _ => {
                 writeln!(out, "{}encoder.write_u64({})?;", indent(depth + 1), field.tag.value).ok();
-                write_encode_value(out, resolved, &format!("&value.{field_ident}"), depth + 1)?;
+                write_encode_value(out, resolved, &format!("&value.{field_ident}"), depth + 1, &context)?;
             }
         }
     }
@@ -368,7 +636,71 @@ fn write_struct_pack_fn(out: &mut String, index: &SchemaIndex, _item: &Struct, f
     Ok(())
 }
 
-fn write_encode_value(out: &mut String, resolved: &ResolvedType, expr: &str, depth: usize) -> Result<(), CodegenError> {
+fn write_validate_value(out: &mut String, resolved: &ResolvedType, expr: &str, depth: usize, context: &str) -> Result<(), CodegenError> {
+    match resolved {
+        ResolvedType::Constrained(inner, constraint) => {
+            writeln!(
+                out,
+                "{}omnius_core_rocketpack::validate_length({context:?}, {}, {}, ({}).len())?;",
+                indent(depth),
+                constraint.min,
+                constraint.max,
+                expr
+            )
+            .ok();
+            write_validate_value(out, inner, expr, depth, context)?;
+        }
+        ResolvedType::Option(inner) => write_validate_value(out, inner, expr, depth, context)?,
+        ResolvedType::Vec(inner) | ResolvedType::Array(inner, _) => {
+            if has_length_constraints(inner) {
+                writeln!(out, "{}for item in ({}).iter() {{", indent(depth), expr).ok();
+                write_validate_value(out, inner, "item", depth + 1, &format!("{context}[]"))?;
+                writeln!(out, "{}}}", indent(depth)).ok();
+            }
+        }
+        ResolvedType::Map(key, value) => {
+            let validate_key = has_length_constraints(key);
+            let validate_value = has_length_constraints(value);
+            if validate_key || validate_value {
+                let key_name = if validate_key { "key" } else { "_key" };
+                let value_name = if validate_value { "value" } else { "_value" };
+                writeln!(out, "{}for ({key_name}, {value_name}) in ({}).iter() {{", indent(depth), expr).ok();
+                if validate_key {
+                    write_validate_value(out, key, key_name, depth + 1, &format!("{context}.key"))?;
+                }
+                if validate_value {
+                    write_validate_value(out, value, value_name, depth + 1, &format!("{context}.value"))?;
+                }
+                writeln!(out, "{}}}", indent(depth)).ok();
+            }
+        }
+        ResolvedType::Named(named) => {
+            writeln!(
+                out,
+                "{}<{} as omnius_core_rocketpack::RocketPackStruct>::validate({})?;",
+                indent(depth),
+                render_named_type(named),
+                expr
+            )
+            .ok();
+        }
+        ResolvedType::Builtin(_) => {}
+    }
+
+    Ok(())
+}
+
+fn has_length_constraints(resolved: &ResolvedType) -> bool {
+    match resolved {
+        ResolvedType::Constrained(_, _) => true,
+        ResolvedType::Option(inner) | ResolvedType::Vec(inner) | ResolvedType::Array(inner, _) => has_length_constraints(inner),
+        ResolvedType::Map(key, value) => has_length_constraints(key) || has_length_constraints(value),
+        ResolvedType::Builtin(_) => false,
+        ResolvedType::Named(_) => true,
+    }
+}
+
+fn write_encode_value(out: &mut String, resolved: &ResolvedType, expr: &str, depth: usize, context: &str) -> Result<(), CodegenError> {
     match resolved {
         ResolvedType::Builtin(builtin) => match builtin {
             BuiltinType::Bool => {
@@ -430,26 +762,26 @@ fn write_encode_value(out: &mut String, resolved: &ResolvedType, expr: &str, dep
         ResolvedType::Named(_) => {
             writeln!(out, "{}encoder.write_struct({})?;", indent(depth), expr).ok();
         }
-        ResolvedType::Option(inner) => {
-            write_encode_value(out, inner, expr, depth)?;
+        ResolvedType::Option(inner) | ResolvedType::Constrained(inner, _) => {
+            write_encode_value(out, inner, expr, depth, context)?;
         }
         ResolvedType::Vec(inner) => {
             writeln!(out, "{}encoder.write_array(({}).len())?;", indent(depth), expr).ok();
             writeln!(out, "{}for item in ({}).iter() {{", indent(depth), expr).ok();
-            write_encode_value(out, inner, "item", depth + 1)?;
+            write_encode_value(out, inner, "item", depth + 1, &format!("{context}[]"))?;
             writeln!(out, "{}}}", indent(depth)).ok();
         }
         ResolvedType::Map(key, value) => {
             writeln!(out, "{}encoder.write_map(({}).len())?;", indent(depth), expr).ok();
             writeln!(out, "{}for (key, value) in ({}).iter() {{", indent(depth), expr).ok();
-            write_encode_value(out, key, "key", depth + 1)?;
-            write_encode_value(out, value, "value", depth + 1)?;
+            write_encode_value(out, key, "key", depth + 1, &format!("{context}.key"))?;
+            write_encode_value(out, value, "value", depth + 1, &format!("{context}.value"))?;
             writeln!(out, "{}}}", indent(depth)).ok();
         }
         ResolvedType::Array(inner, _) => {
             writeln!(out, "{}encoder.write_array(({}).len())?;", indent(depth), expr).ok();
             writeln!(out, "{}for item in ({}).iter() {{", indent(depth), expr).ok();
-            write_encode_value(out, inner, "item", depth + 1)?;
+            write_encode_value(out, inner, "item", depth + 1, &format!("{context}[]"))?;
             writeln!(out, "{}}}", indent(depth)).ok();
         }
     }
@@ -490,7 +822,8 @@ fn write_struct_unpack_fn(out: &mut String, index: &SchemaIndex, item: &Struct, 
         };
 
         writeln!(out, "{}{} => {{", indent(depth + 3), field.tag.value).ok();
-        let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &field.name.value, &mut temp_counter)?;
+        let context = format!("{}.{}", item.name.value, field.name.value);
+        let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &context, &mut temp_counter)?;
         writeln!(out, "{}{} = Some({});", indent(depth + 4), field_ident, value_expr).ok();
         writeln!(out, "{}}}", indent(depth + 3)).ok();
     }
@@ -570,6 +903,70 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
         }),
         ResolvedType::Named(named) => Ok(format!("{decoder_ident}.read_struct::<{}>()?", render_named_type(named))),
         ResolvedType::Option(inner) => write_decode_value(out, inner, decoder_ident, depth, context_name, temp_counter),
+        ResolvedType::Constrained(inner, constraint) => match inner.as_ref() {
+            ResolvedType::Builtin(BuiltinType::String) => Ok(format!("{decoder_ident}.read_string_bounded({context_name:?}, {}, {})?", constraint.min, constraint.max)),
+            ResolvedType::Builtin(BuiltinType::Bytes) => Ok(format!("{decoder_ident}.read_bytes_bounded({context_name:?}, {}, {})?", constraint.min, constraint.max)),
+            ResolvedType::Vec(inner) => {
+                let count_name = next_temp_name(temp_counter, "count");
+                let value_name = next_temp_name(temp_counter, "values");
+                writeln!(
+                    out,
+                    "{}let {} = {}.read_array_bounded({context_name:?}, {}, {})?;",
+                    indent(depth),
+                    count_name,
+                    decoder_ident,
+                    constraint.min,
+                    constraint.max
+                )
+                .ok();
+                writeln!(
+                    out,
+                    "{}let mut {}: Vec<{}> = Vec::with_capacity({} as usize);",
+                    indent(depth),
+                    value_name,
+                    render_resolved_type(inner),
+                    count_name
+                )
+                .ok();
+                writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
+                let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, &format!("{context_name}[]"), temp_counter)?;
+                writeln!(out, "{}{}.push({});", indent(depth + 1), value_name, inner_expr).ok();
+                writeln!(out, "{}}}", indent(depth)).ok();
+                Ok(value_name)
+            }
+            ResolvedType::Map(key, value) => {
+                let count_name = next_temp_name(temp_counter, "count");
+                let map_name = next_temp_name(temp_counter, "map");
+                writeln!(
+                    out,
+                    "{}let {} = {}.read_map_bounded({context_name:?}, {}, {})?;",
+                    indent(depth),
+                    count_name,
+                    decoder_ident,
+                    constraint.min,
+                    constraint.max
+                )
+                .ok();
+                writeln!(
+                    out,
+                    "{}let mut {}: std::collections::BTreeMap<{}, {}> = std::collections::BTreeMap::new();",
+                    indent(depth),
+                    map_name,
+                    render_resolved_type(key),
+                    render_resolved_type(value)
+                )
+                .ok();
+                writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
+                let key_expr = write_decode_value(out, key, decoder_ident, depth + 1, &format!("{context_name}.key"), temp_counter)?;
+                let key_name = next_temp_name(temp_counter, "key");
+                writeln!(out, "{}let {} = {};", indent(depth + 1), key_name, key_expr).ok();
+                let value_expr = write_decode_value(out, value, decoder_ident, depth + 1, &format!("{context_name}.value"), temp_counter)?;
+                writeln!(out, "{}{}.insert({}, {});", indent(depth + 1), map_name, key_name, value_expr).ok();
+                writeln!(out, "{}}}", indent(depth)).ok();
+                Ok(map_name)
+            }
+            _ => Err(CodegenError::Other("invalid constrained resolved type".to_string())),
+        },
         ResolvedType::Vec(inner) => {
             let count_name = next_temp_name(temp_counter, "count");
             let value_name = next_temp_name(temp_counter, "values");
@@ -584,7 +981,7 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             )
             .ok();
             writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
-            let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, context_name, temp_counter)?;
+            let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, &format!("{context_name}[]"), temp_counter)?;
             writeln!(out, "{}{}.push({});", indent(depth + 1), value_name, inner_expr).ok();
             writeln!(out, "{}}}", indent(depth)).ok();
             Ok(value_name)
@@ -603,9 +1000,11 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             )
             .ok();
             writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
-            let key_expr = write_decode_value(out, key, decoder_ident, depth + 1, context_name, temp_counter)?;
-            let value_expr = write_decode_value(out, value, decoder_ident, depth + 1, context_name, temp_counter)?;
-            writeln!(out, "{}{}.insert({}, {});", indent(depth + 1), map_name, key_expr, value_expr).ok();
+            let key_expr = write_decode_value(out, key, decoder_ident, depth + 1, &format!("{context_name}.key"), temp_counter)?;
+            let key_name = next_temp_name(temp_counter, "key");
+            writeln!(out, "{}let {} = {};", indent(depth + 1), key_name, key_expr).ok();
+            let value_expr = write_decode_value(out, value, decoder_ident, depth + 1, &format!("{context_name}.value"), temp_counter)?;
+            writeln!(out, "{}{}.insert({}, {});", indent(depth + 1), map_name, key_name, value_expr).ok();
             writeln!(out, "{}}}", indent(depth)).ok();
             Ok(map_name)
         }
@@ -633,7 +1032,7 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             )
             .ok();
             writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
-            let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, context_name, temp_counter)?;
+            let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, &format!("{context_name}[]"), temp_counter)?;
             writeln!(out, "{}{}.push({});", indent(depth + 1), values_name, inner_expr).ok();
             writeln!(out, "{}}}", indent(depth)).ok();
             writeln!(
@@ -681,6 +1080,7 @@ fn render_resolved_type(resolved: &ResolvedType) -> String {
         ResolvedType::Vec(inner) => format!("Vec<{}>", render_resolved_type(inner)),
         ResolvedType::Map(key, value) => format!("std::collections::BTreeMap<{}, {}>", render_resolved_type(key), render_resolved_type(value)),
         ResolvedType::Array(inner, len) => format!("[{}; {}]", render_resolved_type(inner), len),
+        ResolvedType::Constrained(inner, _) => render_resolved_type(inner),
     }
 }
 
@@ -692,9 +1092,29 @@ fn write_enum_codec_impl(out: &mut String, index: &SchemaIndex, item: &Enum, dep
     let enum_name = sanitize_ident(&item.name.value);
 
     writeln!(out, "{}impl omnius_core_rocketpack::RocketPackStruct for {} {{", indent(depth), enum_name).ok();
+    write_enum_validate_fn(out, index, item, depth + 1)?;
+    writeln!(out).ok();
     write_enum_pack_fn(out, index, item, depth + 1)?;
     writeln!(out).ok();
     write_enum_unpack_fn(out, index, item, depth + 1)?;
+    writeln!(out, "{}}}", indent(depth)).ok();
+
+    Ok(())
+}
+
+fn write_enum_validate_fn(out: &mut String, index: &SchemaIndex, item: &Enum, depth: usize) -> Result<(), CodegenError> {
+    writeln!(
+        out,
+        "{}fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {{",
+        indent(depth)
+    )
+    .ok();
+    writeln!(out, "{}match value {{", indent(depth + 1)).ok();
+    for variant in &item.variants {
+        write_enum_validate_variant_arm(out, index, item, variant, depth + 2)?;
+    }
+    writeln!(out, "{}}}", indent(depth + 1)).ok();
+    writeln!(out, "{}Ok(())", indent(depth + 1)).ok();
     writeln!(out, "{}}}", indent(depth)).ok();
 
     Ok(())
@@ -705,12 +1125,13 @@ fn write_enum_pack_fn(out: &mut String, index: &SchemaIndex, item: &Enum, depth:
     writeln!(out, "{}encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,", indent(depth + 1)).ok();
     writeln!(out, "{}value: &Self,", indent(depth + 1)).ok();
     writeln!(out, "{}) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {{", indent(depth)).ok();
+    writeln!(out, "{}Self::validate(value)?;", indent(depth + 1)).ok();
     writeln!(out, "{}encoder.write_map(1)?;", indent(depth + 1)).ok();
     writeln!(out).ok();
     writeln!(out, "{}match value {{", indent(depth + 1)).ok();
 
     for variant in &item.variants {
-        write_enum_pack_variant_arm(out, index, variant, depth + 2)?;
+        write_enum_pack_variant_arm(out, index, &item.name.value, variant, depth + 2)?;
     }
 
     writeln!(out, "{}}}", indent(depth + 1)).ok();
@@ -721,7 +1142,76 @@ fn write_enum_pack_fn(out: &mut String, index: &SchemaIndex, item: &Enum, depth:
     Ok(())
 }
 
-fn write_enum_pack_variant_arm(out: &mut String, index: &SchemaIndex, variant: &crate::parser::ast::Variant, depth: usize) -> Result<(), CodegenError> {
+fn write_enum_validate_variant_arm(out: &mut String, index: &SchemaIndex, item: &Enum, variant: &crate::parser::ast::Variant, depth: usize) -> Result<(), CodegenError> {
+    let enum_name = &item.name.value;
+    let variant_name = sanitize_ident(&variant.name.value);
+    match &variant.kind {
+        VariantKind::Unit => {
+            writeln!(out, "{}Self::{} => {{}},", indent(depth), variant_name).ok();
+        }
+        VariantKind::Tuple(fields) => {
+            let resolved_fields = resolve_tuple_fields(index, fields)?;
+            let bindings = fields
+                .iter()
+                .zip(resolved_fields.iter())
+                .map(|((name, _), (_, resolved))| {
+                    let binding = sanitize_ident(&name.value);
+                    if has_length_constraints(resolved) { binding } else { format!("{binding}: _") }
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            writeln!(out, "{}Self::{} {{ {} }} => {{", indent(depth), variant_name, bindings).ok();
+            for ((_, _), (position, resolved)) in fields.iter().zip(resolved_fields.iter()) {
+                if !has_length_constraints(resolved) {
+                    continue;
+                }
+                let binding = sanitize_ident(&fields[*position].0.value);
+                let context = format!("{enum_name}.{}.{}", variant.name.value, position);
+                match resolved {
+                    ResolvedType::Option(inner) => {
+                        writeln!(out, "{}if let Some({}) = {}.as_ref() {{", indent(depth + 1), binding, binding).ok();
+                        write_validate_value(out, inner, &binding, depth + 2, &context)?;
+                        writeln!(out, "{}}}", indent(depth + 1)).ok();
+                    }
+                    _ => write_validate_value(out, resolved, &binding, depth + 1, &context)?,
+                }
+            }
+            writeln!(out, "{}}},", indent(depth)).ok();
+        }
+        VariantKind::Record(fields) => {
+            let resolved_fields = resolve_sorted_record_fields(index, fields)?;
+            let bindings = resolved_fields
+                .iter()
+                .map(|(field, resolved)| {
+                    let binding = sanitize_ident(&field.name.value);
+                    if has_length_constraints(resolved) { binding } else { format!("{binding}: _") }
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            writeln!(out, "{}Self::{} {{ {} }} => {{", indent(depth), variant_name, bindings).ok();
+            for (field, resolved) in resolved_fields {
+                if !has_length_constraints(&resolved) {
+                    continue;
+                }
+                let binding = sanitize_ident(&field.name.value);
+                let context = format!("{enum_name}.{}.{}", variant.name.value, field.name.value);
+                match resolved {
+                    ResolvedType::Option(inner) => {
+                        writeln!(out, "{}if let Some({}) = {}.as_ref() {{", indent(depth + 1), binding, binding).ok();
+                        write_validate_value(out, &inner, &binding, depth + 2, &context)?;
+                        writeln!(out, "{}}}", indent(depth + 1)).ok();
+                    }
+                    _ => write_validate_value(out, &resolved, &binding, depth + 1, &context)?,
+                }
+            }
+            writeln!(out, "{}}},", indent(depth)).ok();
+        }
+    }
+
+    Ok(())
+}
+
+fn write_enum_pack_variant_arm(out: &mut String, index: &SchemaIndex, enum_name: &str, variant: &crate::parser::ast::Variant, depth: usize) -> Result<(), CodegenError> {
     let variant_name = sanitize_ident(&variant.name.value);
 
     match &variant.kind {
@@ -738,7 +1228,7 @@ fn write_enum_pack_variant_arm(out: &mut String, index: &SchemaIndex, variant: &
 
             let resolved_fields = resolve_tuple_fields(index, fields)?;
             write_tuple_variant_inner_map_count(out, fields, &resolved_fields, depth + 1);
-            write_tuple_variant_encode_body(out, fields, &resolved_fields, depth + 1)?;
+            write_tuple_variant_encode_body(out, fields, &resolved_fields, depth + 1, &format!("{enum_name}.{}", variant.name.value))?;
             writeln!(out, "{}}}", indent(depth)).ok();
         }
         VariantKind::Record(fields) => {
@@ -748,7 +1238,7 @@ fn write_enum_pack_variant_arm(out: &mut String, index: &SchemaIndex, variant: &
 
             let resolved_fields = resolve_sorted_record_fields(index, fields)?;
             write_record_variant_inner_map_count(out, &resolved_fields, depth + 1);
-            write_record_variant_encode_body(out, &resolved_fields, depth + 1)?;
+            write_record_variant_encode_body(out, &resolved_fields, depth + 1, &format!("{enum_name}.{}", variant.name.value))?;
             writeln!(out, "{}}}", indent(depth)).ok();
         }
     }
@@ -806,6 +1296,7 @@ fn write_tuple_variant_encode_body(
     fields: &[(crate::parser::ast::Spanned<String>, crate::parser::ast::Spanned<Type>)],
     resolved_fields: &[(usize, ResolvedType)],
     depth: usize,
+    context_prefix: &str,
 ) -> Result<(), CodegenError> {
     for ((name, _), (tuple_index, resolved)) in fields.iter().zip(resolved_fields.iter()) {
         let binding = sanitize_ident(&name.value);
@@ -813,12 +1304,12 @@ fn write_tuple_variant_encode_body(
             ResolvedType::Option(inner) => {
                 writeln!(out, "{}if let Some({}) = {}.as_ref() {{", indent(depth), binding, binding).ok();
                 writeln!(out, "{}encoder.write_u64({})?;", indent(depth + 1), tuple_index).ok();
-                write_encode_value(out, inner.as_ref(), &binding, depth + 1)?;
+                write_encode_value(out, inner.as_ref(), &binding, depth + 1, &format!("{context_prefix}.{tuple_index}"))?;
                 writeln!(out, "{}}}", indent(depth)).ok();
             }
             _ => {
                 writeln!(out, "{}encoder.write_u64({})?;", indent(depth), tuple_index).ok();
-                write_encode_value(out, resolved, &binding, depth)?;
+                write_encode_value(out, resolved, &binding, depth, &format!("{context_prefix}.{tuple_index}"))?;
             }
         }
     }
@@ -826,19 +1317,19 @@ fn write_tuple_variant_encode_body(
     Ok(())
 }
 
-fn write_record_variant_encode_body(out: &mut String, fields: &[(&Field, ResolvedType)], depth: usize) -> Result<(), CodegenError> {
+fn write_record_variant_encode_body(out: &mut String, fields: &[(&Field, ResolvedType)], depth: usize, context_prefix: &str) -> Result<(), CodegenError> {
     for (field, resolved) in fields {
         let field_ident = sanitize_ident(&field.name.value);
         match resolved {
             ResolvedType::Option(inner) => {
                 writeln!(out, "{}if let Some({}) = {}.as_ref() {{", indent(depth), field_ident, field_ident).ok();
                 writeln!(out, "{}encoder.write_u64({})?;", indent(depth + 1), field.tag.value).ok();
-                write_encode_value(out, inner, &field_ident, depth + 1)?;
+                write_encode_value(out, inner, &field_ident, depth + 1, &format!("{context_prefix}.{}", field.name.value))?;
                 writeln!(out, "{}}}", indent(depth)).ok();
             }
             _ => {
                 writeln!(out, "{}encoder.write_u64({})?;", indent(depth), field.tag.value).ok();
-                write_encode_value(out, resolved, &field_ident, depth)?;
+                write_encode_value(out, resolved, &field_ident, depth, &format!("{context_prefix}.{}", field.name.value))?;
             }
         }
     }
@@ -861,7 +1352,7 @@ fn write_enum_unpack_fn(out: &mut String, index: &SchemaIndex, item: &Enum, dept
 
     let mut temp_counter = 0usize;
     for variant in &item.variants {
-        write_enum_unpack_variant_arm(out, index, variant, depth + 3, &mut temp_counter)?;
+        write_enum_unpack_variant_arm(out, index, &item.name.value, variant, depth + 3, &mut temp_counter)?;
     }
 
     writeln!(out, "{}_ => decoder.skip_field()?,", indent(depth + 3)).ok();
@@ -879,7 +1370,14 @@ fn write_enum_unpack_fn(out: &mut String, index: &SchemaIndex, item: &Enum, dept
     Ok(())
 }
 
-fn write_enum_unpack_variant_arm(out: &mut String, index: &SchemaIndex, variant: &crate::parser::ast::Variant, depth: usize, temp_counter: &mut usize) -> Result<(), CodegenError> {
+fn write_enum_unpack_variant_arm(
+    out: &mut String,
+    index: &SchemaIndex,
+    enum_name: &str,
+    variant: &crate::parser::ast::Variant,
+    depth: usize,
+    temp_counter: &mut usize,
+) -> Result<(), CodegenError> {
     let variant_name = sanitize_ident(&variant.name.value);
     writeln!(out, "{}{} => {{", indent(depth), variant.tag.value).ok();
     let inner_count = next_temp_name(temp_counter, "inner_count");
@@ -905,7 +1403,8 @@ fn write_enum_unpack_variant_arm(out: &mut String, index: &SchemaIndex, variant:
                     _ => resolved,
                 };
                 writeln!(out, "{}{} => {{", indent(depth + 3), tuple_index).ok();
-                let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &name.value, temp_counter)?;
+                let context = format!("{enum_name}.{}.{}", variant.name.value, tuple_index);
+                let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &context, temp_counter)?;
                 writeln!(out, "{}{} = Some({});", indent(depth + 4), binding_name, value_expr).ok();
                 writeln!(out, "{}}}", indent(depth + 3)).ok();
             }
@@ -941,7 +1440,8 @@ fn write_enum_unpack_variant_arm(out: &mut String, index: &SchemaIndex, variant:
                     _ => resolved,
                 };
                 writeln!(out, "{}{} => {{", indent(depth + 3), field.tag.value).ok();
-                let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &field.name.value, temp_counter)?;
+                let context = format!("{enum_name}.{}.{}", variant.name.value, field.name.value);
+                let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &context, temp_counter)?;
                 writeln!(out, "{}{} = Some({});", indent(depth + 4), binding_name, value_expr).ok();
                 writeln!(out, "{}}}", indent(depth + 3)).ok();
             }
@@ -1097,6 +1597,7 @@ fn render_declaration_type(index: &SchemaIndex, ty: &Type) -> String {
             render_declaration_type(index, value)
         ),
         Type::Array(inner, len) => format!("[{}; {}]", render_declaration_type(index, inner), len),
+        Type::Constrained(inner, _) => render_declaration_type(index, inner),
     }
 }
 
@@ -1139,6 +1640,10 @@ fn resolve_type_inner(index: &SchemaIndex, ty: &Type, resolving_aliases: &mut Ve
             Box::new(resolve_type_inner(index, value, resolving_aliases)?),
         )),
         Type::Array(inner, len) => Ok(ResolvedType::Array(Box::new(resolve_type_inner(index, inner, resolving_aliases)?), *len)),
+        Type::Constrained(inner, range) => Ok(ResolvedType::Constrained(
+            Box::new(resolve_type_inner(index, inner, resolving_aliases)?),
+            resolve_length_range(index, range)?,
+        )),
     }
 }
 
@@ -1350,5 +1855,103 @@ fn sanitize_ident(value: &str) -> String {
         "type" | "const" | "struct" | "enum" | "fn" | "mod" | "use" | "crate" | "super" | "self" | "match" | "loop" | "for" | "while" | "in" | "where" | "impl" | "trait"
         | "move" | "async" | "await" | "ref" | "mut" | "pub" | "let" | "break" | "continue" | "return" => format!("{value}_"),
         _ => value.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+
+    fn parsed_source(source: &str) -> ParsedSource {
+        ParsedSource {
+            source: DiscoveredSource {
+                base_dir: PathBuf::from("."),
+                absolute_path: PathBuf::from("test.rpf"),
+                relative_path: PathBuf::from("test.rpf"),
+            },
+            file: parser::parse_source("test.rpf", source).expect("test schema must parse"),
+        }
+    }
+
+    #[test]
+    fn accepts_constants_aliases_and_bounded_defaults() {
+        let source = parsed_source(
+            "version 1; package test; const LIMIT: u32 = 4; type Label = string[1..=LIMIT]; struct Sample { @1 label: Label = \"test\"; @2 data: bytes[..=4] = b\"ok\"; @3 values: Vec<string[1..=2]>[1..=2]; @4 attributes: Map<string[1..=2], bytes[1..=3]>[..=2]; }",
+        );
+        let output = render_sources(&[source]).expect("valid schema must render");
+        assert!(output[0].contents.contains("pub label: Label"));
+        assert!(output[0].contents.contains("validate_length(\"Sample.label\", 1, 4"));
+        assert!(output[0].contents.contains("read_map_bounded(\"Sample.attributes\", 0, 2"));
+    }
+
+    #[test]
+    fn rejects_missing_invalid_or_unresolved_constraints_before_rendering() {
+        for schema in [
+            "version 1; package test; struct Sample { @1 value: string; }",
+            "version 1; package test; struct Sample { @1 value: Vec<u8>[4..=1]; }",
+            "version 1; package test; const LIMIT: i32 = 4; struct Sample { @1 value: bytes[..=LIMIT]; }",
+            "version 1; package test; struct Sample { @1 value: string[..=UNKNOWN]; }",
+            "version 1; package test; struct Sample { @1 value: string[..=2] = \"too long\"; }",
+            "version 1; package test; type Label = string[..=4]; struct Sample { @1 value: Label[..=2]; }",
+        ] {
+            let source = parsed_source(schema);
+            assert!(render_sources(&[source]).is_err(), "{schema}");
+        }
+    }
+
+    #[test]
+    fn generated_checks_precede_length_prefixes_and_keep_schema_paths() {
+        let source = parsed_source(
+            "version 1; package test; struct Child { @1 label: string[1..=2]; } struct Sample { @1 child: Child; @2 values: Vec<string[1..=2]>[1..=3]; @3 attributes: Map<string[1..=2], bytes[1..=3]>[..=2]; }",
+        );
+        let rendered = render_sources(&[source]).unwrap()[0].contents.clone();
+        assert!(rendered.find("validate_length(\"Sample.values\", 1, 3").unwrap() < rendered.find("encoder.write_array((&value.values).len())").unwrap());
+        assert!(rendered.contains("Sample.attributes.key"));
+        assert!(rendered.contains("Sample.attributes.value"));
+        assert!(rendered.find("read_array_bounded(\"Sample.values\", 1, 3").unwrap() < rendered.find("Vec::with_capacity(__count_0 as usize)").unwrap());
+        let parent_impl = &rendered[rendered.find("impl omnius_core_rocketpack::RocketPackStruct for Sample").unwrap()..];
+        assert!(parent_impl.find("<Child as omnius_core_rocketpack::RocketPackStruct>::validate(&value.child)?;").unwrap() < parent_impl.find("encoder.write_map(3)?;").unwrap());
+    }
+
+    #[test]
+    fn rejects_unsigned_constants_outside_their_declared_ranges() {
+        for (ty, value) in [("u8", "256"), ("u16", "65536"), ("u32", "4294967296"), ("u64", "18446744073709551616")] {
+            let source = parsed_source(&format!("version 1; package test; const LIMIT: {ty} = {value};"));
+            assert!(render_sources(&[source]).is_err(), "{ty} = {value}");
+        }
+    }
+
+    #[tokio::test]
+    async fn semantic_errors_leave_existing_destinations_unchanged() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let source_dir = temp_dir.path().join("rpfs");
+        let output_dir = temp_dir.path().join("gen");
+        fs::create_dir_all(&source_dir).unwrap();
+        fs::create_dir_all(&output_dir).unwrap();
+        fs::write(source_dir.join("schema.rpf"), "version 1; package test; const LIMIT: u8 = 300;").unwrap();
+        let output_path = output_dir.join("schema.rs");
+        fs::write(&output_path, "unchanged").unwrap();
+
+        let mut options = Mapping::new();
+        options.insert(Value::String("dir".to_string()), Value::String("gen".to_string()));
+        let sources = [SourceConfig {
+            base_dir: "rpfs".to_string(),
+            includes: vec!["**/*.rpf".to_string()],
+            excludes: Vec::new(),
+        }];
+        let config = GeneratorConfig {
+            id: "test".to_string(),
+            plugin: "rocketpack-rust".to_string(),
+            options: None,
+            targets: vec![GeneratorTargetConfig {
+                pattern: "schema.rpf".to_string(),
+                options: Some(options),
+            }],
+        };
+
+        assert!(generate(temp_dir.path(), &sources, &config).await.is_err());
+        assert_eq!(fs::read_to_string(output_path).unwrap(), "unchanged");
     }
 }

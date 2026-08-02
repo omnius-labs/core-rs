@@ -437,4 +437,22 @@ mod tests {
             other => panic!("expected UnexpectedEof, got {other:?}"),
         }
     }
+
+    #[test]
+    fn bounded_string_and_bytes_reject_before_payload_read() -> TestResult {
+        for (bytes, context) in [(&[compose(3, 3)][..], "Message.text"), (&[compose(2, 3)][..], "Message.data")] {
+            let mut decoder = RocketPackBytesDecoder::new(bytes);
+            let result = if bytes[0] >> 5 == 3 {
+                decoder.read_string_bounded(context, 0, 2).map(|_| ())
+            } else {
+                decoder.read_bytes_bounded(context, 0, 2).map(|_| ())
+            };
+            assert!(matches!(
+                result,
+                Err(RocketPackDecoderError::LengthOutOfRange { context: actual_context, min: 0, max: 2, actual: 3, position: 0 }) if actual_context == context
+            ));
+        }
+
+        Ok(())
+    }
 }

@@ -2,6 +2,10 @@ use crate::{RocketPackBytesDecoder, RocketPackBytesEncoder, RocketPackDecoder, R
 
 #[allow(clippy::len_without_is_empty)]
 pub trait RocketPackStruct {
+    fn validate(_value: &Self) -> std::result::Result<(), RocketPackEncoderError> {
+        Ok(())
+    }
+
     fn pack(encoder: &mut impl RocketPackEncoder, value: &Self) -> std::result::Result<(), RocketPackEncoderError>;
 
     fn unpack(decoder: &mut impl RocketPackDecoder) -> std::result::Result<Self, RocketPackDecoderError>

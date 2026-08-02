@@ -14,6 +14,14 @@ pub enum RocketPackDecoderError {
     MismatchFieldType { position: usize, field_type: FieldType },
     #[error("length overflow (position: {position})")]
     LengthOverflow { position: usize },
+    #[error("length out of range for {context} at position {position}: expected {min}..={max}, got {actual}")]
+    LengthOutOfRange {
+        context: &'static str,
+        min: u64,
+        max: u64,
+        actual: u64,
+        position: usize,
+    },
     #[error("string is not valid UTF-8 (position: {position}, error: {error})")]
     Utf8 { position: usize, error: std::str::Utf8Error },
     #[error("other decode error: {0}")]
@@ -38,11 +46,68 @@ pub trait RocketPackDecoder {
     fn read_bytes(&mut self) -> Result<&[u8]>;
     fn read_bytes_vec(&mut self) -> Result<Vec<u8>>;
     fn read_string(&mut self) -> Result<String>;
+    /// Reads and consumes a byte-string length prefix without reading its payload.
+    ///
+    /// Implementors that support bounded byte-string decoding should override this
+    /// together with [`Self::read_bytes_payload`].  The defaults preserve source
+    /// compatibility for decoders that only support the unbounded API.
+    fn read_bytes_length(&mut self) -> Result<u64> {
+        Err(RocketPackDecoderError::Other("bounded byte-string decoding is not supported"))
+    }
+    /// Reads a byte-string payload after [`Self::read_bytes_length`] consumed its prefix.
+    fn read_bytes_payload(&mut self, _len: u64) -> Result<&[u8]> {
+        Err(RocketPackDecoderError::Other("bounded byte-string decoding is not supported"))
+    }
+    /// Reads and consumes a string length prefix without reading its payload.
+    fn read_string_length(&mut self) -> Result<u64> {
+        Err(RocketPackDecoderError::Other("bounded string decoding is not supported"))
+    }
+    /// Reads a UTF-8 string payload after [`Self::read_string_length`] consumed its prefix.
+    fn read_string_payload(&mut self, _len: u64) -> Result<&str> {
+        Err(RocketPackDecoderError::Other("bounded string decoding is not supported"))
+    }
+    fn read_bytes_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<Vec<u8>> {
+        let position = self.position();
+        let len = self.read_bytes_length()?;
+        self.validate_length(context, min, max, len, position)?;
+        Ok(self.read_bytes_payload(len)?.to_vec())
+    }
+    fn read_string_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<String> {
+        let position = self.position();
+        let len = self.read_string_length()?;
+        self.validate_length(context, min, max, len, position)?;
+        Ok(self.read_string_payload(len)?.to_owned())
+    }
     fn read_array(&mut self) -> Result<u64>;
     fn read_map(&mut self) -> Result<u64>;
+    fn read_array_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<u64> {
+        let position = self.position();
+        let actual = self.read_array()?;
+        self.validate_length(context, min, max, actual, position)?;
+        Ok(actual)
+    }
+    fn read_map_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<u64> {
+        let position = self.position();
+        let actual = self.read_map()?;
+        self.validate_length(context, min, max, actual, position)?;
+        Ok(actual)
+    }
     fn read_null(&mut self) -> Result<()>;
     fn read_struct<T: RocketPackStruct>(&mut self) -> Result<T>;
     fn skip_field(&mut self) -> Result<()>;
+
+    fn validate_length(&self, context: &'static str, min: u64, max: u64, actual: u64, position: usize) -> Result<()> {
+        if actual < min || actual > max {
+            return Err(RocketPackDecoderError::LengthOutOfRange {
+                context,
+                min,
+                max,
+                actual,
+                position,
+            });
+        }
+        Ok(())
+    }
 }
 
 pub struct RocketPackBytesDecoder<'a> {
@@ -332,6 +397,14 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         Ok(self.read_bytes()?.to_vec())
     }
 
+    fn read_bytes_length(&mut self) -> Result<u64> {
+        self.read_sized_length(2)
+    }
+
+    fn read_bytes_payload(&mut self, len: u64) -> Result<&[u8]> {
+        self.read_sized_payload(len)
+    }
+
     fn read_string(&mut self) -> Result<String> {
         let position = self.pos;
         let (major, info) = self.decompose(self.current_raw_byte()?);
@@ -352,6 +425,16 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         std::str::from_utf8(bytes)
             .map(|n| n.to_owned())
             .map_err(|e| RocketPackDecoderError::Utf8 { position, error: e })
+    }
+
+    fn read_string_length(&mut self) -> Result<u64> {
+        self.read_sized_length(3)
+    }
+
+    fn read_string_payload(&mut self, len: u64) -> Result<&str> {
+        let position = self.pos;
+        let bytes = self.read_sized_payload(len)?;
+        std::str::from_utf8(bytes).map_err(|error| RocketPackDecoderError::Utf8 { position, error })
     }
 
     fn read_array(&mut self) -> Result<u64> {
@@ -466,6 +549,25 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
 }
 
 impl<'a> RocketPackBytesDecoder<'a> {
+    fn read_sized_length(&mut self, expected_major: u8) -> Result<u64> {
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
+
+        if major != expected_major {
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
+        }
+
+        self.read_raw_len(info)?.ok_or(RocketPackDecoderError::MismatchFieldType { position, field_type })
+    }
+
+    fn read_sized_payload(&mut self, len: u64) -> Result<&'a [u8]> {
+        let position = self.pos;
+        let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position })?;
+        self.read_raw_bytes(len)
+    }
+
     fn is_eof(&self) -> bool {
         self.pos >= self.buf.len()
     }

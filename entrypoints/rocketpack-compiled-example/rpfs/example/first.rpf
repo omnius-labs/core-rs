@@ -26,6 +26,15 @@ struct PrimitiveShowcase1 {
   @20 map_vec_field_2: Map<string, Vec<bytes>>;
   @21 slice_field: [i64; 4];
   @22 struct_field: SimpleMessage;
+  @23 string_field_constrained: string[1..=MAX_TEXT_LEN];
+  @24 bytes_field_constrained: bytes[1..=MAX_SAMPLE_SIZE];
+  @25 vec_field_1_constrained: Vec<u8>[1..=8];
+  @26 vec_field_2_constrained: Vec<string[1..=16]>[1..=8];
+  @27 vec_field_3_constrained: Vec<bytes[1..=8]>[1..=4];
+  @28 map_field_1_constrained: Map<u8, string[1..=16]>[1..=4];
+  @29 map_field_2_constrained: Map<string[1..=8], u8>[..=4];
+  @30 map_vec_field_1_constrained: Map<string[1..=8], Vec<u32>[..=8]>[..=4];
+  @31 map_vec_field_2_constrained: Map<string[1..=8], Vec<bytes[1..=8]>[..=4]>[..=4];
 }
 
 struct PrimitiveShowcase2 {
@@ -49,13 +58,23 @@ struct PrimitiveShowcase2 {
   @19 map_vec_field_1: Option<Map<string, Vec<u32>>>;
   @20 map_vec_field_2: Option<Map<string, Vec<bytes>>>;
   @21 struct_field: Option<SimpleMessage>;
+  @22 string_field_constrained: Option<string[1..=MAX_TEXT_LEN]>;
+  @23 bytes_field_constrained: Option<bytes[1..=MAX_SAMPLE_SIZE]>;
+  @24 vec_field_1_constrained: Option<Vec<u8>[1..=8]>;
+  @25 vec_field_2_constrained: Option<Vec<string[1..=16]>[1..=8]>;
+  @26 vec_field_3_constrained: Option<Vec<bytes[1..=8]>[1..=4]>;
+  @27 map_field_1_constrained: Option<Map<u8, string[1..=16]>[1..=4]>;
+  @28 map_field_2_constrained: Option<Map<string[1..=8], u8>[..=4]>;
+  @29 map_vec_field_1_constrained: Option<Map<string[1..=8], Vec<u32>[..=8]>[..=4]>;
+  @30 map_vec_field_2_constrained: Option<Map<string[1..=8], Vec<bytes[1..=8]>[..=4]>[..=4]>;
 }
 
 enum PrimitiveShowcase3 {
   @1 First;
-  @2 Second(entity: string, payload: ByteList);
+  @2 Second(entity: string, entity_constrained: string[1..=MAX_TEXT_LEN], payload: ByteList);
   @3 Third {
     @1 entity: string;
+    @1 entity_constrained: string[1..=MAX_TEXT_LEN];
     @2 status: Status;
     @4 retries: u32 = 0;
     @5 struct_field: Option<SimpleMessage>;
@@ -71,5 +90,14 @@ struct SimpleMessage {
   @1 bool_field: Option<bool>;
 }
 
-type ByteList = Vec<bytes>;
+struct NestedChild {
+  @1 label: string[1..=4];
+}
+
+struct NestedParent {
+  @1 child: NestedChild;
+}
+
+type ByteList = Vec<bytes[1..=8]>[1..=4];
+const MAX_TEXT_LEN: u32 = 32;
 const MAX_SAMPLE_SIZE: u32 = 1_048_576;

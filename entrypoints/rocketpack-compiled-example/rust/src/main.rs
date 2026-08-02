@@ -6,6 +6,9 @@ use std::collections::BTreeMap;
 use generated::omnius::demo::v1::*;
 use omnius_core_rocketpack::RocketPackStruct;
 
+#[cfg(test)]
+use omnius_core_rocketpack::{RocketPackBytesEncoder, RocketPackDecoderError, RocketPackEncoderError};
+
 fn main() {
     run_generated_roundtrip_checks();
     println!("generated round-trip checks passed");
@@ -105,5 +108,116 @@ mod tests {
     #[test]
     fn generated_roundtrip_checks_pass() {
         run_generated_roundtrip_checks();
+    }
+
+    #[test]
+    fn nested_map_roundtrip_materializes_key_before_value() {
+        let mut value = sample_primitive_showcase_1();
+        value.map_vec_field_1 = BTreeMap::from([("key".to_string(), vec![7, 8])]);
+
+        assert_roundtrip(&value);
+    }
+
+    #[test]
+    fn generated_wire_bytes_remain_stable() {
+        const EXPECTED: &[u8] = &[
+            0xB5, 0x01, 0xF5, 0x02, 0x07, 0x03, 0x38, 0x77, 0x04, 0x19, 0x30, 0x39, 0x05, 0x3A, 0x3A, 0xDE, 0x68, 0xB0, 0x06, 0x19, 0x02, 0x8A, 0x07, 0x1A, 0x00, 0x01, 0x86, 0x9F,
+            0x08, 0x1A, 0x07, 0x5B, 0xCD, 0x15, 0x0A, 0xFA, 0x3F, 0xC0, 0x00, 0x00, 0x0B, 0xFB, 0x40, 0x22, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x69, 0x72, 0x6F, 0x75, 0x6E,
+            0x64, 0x74, 0x72, 0x69, 0x70, 0x0D, 0x44, 0xDE, 0xAD, 0xBE, 0xEF, 0x0E, 0x84, 0x01, 0x02, 0x03, 0x04, 0x0F, 0x82, 0x65, 0x61, 0x6C, 0x70, 0x68, 0x61, 0x64, 0x62, 0x65,
+            0x74, 0x61, 0x10, 0x82, 0x42, 0x10, 0x20, 0x43, 0x30, 0x40, 0x50, 0x11, 0xA2, 0x01, 0x63, 0x6F, 0x6E, 0x65, 0x02, 0x63, 0x74, 0x77, 0x6F, 0x12, 0xA2, 0x61, 0x78, 0x18,
+            0x18, 0x61, 0x79, 0x18, 0x19, 0x13, 0xA0, 0x14, 0xA0, 0x15, 0x84, 0x23, 0x20, 0x00, 0x08, 0x16, 0xA1, 0x01, 0xF5,
+        ];
+
+        assert_eq!(sample_primitive_showcase_1().export().unwrap(), EXPECTED);
+    }
+
+    #[test]
+    fn bounded_values_accept_their_minimum_and_maximum() {
+        let mut minimum = sample_primitive_showcase_1();
+        minimum.string_field = "x".to_string();
+        minimum.bytes_field = vec![1];
+        minimum.vec_field_1 = vec![1];
+        minimum.vec_field_3 = vec![vec![1]];
+        minimum.map_field_1 = BTreeMap::from([(1, "x".to_string())]);
+        assert!(minimum.export().is_ok());
+
+        let mut maximum = sample_primitive_showcase_1();
+        maximum.string_field = "x".repeat(32);
+        maximum.vec_field_1 = vec![1; 8];
+        maximum.vec_field_3 = vec![vec![1; 8]; 4];
+        maximum.map_field_1 = BTreeMap::from([(1, "a".repeat(16)), (2, "b".repeat(16)), (3, "c".repeat(16)), (4, "d".repeat(16))]);
+        assert!(maximum.export().is_ok());
+    }
+
+    #[test]
+    fn encode_rejects_invalid_lengths_without_mutating_the_output() {
+        let mut value = sample_primitive_showcase_1();
+        value.string_field = String::new();
+        let mut output = vec![0xAA, 0xBB];
+        let expected_output = output.clone();
+        let error = {
+            let mut encoder = RocketPackBytesEncoder::new(&mut output);
+            PrimitiveShowcase1::pack(&mut encoder, &value).unwrap_err()
+        };
+
+        assert!(matches!(
+            error,
+            RocketPackEncoderError::LengthOutOfRange {
+                context: "PrimitiveShowcase1.string_field",
+                min: 1,
+                max: 32,
+                actual: 0
+            }
+        ));
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn nested_named_validation_precedes_parent_output() {
+        let value = NestedParent {
+            child: NestedChild { label: String::new() },
+        };
+        let mut output = vec![0xAA, 0xBB];
+        let expected_output = output.clone();
+        let error = {
+            let mut encoder = RocketPackBytesEncoder::new(&mut output);
+            NestedParent::pack(&mut encoder, &value).unwrap_err()
+        };
+
+        assert!(matches!(
+            error,
+            RocketPackEncoderError::LengthOutOfRange {
+                context: "NestedChild.label",
+                min: 1,
+                max: 4,
+                actual: 0
+            }
+        ));
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn decode_rejects_lengths_at_each_prefix_position() {
+        assert_length_error(&[0xA1, 0x0C, 0x60], "PrimitiveShowcase1.string_field", 0, 2);
+        assert_length_error(&[0xA1, 0x0C, 0x78, 33], "PrimitiveShowcase1.string_field", 33, 2);
+        assert_length_error(&[0xA1, 0x0D, 0x40], "PrimitiveShowcase1.bytes_field", 0, 2);
+        assert_length_error(&[0xA1, 0x10, 0x81, 0x49], "PrimitiveShowcase1.vec_field_3[]", 9, 3);
+        assert_length_error(&[0xA1, 0x0E, 0x80], "PrimitiveShowcase1.vec_field_1", 0, 2);
+        assert_length_error(&[0xA1, 0x0E, 0x89], "PrimitiveShowcase1.vec_field_1", 9, 2);
+        assert_length_error(&[0xA1, 0x11, 0xA0], "PrimitiveShowcase1.map_field_1", 0, 2);
+        assert_length_error(&[0xA1, 0x11, 0xA5], "PrimitiveShowcase1.map_field_1", 5, 2);
+    }
+
+    fn assert_length_error(bytes: &[u8], context: &'static str, actual: u64, position: usize) {
+        assert!(matches!(
+            PrimitiveShowcase1::import(bytes),
+            Err(RocketPackDecoderError::LengthOutOfRange {
+                context: actual_context,
+                min: _,
+                max: _,
+                actual: actual_length,
+                position: actual_position,
+            }) if actual_context == context && actual_length == actual && actual_position == position
+        ));
     }
 }

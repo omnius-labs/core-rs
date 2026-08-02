@@ -352,7 +352,7 @@ impl Parser {
 
     fn parse_type_inner(&mut self) -> Type {
         // Option<T> / Vec<T> / Map<K,V> / [T;N] / Path
-        if self.is_ident_kw("Option") {
+        let ty = if self.is_ident_kw("Option") {
             self.expect(Token::Lt, "<");
             let inner = self.expect_type();
             self.expect(Token::Gt, ">");
@@ -379,6 +379,75 @@ impl Parser {
             Type::Array(Box::new(inner.value), n)
         } else {
             Type::Path(self.parse_path())
+        };
+
+        if self.at(Token::LBracket) {
+            Type::Constrained(Box::new(ty), self.parse_length_range())
+        } else {
+            ty
+        }
+    }
+
+    fn parse_length_range(&mut self) -> LengthRange {
+        self.expect(Token::LBracket, "[");
+        let min = if self.at(Token::Dots) { None } else { Some(self.expect_length_bound()) };
+        self.expect(Token::Dots, "..");
+        self.expect(Token::Eq, "=");
+        let max = self.expect_length_bound();
+        self.expect(Token::RBracket, "]");
+        LengthRange { min, max }
+    }
+
+    fn expect_length_bound(&mut self) -> Spanned<LengthBound> {
+        match self.bump() {
+            Some(SpannedToken {
+                token: Token::Int(value) | Token::Hex(value),
+                span,
+            }) => Spanned::new(LengthBound::Literal(value), span.start, span.end),
+            Some(SpannedToken { token: Token::Ident(value), span }) => Spanned::new(LengthBound::Const(value), span.start, span.end),
+            Some(token) => {
+                self.errors.push(ParseError::new(
+                    ParseErrorKind::Expected {
+                        expected: "integer or constant",
+                        found: Self::token_name(&token.token),
+                    },
+                    token.span.start,
+                    token.span.end,
+                ));
+                Spanned::new(LengthBound::Literal(0), token.span.start, token.span.end)
+            }
+            None => {
+                let (start, end) = self.error_here(ParseErrorKind::Expected {
+                    expected: "integer or constant",
+                    found: "EOF",
+                });
+                Spanned::new(LengthBound::Literal(0), start, end)
+            }
+        }
+    }
+
+    fn token_name(token: &Token) -> &'static str {
+        match token {
+            Token::Ident(_) => "identifier",
+            Token::Int(_) | Token::Hex(_) => "integer",
+            Token::Float(_) => "float",
+            Token::Str(_) => "string",
+            Token::Bytes(_) => "bytes",
+            Token::At => "@",
+            Token::Semi => ";",
+            Token::Colon => ":",
+            Token::Comma => ",",
+            Token::Eq => "=",
+            Token::LBrace => "{",
+            Token::RBrace => "}",
+            Token::LParen => "(",
+            Token::RParen => ")",
+            Token::LBracket => "[",
+            Token::RBracket => "]",
+            Token::Lt => "<",
+            Token::Gt => ">",
+            Token::Dots => "..",
+            Token::PathSep => "::",
         }
     }
 
@@ -551,5 +620,34 @@ impl Parser {
     }
     fn prev_end(&self) -> usize {
         if self.i == 0 { 0 } else { self.tokens[self.i - 1].span.end }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_inclusive_length_ranges() {
+        let file = parse_source(
+            "test.rpf",
+            "version 1; package test; const LIMIT: u32 = 4; struct Sample { @1 value: string[..=LIMIT]; @2 nested: Vec<bytes[1..=2]>[0..=3]; }",
+        )
+        .expect("valid inclusive ranges must parse");
+
+        let Item::Struct(sample) = &file.items[1] else { panic!("expected struct") };
+        assert!(matches!(sample.fields[0].ty.value, Type::Constrained(_, _)));
+        assert!(matches!(sample.fields[1].ty.value, Type::Constrained(_, _)));
+    }
+
+    #[test]
+    fn rejects_incomplete_or_exclusive_length_ranges() {
+        for source in [
+            "version 1; package test; struct Sample { @1 value: string[..4]; }",
+            "version 1; package test; struct Sample { @1 value: string[1..4]; }",
+            "version 1; package test; struct Sample { @1 value: string[..]; }",
+        ] {
+            assert!(parse_source("test.rpf", source).is_err(), "{source}");
+        }
     }
 }
