@@ -4,11 +4,11 @@ mod generated;
 use std::collections::BTreeMap;
 
 use generated::omnius::demo::v1::*;
-use omnius_core_rocketpack::RocketPackStruct;
-use omnius_core_rocketpack::primitive::{Timestamp64, Timestamp96};
 
-#[cfg(test)]
-use omnius_core_rocketpack::{RocketPackBytesEncoder, RocketPackDecoderError, RocketPackEncoderError};
+use omnius_core_rocketpack::{
+    primitive::{Timestamp64, Timestamp96},
+    RocketPackStruct,
+};
 
 fn main() {
     run_generated_roundtrip_checks();
@@ -109,6 +109,8 @@ fn sample_primitive_showcase_3_third() -> PrimitiveShowcase3 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use omnius_core_rocketpack::{RocketPackBytesEncoder, RocketPackDecoderError, RocketPackEncoderError};
 
     #[test]
     fn generated_roundtrip_checks_pass() {
