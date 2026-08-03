@@ -55,10 +55,6 @@ impl Parser {
         self.tokens.get(self.i)
     }
 
-    fn nth(&self, n: usize) -> Option<&SpannedToken> {
-        self.tokens.get(self.i + n)
-    }
-
     fn bump(&mut self) -> Option<SpannedToken> {
         let t = self.tokens.get(self.i).cloned();
         self.i += 1;

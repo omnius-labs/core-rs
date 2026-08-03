@@ -6,9 +6,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CodegenError {
-    #[error("unexpected token: {0}")]
-    Unexpected(&'static str),
-
     #[error("parse error: {0}")]
     Parse(#[from] ParseErrorBundle),
 
@@ -109,14 +106,8 @@ pub enum ParseErrorKind {
     #[error("expected {expected}, found {found}")]
     Expected { expected: &'static str, found: &'static str },
 
-    #[error("invalid number literal")]
-    InvalidNumber,
-
     #[error("duplicate attribute or item")]
     Duplicate,
-
-    #[error("unterminated block or structure")]
-    Unterminated,
 
     #[error("other error: {0}")]
     Other(String),
@@ -128,4 +119,6 @@ pub enum ConfigError {
     Io(#[from] std::io::Error),
     #[error("設定ファイルを解析できませんでした: {0}")]
     Parse(#[from] serde_yaml_ng::Error),
+    #[error("未対応の設定ファイルバージョンです: {0}")]
+    UnsupportedVersion(u32),
 }

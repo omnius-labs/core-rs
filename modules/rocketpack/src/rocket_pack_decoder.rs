@@ -46,38 +46,8 @@ pub trait RocketPackDecoder {
     fn read_bytes(&mut self) -> Result<&[u8]>;
     fn read_bytes_vec(&mut self) -> Result<Vec<u8>>;
     fn read_string(&mut self) -> Result<String>;
-    /// Reads and consumes a byte-string length prefix without reading its payload.
-    ///
-    /// Implementors that support bounded byte-string decoding should override this
-    /// together with [`Self::read_bytes_payload`].  The defaults preserve source
-    /// compatibility for decoders that only support the unbounded API.
-    fn read_bytes_length(&mut self) -> Result<u64> {
-        Err(RocketPackDecoderError::Other("bounded byte-string decoding is not supported"))
-    }
-    /// Reads a byte-string payload after [`Self::read_bytes_length`] consumed its prefix.
-    fn read_bytes_payload(&mut self, _len: u64) -> Result<&[u8]> {
-        Err(RocketPackDecoderError::Other("bounded byte-string decoding is not supported"))
-    }
-    /// Reads and consumes a string length prefix without reading its payload.
-    fn read_string_length(&mut self) -> Result<u64> {
-        Err(RocketPackDecoderError::Other("bounded string decoding is not supported"))
-    }
-    /// Reads a UTF-8 string payload after [`Self::read_string_length`] consumed its prefix.
-    fn read_string_payload(&mut self, _len: u64) -> Result<&str> {
-        Err(RocketPackDecoderError::Other("bounded string decoding is not supported"))
-    }
-    fn read_bytes_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<Vec<u8>> {
-        let position = self.position();
-        let len = self.read_bytes_length()?;
-        self.validate_length(context, min, max, len, position)?;
-        Ok(self.read_bytes_payload(len)?.to_vec())
-    }
-    fn read_string_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<String> {
-        let position = self.position();
-        let len = self.read_string_length()?;
-        self.validate_length(context, min, max, len, position)?;
-        Ok(self.read_string_payload(len)?.to_owned())
-    }
+    fn read_bytes_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<Vec<u8>>;
+    fn read_string_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<String>;
     fn read_array(&mut self) -> Result<u64>;
     fn read_map(&mut self) -> Result<u64>;
     fn read_array_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<u64> {
@@ -397,12 +367,11 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         Ok(self.read_bytes()?.to_vec())
     }
 
-    fn read_bytes_length(&mut self) -> Result<u64> {
-        self.read_sized_length(2)
-    }
-
-    fn read_bytes_payload(&mut self, len: u64) -> Result<&[u8]> {
-        self.read_sized_payload(len)
+    fn read_bytes_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<Vec<u8>> {
+        let position = self.position();
+        let len = self.read_sized_length(2)?;
+        self.validate_length(context, min, max, len, position)?;
+        Ok(self.read_sized_payload(len)?.to_vec())
     }
 
     fn read_string(&mut self) -> Result<String> {
@@ -427,14 +396,16 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             .map_err(|e| RocketPackDecoderError::Utf8 { position, error: e })
     }
 
-    fn read_string_length(&mut self) -> Result<u64> {
-        self.read_sized_length(3)
-    }
-
-    fn read_string_payload(&mut self, len: u64) -> Result<&str> {
-        let position = self.pos;
+    fn read_string_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<String> {
+        let position = self.position();
+        let len = self.read_sized_length(3)?;
+        self.validate_length(context, min, max, len, position)?;
+        let payload_position = self.position();
         let bytes = self.read_sized_payload(len)?;
-        std::str::from_utf8(bytes).map_err(|error| RocketPackDecoderError::Utf8 { position, error })
+        std::str::from_utf8(bytes).map(str::to_owned).map_err(|error| RocketPackDecoderError::Utf8 {
+            position: payload_position,
+            error,
+        })
     }
 
     fn read_array(&mut self) -> Result<u64> {

@@ -13,7 +13,7 @@ use crate::{
     error::CodegenError,
     parser::{
         self,
-        ast::{Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Struct, Type, Use, VariantKind},
+        ast::{Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Struct, Type, VariantKind},
     },
 };
 
@@ -31,7 +31,6 @@ struct ParsedSource {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct GeneratedRustFile {
     source: DiscoveredSource,
     contents: String,
@@ -1461,7 +1460,7 @@ fn write_enum_unpack_variant_arm(
             writeln!(out, "{}for _ in 0..{} {{", indent(depth + 1), inner_count).ok();
             writeln!(out, "{}match decoder.read_u64()? {{", indent(depth + 2)).ok();
 
-            for (((name, _), (tuple_index, resolved)), binding_name) in fields.iter().zip(resolved_fields.iter()).zip(tuple_bindings.iter()) {
+            for ((_, (tuple_index, resolved)), binding_name) in fields.iter().zip(resolved_fields.iter()).zip(tuple_bindings.iter()) {
                 let decode_target = match resolved {
                     ResolvedType::Option(inner) => inner.as_ref(),
                     _ => resolved,
@@ -1561,7 +1560,7 @@ fn declare_tuple_variant_storage(
     depth: usize,
 ) -> Vec<String> {
     let mut bindings = Vec::with_capacity(fields.len());
-    for (((name, ty), (_, resolved))) in fields.iter().zip(resolved_fields.iter()) {
+    for ((name, ty), (_, resolved)) in fields.iter().zip(resolved_fields.iter()) {
         let binding_name = sanitize_ident(&name.value);
         writeln!(
             out,

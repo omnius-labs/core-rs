@@ -2886,11 +2886,8 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "hex",
- "omnius-core-base",
- "serde",
  "testresult",
  "thiserror 2.0.18",
- "tracing",
 ]
 
 [[package]]
@@ -2899,15 +2896,12 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "logos",
- "omnius-core-base",
  "serde",
  "serde_yaml_ng",
  "tempfile",
  "testresult",
  "thiserror 2.0.18",
  "tokio",
- "tokio-stream",
- "tokio-util",
  "tracing",
  "tracing-subscriber",
 ]

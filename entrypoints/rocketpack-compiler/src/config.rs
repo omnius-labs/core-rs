@@ -30,6 +30,7 @@ pub struct SourceConfig {
 pub struct GeneratorConfig {
     pub id: String,
     pub plugin: String,
+    #[expect(dead_code, reason = "reserved for future generator-wide options")]
     #[serde(default)]
     pub options: Option<Mapping>,
     #[serde(default)]
@@ -53,7 +54,11 @@ impl AppConfig {
     }
 
     pub fn from_yaml(yaml: &str) -> Result<Self, ConfigError> {
-        Ok(from_str(yaml)?)
+        let config: Self = from_str(yaml)?;
+        if config.version != 1 {
+            return Err(ConfigError::UnsupportedVersion(config.version));
+        }
+        Ok(config)
     }
 }
 
@@ -69,9 +74,15 @@ mod tests {
     async fn config_load_test() -> TestResult {
         let config_path = Path::new("../rocketpack-compiled-example/rocketpack.yaml");
         let config = AppConfig::load(config_path).await?;
-        println!("{:?}", config);
+        assert_eq!(config.version, 1);
         assert_eq!(config.root_dir, Path::new("../rocketpack-compiled-example"));
 
         Ok(())
+    }
+
+    #[test]
+    fn rejects_unsupported_version() {
+        let result = AppConfig::from_yaml("version: 2");
+        assert!(matches!(result, Err(ConfigError::UnsupportedVersion(2))));
     }
 }

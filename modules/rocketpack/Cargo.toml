@@ -5,11 +5,7 @@ edition = { workspace = true }
 authors = { workspace = true }
 
 [dependencies]
-omnius-core-base = { workspace = true }
-
 chrono = { workspace = true }
-tracing = { workspace = true }
-serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

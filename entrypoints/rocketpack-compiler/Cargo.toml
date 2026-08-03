@@ -9,7 +9,6 @@ default = []
 stable-test = []
 
 [dependencies]
-omnius-core-base = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 logos = { workspace = true }
@@ -17,22 +16,15 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
-tokio-util = { workspace = true }
-tokio-stream = { workspace = true }
 serde_yaml_ng = { workspace = true }
-tempfile = { workspace = true }
 
 [dev-dependencies]
+tempfile = { workspace = true }
 testresult = { workspace = true }
-
-[lints.rust]
-unused = "allow"
 
 [lints.clippy]
 uninlined_format_args = "allow"
 unused_async = "allow"
-unused_collect = "allow"
-unused_iter_cloned = "allow"
 unused_peekable = "allow"
 unused_self = "allow"
 unused_unit = "allow"
