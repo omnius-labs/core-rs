@@ -17,8 +17,6 @@ pub mod omnius {
                 pub u64_field: u64,
                 pub f32_field: f32,
                 pub f64_field: f64,
-                pub slice_field: [i64; 4],
-                pub struct_field: SimpleMessage,
                 pub string_field: String,
                 pub bytes_field: Vec<u8>,
                 pub vec_field_1: Vec<u8>,
@@ -28,6 +26,17 @@ pub mod omnius {
                 pub map_field_2: std::collections::BTreeMap<String, u8>,
                 pub map_vec_field_1: std::collections::BTreeMap<String, Vec<u32>>,
                 pub map_vec_field_2: std::collections::BTreeMap<String, Vec<Vec<u8>>>,
+                pub slice_field: [i64; 4],
+                pub struct_field: SimpleMessage,
+                pub string_field_constrained: String,
+                pub bytes_field_constrained: Vec<u8>,
+                pub vec_field_1_constrained: Vec<u8>,
+                pub vec_field_2_constrained: Vec<String>,
+                pub vec_field_3_constrained: Vec<Vec<u8>>,
+                pub map_field_1_constrained: std::collections::BTreeMap<u8, String>,
+                pub map_field_2_constrained: std::collections::BTreeMap<String, u8>,
+                pub map_vec_field_1_constrained: std::collections::BTreeMap<String, Vec<u32>>,
+                pub map_vec_field_2_constrained: std::collections::BTreeMap<String, Vec<Vec<u8>>>,
                 pub timestamp_64: omnius_core_rocketpack::primitive::Timestamp64,
                 pub timestamp_96: omnius_core_rocketpack::primitive::Timestamp96,
             }
@@ -35,36 +44,36 @@ pub mod omnius {
             impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                 fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
                     <SimpleMessage as omnius_core_rocketpack::RocketPackStruct>::validate(&value.struct_field)?;
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.string_field", 1, 32, (&value.string_field).len())?;
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.bytes_field", 1, 1048576, (&value.bytes_field).len())?;
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_1", 1, 8, (&value.vec_field_1).len())?;
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_2", 1, 8, (&value.vec_field_2).len())?;
-                    for item in (&value.vec_field_2).iter() {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_2[]", 1, 16, (item).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.string_field_constrained", 1, 32, (&value.string_field_constrained).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.bytes_field_constrained", 1, 1048576, (&value.bytes_field_constrained).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_1_constrained", 1, 8, (&value.vec_field_1_constrained).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_2_constrained", 1, 8, (&value.vec_field_2_constrained).len())?;
+                    for item in (&value.vec_field_2_constrained).iter() {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_2_constrained[]", 1, 16, (item).len())?;
                     }
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_3", 1, 4, (&value.vec_field_3).len())?;
-                    for item in (&value.vec_field_3).iter() {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_3[]", 1, 8, (item).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_3_constrained", 1, 4, (&value.vec_field_3_constrained).len())?;
+                    for item in (&value.vec_field_3_constrained).iter() {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_3_constrained[]", 1, 8, (item).len())?;
                     }
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_1", 1, 4, (&value.map_field_1).len())?;
-                    for (_key, value) in (&value.map_field_1).iter() {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_1.value", 1, 16, (value).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_1_constrained", 1, 4, (&value.map_field_1_constrained).len())?;
+                    for (_key, value) in (&value.map_field_1_constrained).iter() {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_1_constrained.value", 1, 16, (value).len())?;
                     }
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_2", 0, 4, (&value.map_field_2).len())?;
-                    for (key, _value) in (&value.map_field_2).iter() {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_2.key", 1, 8, (key).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_2_constrained", 0, 4, (&value.map_field_2_constrained).len())?;
+                    for (key, _value) in (&value.map_field_2_constrained).iter() {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_2_constrained.key", 1, 8, (key).len())?;
                     }
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1", 0, 4, (&value.map_vec_field_1).len())?;
-                    for (key, value) in (&value.map_vec_field_1).iter() {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1.key", 1, 8, (key).len())?;
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1.value", 0, 8, (value).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1_constrained", 0, 4, (&value.map_vec_field_1_constrained).len())?;
+                    for (key, value) in (&value.map_vec_field_1_constrained).iter() {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1_constrained.key", 1, 8, (key).len())?;
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1_constrained.value", 0, 8, (value).len())?;
                     }
-                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2", 0, 4, (&value.map_vec_field_2).len())?;
-                    for (key, value) in (&value.map_vec_field_2).iter() {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2.key", 1, 8, (key).len())?;
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2.value", 0, 4, (value).len())?;
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained", 0, 4, (&value.map_vec_field_2_constrained).len())?;
+                    for (key, value) in (&value.map_vec_field_2_constrained).iter() {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained.key", 1, 8, (key).len())?;
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained.value", 0, 4, (value).len())?;
                         for item in (value).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2.value[]", 1, 8, (item).len())?;
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained.value[]", 1, 8, (item).len())?;
                         }
                     }
                     <omnius_core_rocketpack::primitive::Timestamp64 as omnius_core_rocketpack::RocketPackStruct>::validate(&value.timestamp_64)?;
@@ -77,7 +86,7 @@ pub mod omnius {
                     value: &Self,
                 ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
                     Self::validate(value)?;
-                    encoder.write_map(23)?;
+                    encoder.write_map(32)?;
                     encoder.write_u64(1)?;
                     encoder.write_bool(*(&value.bool_field))?;
                     encoder.write_u64(2)?;
@@ -99,44 +108,37 @@ pub mod omnius {
                     encoder.write_u64(11)?;
                     encoder.write_f64(*(&value.f64_field))?;
                     encoder.write_u64(12)?;
-                    encoder.write_array((&value.slice_field).len())?;
-                    for item in (&value.slice_field).iter() {
-                        encoder.write_i64(*(item))?;
-                    }
-                    encoder.write_u64(13)?;
-                    encoder.write_struct(&value.struct_field)?;
-                    encoder.write_u64(14)?;
                     encoder.write_string((&value.string_field).as_str())?;
-                    encoder.write_u64(15)?;
+                    encoder.write_u64(13)?;
                     encoder.write_bytes((&value.bytes_field).as_slice())?;
-                    encoder.write_u64(16)?;
+                    encoder.write_u64(14)?;
                     encoder.write_array((&value.vec_field_1).len())?;
                     for item in (&value.vec_field_1).iter() {
                         encoder.write_u8(*(item))?;
                     }
-                    encoder.write_u64(17)?;
+                    encoder.write_u64(15)?;
                     encoder.write_array((&value.vec_field_2).len())?;
                     for item in (&value.vec_field_2).iter() {
                         encoder.write_string((item).as_str())?;
                     }
-                    encoder.write_u64(18)?;
+                    encoder.write_u64(16)?;
                     encoder.write_array((&value.vec_field_3).len())?;
                     for item in (&value.vec_field_3).iter() {
                         encoder.write_bytes((item).as_slice())?;
                     }
-                    encoder.write_u64(19)?;
+                    encoder.write_u64(17)?;
                     encoder.write_map((&value.map_field_1).len())?;
                     for (key, value) in (&value.map_field_1).iter() {
                         encoder.write_u8(*(key))?;
                         encoder.write_string((value).as_str())?;
                     }
-                    encoder.write_u64(20)?;
+                    encoder.write_u64(18)?;
                     encoder.write_map((&value.map_field_2).len())?;
                     for (key, value) in (&value.map_field_2).iter() {
                         encoder.write_string((key).as_str())?;
                         encoder.write_u8(*(value))?;
                     }
-                    encoder.write_u64(21)?;
+                    encoder.write_u64(19)?;
                     encoder.write_map((&value.map_vec_field_1).len())?;
                     for (key, value) in (&value.map_vec_field_1).iter() {
                         encoder.write_string((key).as_str())?;
@@ -145,7 +147,7 @@ pub mod omnius {
                             encoder.write_u32(*(item))?;
                         }
                     }
-                    encoder.write_u64(22)?;
+                    encoder.write_u64(20)?;
                     encoder.write_map((&value.map_vec_field_2).len())?;
                     for (key, value) in (&value.map_vec_field_2).iter() {
                         encoder.write_string((key).as_str())?;
@@ -154,9 +156,65 @@ pub mod omnius {
                             encoder.write_bytes((item).as_slice())?;
                         }
                     }
+                    encoder.write_u64(21)?;
+                    encoder.write_array((&value.slice_field).len())?;
+                    for item in (&value.slice_field).iter() {
+                        encoder.write_i64(*(item))?;
+                    }
+                    encoder.write_u64(22)?;
+                    encoder.write_struct(&value.struct_field)?;
                     encoder.write_u64(23)?;
-                    encoder.write_struct(&value.timestamp_64)?;
+                    encoder.write_string((&value.string_field_constrained).as_str())?;
                     encoder.write_u64(24)?;
+                    encoder.write_bytes((&value.bytes_field_constrained).as_slice())?;
+                    encoder.write_u64(25)?;
+                    encoder.write_array((&value.vec_field_1_constrained).len())?;
+                    for item in (&value.vec_field_1_constrained).iter() {
+                        encoder.write_u8(*(item))?;
+                    }
+                    encoder.write_u64(26)?;
+                    encoder.write_array((&value.vec_field_2_constrained).len())?;
+                    for item in (&value.vec_field_2_constrained).iter() {
+                        encoder.write_string((item).as_str())?;
+                    }
+                    encoder.write_u64(27)?;
+                    encoder.write_array((&value.vec_field_3_constrained).len())?;
+                    for item in (&value.vec_field_3_constrained).iter() {
+                        encoder.write_bytes((item).as_slice())?;
+                    }
+                    encoder.write_u64(28)?;
+                    encoder.write_map((&value.map_field_1_constrained).len())?;
+                    for (key, value) in (&value.map_field_1_constrained).iter() {
+                        encoder.write_u8(*(key))?;
+                        encoder.write_string((value).as_str())?;
+                    }
+                    encoder.write_u64(29)?;
+                    encoder.write_map((&value.map_field_2_constrained).len())?;
+                    for (key, value) in (&value.map_field_2_constrained).iter() {
+                        encoder.write_string((key).as_str())?;
+                        encoder.write_u8(*(value))?;
+                    }
+                    encoder.write_u64(30)?;
+                    encoder.write_map((&value.map_vec_field_1_constrained).len())?;
+                    for (key, value) in (&value.map_vec_field_1_constrained).iter() {
+                        encoder.write_string((key).as_str())?;
+                        encoder.write_array((value).len())?;
+                        for item in (value).iter() {
+                            encoder.write_u32(*(item))?;
+                        }
+                    }
+                    encoder.write_u64(31)?;
+                    encoder.write_map((&value.map_vec_field_2_constrained).len())?;
+                    for (key, value) in (&value.map_vec_field_2_constrained).iter() {
+                        encoder.write_string((key).as_str())?;
+                        encoder.write_array((value).len())?;
+                        for item in (value).iter() {
+                            encoder.write_bytes((item).as_slice())?;
+                        }
+                    }
+                    encoder.write_u64(32)?;
+                    encoder.write_struct(&value.timestamp_64)?;
+                    encoder.write_u64(33)?;
                     encoder.write_struct(&value.timestamp_96)?;
                     Ok(())
                 }
@@ -177,8 +235,6 @@ pub mod omnius {
                     let mut u64_field: Option<u64> = None;
                     let mut f32_field: Option<f32> = None;
                     let mut f64_field: Option<f64> = None;
-                    let mut slice_field: Option<[i64; 4]> = None;
-                    let mut struct_field: Option<SimpleMessage> = None;
                     let mut string_field: Option<String> = None;
                     let mut bytes_field: Option<Vec<u8>> = None;
                     let mut vec_field_1: Option<Vec<u8>> = None;
@@ -188,6 +244,17 @@ pub mod omnius {
                     let mut map_field_2: Option<std::collections::BTreeMap<String, u8>> = None;
                     let mut map_vec_field_1: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
                     let mut map_vec_field_2: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
+                    let mut slice_field: Option<[i64; 4]> = None;
+                    let mut struct_field: Option<SimpleMessage> = None;
+                    let mut string_field_constrained: Option<String> = None;
+                    let mut bytes_field_constrained: Option<Vec<u8>> = None;
+                    let mut vec_field_1_constrained: Option<Vec<u8>> = None;
+                    let mut vec_field_2_constrained: Option<Vec<String>> = None;
+                    let mut vec_field_3_constrained: Option<Vec<Vec<u8>>> = None;
+                    let mut map_field_1_constrained: Option<std::collections::BTreeMap<u8, String>> = None;
+                    let mut map_field_2_constrained: Option<std::collections::BTreeMap<String, u8>> = None;
+                    let mut map_vec_field_1_constrained: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
+                    let mut map_vec_field_2_constrained: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
                     let mut timestamp_64: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
                     let mut timestamp_96: Option<omnius_core_rocketpack::primitive::Timestamp96> = None;
                     let count = decoder.read_map()?;
@@ -225,100 +292,176 @@ pub mod omnius {
                                 f64_field = Some(decoder.read_f64()?);
                             }
                             12 => {
-                                let __count_0 = decoder.read_array()?;
-                                if __count_0 != 4 {
-                                    return Err(omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"));
-                                }
-                                let mut __values_1: Vec<i64> = Vec::with_capacity(__count_0 as usize);
-                                for _ in 0..__count_0 {
-                                    __values_1.push(decoder.read_i64()?);
-                                }
-                                let __array_2: [i64; 4] = __values_1.try_into().map_err(|_| omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"))?;
-                                slice_field = Some(__array_2);
+                                string_field = Some(decoder.read_string()?);
                             }
                             13 => {
-                                struct_field = Some(decoder.read_struct::<SimpleMessage>()?);
+                                bytes_field = Some(decoder.read_bytes_vec()?);
                             }
                             14 => {
-                                string_field = Some(decoder.read_string_bounded("PrimitiveShowcase1.string_field", 1, 32)?);
+                                let __count_0 = decoder.read_array()?;
+                                let mut __values_1: Vec<u8> = Vec::with_capacity(__count_0 as usize);
+                                for _ in 0..__count_0 {
+                                    __values_1.push(decoder.read_u8()?);
+                                }
+                                vec_field_1 = Some(__values_1);
                             }
                             15 => {
-                                bytes_field = Some(decoder.read_bytes_bounded("PrimitiveShowcase1.bytes_field", 1, 1048576)?);
+                                let __count_2 = decoder.read_array()?;
+                                let mut __values_3: Vec<String> = Vec::with_capacity(__count_2 as usize);
+                                for _ in 0..__count_2 {
+                                    __values_3.push(decoder.read_string()?);
+                                }
+                                vec_field_2 = Some(__values_3);
                             }
                             16 => {
-                                let __count_3 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_1", 1, 8)?;
-                                let mut __values_4: Vec<u8> = Vec::with_capacity(__count_3 as usize);
-                                for _ in 0..__count_3 {
-                                    __values_4.push(decoder.read_u8()?);
+                                let __count_4 = decoder.read_array()?;
+                                let mut __values_5: Vec<Vec<u8>> = Vec::with_capacity(__count_4 as usize);
+                                for _ in 0..__count_4 {
+                                    __values_5.push(decoder.read_bytes_vec()?);
                                 }
-                                vec_field_1 = Some(__values_4);
+                                vec_field_3 = Some(__values_5);
                             }
                             17 => {
-                                let __count_5 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_2", 1, 8)?;
-                                let mut __values_6: Vec<String> = Vec::with_capacity(__count_5 as usize);
-                                for _ in 0..__count_5 {
-                                    __values_6.push(decoder.read_string_bounded("PrimitiveShowcase1.vec_field_2[]", 1, 16)?);
+                                let __count_6 = decoder.read_map()?;
+                                let mut __map_7: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_6 {
+                                    let __key_8 = decoder.read_u8()?;
+                                    __map_7.insert(__key_8, decoder.read_string()?);
                                 }
-                                vec_field_2 = Some(__values_6);
+                                map_field_1 = Some(__map_7);
                             }
                             18 => {
-                                let __count_7 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_3", 1, 4)?;
-                                let mut __values_8: Vec<Vec<u8>> = Vec::with_capacity(__count_7 as usize);
-                                for _ in 0..__count_7 {
-                                    __values_8.push(decoder.read_bytes_bounded("PrimitiveShowcase1.vec_field_3[]", 1, 8)?);
+                                let __count_9 = decoder.read_map()?;
+                                let mut __map_10: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_9 {
+                                    let __key_11 = decoder.read_string()?;
+                                    __map_10.insert(__key_11, decoder.read_u8()?);
                                 }
-                                vec_field_3 = Some(__values_8);
+                                map_field_2 = Some(__map_10);
                             }
                             19 => {
-                                let __count_9 = decoder.read_map_bounded("PrimitiveShowcase1.map_field_1", 1, 4)?;
-                                let mut __map_10: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
-                                for _ in 0..__count_9 {
-                                    let __key_11 = decoder.read_u8()?;
-                                    __map_10.insert(__key_11, decoder.read_string_bounded("PrimitiveShowcase1.map_field_1.value", 1, 16)?);
+                                let __count_12 = decoder.read_map()?;
+                                let mut __map_13: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_12 {
+                                    let __key_14 = decoder.read_string()?;
+                                    let __count_15 = decoder.read_array()?;
+                                    let mut __values_16: Vec<u32> = Vec::with_capacity(__count_15 as usize);
+                                    for _ in 0..__count_15 {
+                                        __values_16.push(decoder.read_u32()?);
+                                    }
+                                    __map_13.insert(__key_14, __values_16);
                                 }
-                                map_field_1 = Some(__map_10);
+                                map_vec_field_1 = Some(__map_13);
                             }
                             20 => {
-                                let __count_12 = decoder.read_map_bounded("PrimitiveShowcase1.map_field_2", 0, 4)?;
-                                let mut __map_13: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
-                                for _ in 0..__count_12 {
-                                    let __key_14 = decoder.read_string_bounded("PrimitiveShowcase1.map_field_2.key", 1, 8)?;
-                                    __map_13.insert(__key_14, decoder.read_u8()?);
+                                let __count_17 = decoder.read_map()?;
+                                let mut __map_18: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_17 {
+                                    let __key_19 = decoder.read_string()?;
+                                    let __count_20 = decoder.read_array()?;
+                                    let mut __values_21: Vec<Vec<u8>> = Vec::with_capacity(__count_20 as usize);
+                                    for _ in 0..__count_20 {
+                                        __values_21.push(decoder.read_bytes_vec()?);
+                                    }
+                                    __map_18.insert(__key_19, __values_21);
                                 }
-                                map_field_2 = Some(__map_13);
+                                map_vec_field_2 = Some(__map_18);
                             }
                             21 => {
-                                let __count_15 = decoder.read_map_bounded("PrimitiveShowcase1.map_vec_field_1", 0, 4)?;
-                                let mut __map_16: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
-                                for _ in 0..__count_15 {
-                                    let __key_17 = decoder.read_string_bounded("PrimitiveShowcase1.map_vec_field_1.key", 1, 8)?;
-                                    let __count_18 = decoder.read_array_bounded("PrimitiveShowcase1.map_vec_field_1.value", 0, 8)?;
-                                    let mut __values_19: Vec<u32> = Vec::with_capacity(__count_18 as usize);
-                                    for _ in 0..__count_18 {
-                                        __values_19.push(decoder.read_u32()?);
-                                    }
-                                    __map_16.insert(__key_17, __values_19);
+                                let __count_22 = decoder.read_array()?;
+                                if __count_22 != 4 {
+                                    return Err(omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"));
                                 }
-                                map_vec_field_1 = Some(__map_16);
+                                let mut __values_23: Vec<i64> = Vec::with_capacity(__count_22 as usize);
+                                for _ in 0..__count_22 {
+                                    __values_23.push(decoder.read_i64()?);
+                                }
+                                let __array_24: [i64; 4] = __values_23.try_into().map_err(|_| omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"))?;
+                                slice_field = Some(__array_24);
                             }
                             22 => {
-                                let __count_20 = decoder.read_map_bounded("PrimitiveShowcase1.map_vec_field_2", 0, 4)?;
-                                let mut __map_21: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
-                                for _ in 0..__count_20 {
-                                    let __key_22 = decoder.read_string_bounded("PrimitiveShowcase1.map_vec_field_2.key", 1, 8)?;
-                                    let __count_23 = decoder.read_array_bounded("PrimitiveShowcase1.map_vec_field_2.value", 0, 4)?;
-                                    let mut __values_24: Vec<Vec<u8>> = Vec::with_capacity(__count_23 as usize);
-                                    for _ in 0..__count_23 {
-                                        __values_24.push(decoder.read_bytes_bounded("PrimitiveShowcase1.map_vec_field_2.value[]", 1, 8)?);
-                                    }
-                                    __map_21.insert(__key_22, __values_24);
-                                }
-                                map_vec_field_2 = Some(__map_21);
+                                struct_field = Some(decoder.read_struct::<SimpleMessage>()?);
                             }
                             23 => {
-                                timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                                string_field_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase1.string_field_constrained", 1, 32)?);
                             }
                             24 => {
+                                bytes_field_constrained = Some(decoder.read_bytes_bounded("PrimitiveShowcase1.bytes_field_constrained", 1, 1048576)?);
+                            }
+                            25 => {
+                                let __count_25 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_1_constrained", 1, 8)?;
+                                let mut __values_26: Vec<u8> = Vec::with_capacity(__count_25 as usize);
+                                for _ in 0..__count_25 {
+                                    __values_26.push(decoder.read_u8()?);
+                                }
+                                vec_field_1_constrained = Some(__values_26);
+                            }
+                            26 => {
+                                let __count_27 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_2_constrained", 1, 8)?;
+                                let mut __values_28: Vec<String> = Vec::with_capacity(__count_27 as usize);
+                                for _ in 0..__count_27 {
+                                    __values_28.push(decoder.read_string_bounded("PrimitiveShowcase1.vec_field_2_constrained[]", 1, 16)?);
+                                }
+                                vec_field_2_constrained = Some(__values_28);
+                            }
+                            27 => {
+                                let __count_29 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_3_constrained", 1, 4)?;
+                                let mut __values_30: Vec<Vec<u8>> = Vec::with_capacity(__count_29 as usize);
+                                for _ in 0..__count_29 {
+                                    __values_30.push(decoder.read_bytes_bounded("PrimitiveShowcase1.vec_field_3_constrained[]", 1, 8)?);
+                                }
+                                vec_field_3_constrained = Some(__values_30);
+                            }
+                            28 => {
+                                let __count_31 = decoder.read_map_bounded("PrimitiveShowcase1.map_field_1_constrained", 1, 4)?;
+                                let mut __map_32: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_31 {
+                                    let __key_33 = decoder.read_u8()?;
+                                    __map_32.insert(__key_33, decoder.read_string_bounded("PrimitiveShowcase1.map_field_1_constrained.value", 1, 16)?);
+                                }
+                                map_field_1_constrained = Some(__map_32);
+                            }
+                            29 => {
+                                let __count_34 = decoder.read_map_bounded("PrimitiveShowcase1.map_field_2_constrained", 0, 4)?;
+                                let mut __map_35: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_34 {
+                                    let __key_36 = decoder.read_string_bounded("PrimitiveShowcase1.map_field_2_constrained.key", 1, 8)?;
+                                    __map_35.insert(__key_36, decoder.read_u8()?);
+                                }
+                                map_field_2_constrained = Some(__map_35);
+                            }
+                            30 => {
+                                let __count_37 = decoder.read_map_bounded("PrimitiveShowcase1.map_vec_field_1_constrained", 0, 4)?;
+                                let mut __map_38: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_37 {
+                                    let __key_39 = decoder.read_string_bounded("PrimitiveShowcase1.map_vec_field_1_constrained.key", 1, 8)?;
+                                    let __count_40 = decoder.read_array_bounded("PrimitiveShowcase1.map_vec_field_1_constrained.value", 0, 8)?;
+                                    let mut __values_41: Vec<u32> = Vec::with_capacity(__count_40 as usize);
+                                    for _ in 0..__count_40 {
+                                        __values_41.push(decoder.read_u32()?);
+                                    }
+                                    __map_38.insert(__key_39, __values_41);
+                                }
+                                map_vec_field_1_constrained = Some(__map_38);
+                            }
+                            31 => {
+                                let __count_42 = decoder.read_map_bounded("PrimitiveShowcase1.map_vec_field_2_constrained", 0, 4)?;
+                                let mut __map_43: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_42 {
+                                    let __key_44 = decoder.read_string_bounded("PrimitiveShowcase1.map_vec_field_2_constrained.key", 1, 8)?;
+                                    let __count_45 = decoder.read_array_bounded("PrimitiveShowcase1.map_vec_field_2_constrained.value", 0, 4)?;
+                                    let mut __values_46: Vec<Vec<u8>> = Vec::with_capacity(__count_45 as usize);
+                                    for _ in 0..__count_45 {
+                                        __values_46.push(decoder.read_bytes_bounded("PrimitiveShowcase1.map_vec_field_2_constrained.value[]", 1, 8)?);
+                                    }
+                                    __map_43.insert(__key_44, __values_46);
+                                }
+                                map_vec_field_2_constrained = Some(__map_43);
+                            }
+                            32 => {
+                                timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                            }
+                            33 => {
                                 timestamp_96 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp96>()?);
                             }
                             _ => decoder.skip_field()?,
@@ -336,8 +479,6 @@ pub mod omnius {
                         u64_field: u64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u64_field"))?,
                         f32_field: f32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: f32_field"))?,
                         f64_field: f64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: f64_field"))?,
-                        slice_field: slice_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: slice_field"))?,
-                        struct_field: struct_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: struct_field"))?,
                         string_field: string_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: string_field"))?,
                         bytes_field: bytes_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bytes_field"))?,
                         vec_field_1: vec_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_1"))?,
@@ -347,6 +488,17 @@ pub mod omnius {
                         map_field_2: map_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_2"))?,
                         map_vec_field_1: map_vec_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_1"))?,
                         map_vec_field_2: map_vec_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_2"))?,
+                        slice_field: slice_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: slice_field"))?,
+                        struct_field: struct_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: struct_field"))?,
+                        string_field_constrained: string_field_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: string_field_constrained"))?,
+                        bytes_field_constrained: bytes_field_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bytes_field_constrained"))?,
+                        vec_field_1_constrained: vec_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_1_constrained"))?,
+                        vec_field_2_constrained: vec_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_2_constrained"))?,
+                        vec_field_3_constrained: vec_field_3_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_3_constrained"))?,
+                        map_field_1_constrained: map_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_1_constrained"))?,
+                        map_field_2_constrained: map_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_2_constrained"))?,
+                        map_vec_field_1_constrained: map_vec_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_1_constrained"))?,
+                        map_vec_field_2_constrained: map_vec_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_2_constrained"))?,
                         timestamp_64: timestamp_64.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: timestamp_64"))?,
                         timestamp_96: timestamp_96.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: timestamp_96"))?,
                     })
@@ -365,7 +517,6 @@ pub mod omnius {
                 pub u64_field: Option<u64>,
                 pub f32_field: Option<f32>,
                 pub f64_field: Option<f64>,
-                pub struct_field: Option<SimpleMessage>,
                 pub string_field: Option<String>,
                 pub bytes_field: Option<Vec<u8>>,
                 pub vec_field_1: Option<Vec<u8>>,
@@ -375,6 +526,16 @@ pub mod omnius {
                 pub map_field_2: Option<std::collections::BTreeMap<String, u8>>,
                 pub map_vec_field_1: Option<std::collections::BTreeMap<String, Vec<u32>>>,
                 pub map_vec_field_2: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>>,
+                pub struct_field: Option<SimpleMessage>,
+                pub string_field_constrained: Option<String>,
+                pub bytes_field_constrained: Option<Vec<u8>>,
+                pub vec_field_1_constrained: Option<Vec<u8>>,
+                pub vec_field_2_constrained: Option<Vec<String>>,
+                pub vec_field_3_constrained: Option<Vec<Vec<u8>>>,
+                pub map_field_1_constrained: Option<std::collections::BTreeMap<u8, String>>,
+                pub map_field_2_constrained: Option<std::collections::BTreeMap<String, u8>>,
+                pub map_vec_field_1_constrained: Option<std::collections::BTreeMap<String, Vec<u32>>>,
+                pub map_vec_field_2_constrained: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>>,
                 pub timestamp_64: Option<omnius_core_rocketpack::primitive::Timestamp64>,
                 pub timestamp_96: Option<omnius_core_rocketpack::primitive::Timestamp96>,
             }
@@ -384,53 +545,53 @@ pub mod omnius {
                     if let Some(struct_field) = &value.struct_field {
                         <SimpleMessage as omnius_core_rocketpack::RocketPackStruct>::validate(struct_field)?;
                     }
-                    if let Some(string_field) = &value.string_field {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.string_field", 1, 32, (string_field).len())?;
+                    if let Some(string_field_constrained) = &value.string_field_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.string_field_constrained", 1, 32, (string_field_constrained).len())?;
                     }
-                    if let Some(bytes_field) = &value.bytes_field {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.bytes_field", 1, 1048576, (bytes_field).len())?;
+                    if let Some(bytes_field_constrained) = &value.bytes_field_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.bytes_field_constrained", 1, 1048576, (bytes_field_constrained).len())?;
                     }
-                    if let Some(vec_field_1) = &value.vec_field_1 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_1", 1, 8, (vec_field_1).len())?;
+                    if let Some(vec_field_1_constrained) = &value.vec_field_1_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_1_constrained", 1, 8, (vec_field_1_constrained).len())?;
                     }
-                    if let Some(vec_field_2) = &value.vec_field_2 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_2", 1, 8, (vec_field_2).len())?;
-                        for item in (vec_field_2).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_2[]", 1, 16, (item).len())?;
+                    if let Some(vec_field_2_constrained) = &value.vec_field_2_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_2_constrained", 1, 8, (vec_field_2_constrained).len())?;
+                        for item in (vec_field_2_constrained).iter() {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_2_constrained[]", 1, 16, (item).len())?;
                         }
                     }
-                    if let Some(vec_field_3) = &value.vec_field_3 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_3", 1, 4, (vec_field_3).len())?;
-                        for item in (vec_field_3).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_3[]", 1, 8, (item).len())?;
+                    if let Some(vec_field_3_constrained) = &value.vec_field_3_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_3_constrained", 1, 4, (vec_field_3_constrained).len())?;
+                        for item in (vec_field_3_constrained).iter() {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_3_constrained[]", 1, 8, (item).len())?;
                         }
                     }
-                    if let Some(map_field_1) = &value.map_field_1 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_1", 1, 4, (map_field_1).len())?;
-                        for (_key, value) in (map_field_1).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_1.value", 1, 16, (value).len())?;
+                    if let Some(map_field_1_constrained) = &value.map_field_1_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_1_constrained", 1, 4, (map_field_1_constrained).len())?;
+                        for (_key, value) in (map_field_1_constrained).iter() {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_1_constrained.value", 1, 16, (value).len())?;
                         }
                     }
-                    if let Some(map_field_2) = &value.map_field_2 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_2", 0, 4, (map_field_2).len())?;
-                        for (key, _value) in (map_field_2).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_2.key", 1, 8, (key).len())?;
+                    if let Some(map_field_2_constrained) = &value.map_field_2_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_2_constrained", 0, 4, (map_field_2_constrained).len())?;
+                        for (key, _value) in (map_field_2_constrained).iter() {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_2_constrained.key", 1, 8, (key).len())?;
                         }
                     }
-                    if let Some(map_vec_field_1) = &value.map_vec_field_1 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1", 0, 4, (map_vec_field_1).len())?;
-                        for (key, value) in (map_vec_field_1).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1.key", 1, 8, (key).len())?;
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1.value", 0, 8, (value).len())?;
+                    if let Some(map_vec_field_1_constrained) = &value.map_vec_field_1_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1_constrained", 0, 4, (map_vec_field_1_constrained).len())?;
+                        for (key, value) in (map_vec_field_1_constrained).iter() {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1_constrained.key", 1, 8, (key).len())?;
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1_constrained.value", 0, 8, (value).len())?;
                         }
                     }
-                    if let Some(map_vec_field_2) = &value.map_vec_field_2 {
-                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2", 0, 4, (map_vec_field_2).len())?;
-                        for (key, value) in (map_vec_field_2).iter() {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2.key", 1, 8, (key).len())?;
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2.value", 0, 4, (value).len())?;
+                    if let Some(map_vec_field_2_constrained) = &value.map_vec_field_2_constrained {
+                        omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained", 0, 4, (map_vec_field_2_constrained).len())?;
+                        for (key, value) in (map_vec_field_2_constrained).iter() {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained.key", 1, 8, (key).len())?;
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained.value", 0, 4, (value).len())?;
                             for item in (value).iter() {
-                                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2.value[]", 1, 8, (item).len())?;
+                                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained.value[]", 1, 8, (item).len())?;
                             }
                         }
                     }
@@ -479,9 +640,6 @@ pub mod omnius {
                     if value.f64_field.is_some() {
                         count += 1;
                     }
-                    if value.struct_field.is_some() {
-                        count += 1;
-                    }
                     if value.string_field.is_some() {
                         count += 1;
                     }
@@ -507,6 +665,36 @@ pub mod omnius {
                         count += 1;
                     }
                     if value.map_vec_field_2.is_some() {
+                        count += 1;
+                    }
+                    if value.struct_field.is_some() {
+                        count += 1;
+                    }
+                    if value.string_field_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.bytes_field_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.vec_field_1_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.vec_field_2_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.vec_field_3_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.map_field_1_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.map_field_2_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.map_vec_field_1_constrained.is_some() {
+                        count += 1;
+                    }
+                    if value.map_vec_field_2_constrained.is_some() {
                         count += 1;
                     }
                     if value.timestamp_64.is_some() {
@@ -556,41 +744,37 @@ pub mod omnius {
                         encoder.write_u64(11)?;
                         encoder.write_f64(*(f64_field))?;
                     }
-                    if let Some(struct_field) = &value.struct_field {
-                        encoder.write_u64(12)?;
-                        encoder.write_struct(struct_field)?;
-                    }
                     if let Some(string_field) = &value.string_field {
-                        encoder.write_u64(13)?;
+                        encoder.write_u64(12)?;
                         encoder.write_string((string_field).as_str())?;
                     }
                     if let Some(bytes_field) = &value.bytes_field {
-                        encoder.write_u64(14)?;
+                        encoder.write_u64(13)?;
                         encoder.write_bytes((bytes_field).as_slice())?;
                     }
                     if let Some(vec_field_1) = &value.vec_field_1 {
-                        encoder.write_u64(15)?;
+                        encoder.write_u64(14)?;
                         encoder.write_array((vec_field_1).len())?;
                         for item in (vec_field_1).iter() {
                             encoder.write_u8(*(item))?;
                         }
                     }
                     if let Some(vec_field_2) = &value.vec_field_2 {
-                        encoder.write_u64(16)?;
+                        encoder.write_u64(15)?;
                         encoder.write_array((vec_field_2).len())?;
                         for item in (vec_field_2).iter() {
                             encoder.write_string((item).as_str())?;
                         }
                     }
                     if let Some(vec_field_3) = &value.vec_field_3 {
-                        encoder.write_u64(17)?;
+                        encoder.write_u64(16)?;
                         encoder.write_array((vec_field_3).len())?;
                         for item in (vec_field_3).iter() {
                             encoder.write_bytes((item).as_slice())?;
                         }
                     }
                     if let Some(map_field_1) = &value.map_field_1 {
-                        encoder.write_u64(18)?;
+                        encoder.write_u64(17)?;
                         encoder.write_map((map_field_1).len())?;
                         for (key, value) in (map_field_1).iter() {
                             encoder.write_u8(*(key))?;
@@ -598,7 +782,7 @@ pub mod omnius {
                         }
                     }
                     if let Some(map_field_2) = &value.map_field_2 {
-                        encoder.write_u64(19)?;
+                        encoder.write_u64(18)?;
                         encoder.write_map((map_field_2).len())?;
                         for (key, value) in (map_field_2).iter() {
                             encoder.write_string((key).as_str())?;
@@ -606,7 +790,7 @@ pub mod omnius {
                         }
                     }
                     if let Some(map_vec_field_1) = &value.map_vec_field_1 {
-                        encoder.write_u64(20)?;
+                        encoder.write_u64(19)?;
                         encoder.write_map((map_vec_field_1).len())?;
                         for (key, value) in (map_vec_field_1).iter() {
                             encoder.write_string((key).as_str())?;
@@ -617,7 +801,7 @@ pub mod omnius {
                         }
                     }
                     if let Some(map_vec_field_2) = &value.map_vec_field_2 {
-                        encoder.write_u64(21)?;
+                        encoder.write_u64(20)?;
                         encoder.write_map((map_vec_field_2).len())?;
                         for (key, value) in (map_vec_field_2).iter() {
                             encoder.write_string((key).as_str())?;
@@ -627,12 +811,83 @@ pub mod omnius {
                             }
                         }
                     }
-                    if let Some(timestamp_64) = &value.timestamp_64 {
+                    if let Some(struct_field) = &value.struct_field {
+                        encoder.write_u64(21)?;
+                        encoder.write_struct(struct_field)?;
+                    }
+                    if let Some(string_field_constrained) = &value.string_field_constrained {
                         encoder.write_u64(22)?;
+                        encoder.write_string((string_field_constrained).as_str())?;
+                    }
+                    if let Some(bytes_field_constrained) = &value.bytes_field_constrained {
+                        encoder.write_u64(23)?;
+                        encoder.write_bytes((bytes_field_constrained).as_slice())?;
+                    }
+                    if let Some(vec_field_1_constrained) = &value.vec_field_1_constrained {
+                        encoder.write_u64(24)?;
+                        encoder.write_array((vec_field_1_constrained).len())?;
+                        for item in (vec_field_1_constrained).iter() {
+                            encoder.write_u8(*(item))?;
+                        }
+                    }
+                    if let Some(vec_field_2_constrained) = &value.vec_field_2_constrained {
+                        encoder.write_u64(25)?;
+                        encoder.write_array((vec_field_2_constrained).len())?;
+                        for item in (vec_field_2_constrained).iter() {
+                            encoder.write_string((item).as_str())?;
+                        }
+                    }
+                    if let Some(vec_field_3_constrained) = &value.vec_field_3_constrained {
+                        encoder.write_u64(26)?;
+                        encoder.write_array((vec_field_3_constrained).len())?;
+                        for item in (vec_field_3_constrained).iter() {
+                            encoder.write_bytes((item).as_slice())?;
+                        }
+                    }
+                    if let Some(map_field_1_constrained) = &value.map_field_1_constrained {
+                        encoder.write_u64(27)?;
+                        encoder.write_map((map_field_1_constrained).len())?;
+                        for (key, value) in (map_field_1_constrained).iter() {
+                            encoder.write_u8(*(key))?;
+                            encoder.write_string((value).as_str())?;
+                        }
+                    }
+                    if let Some(map_field_2_constrained) = &value.map_field_2_constrained {
+                        encoder.write_u64(28)?;
+                        encoder.write_map((map_field_2_constrained).len())?;
+                        for (key, value) in (map_field_2_constrained).iter() {
+                            encoder.write_string((key).as_str())?;
+                            encoder.write_u8(*(value))?;
+                        }
+                    }
+                    if let Some(map_vec_field_1_constrained) = &value.map_vec_field_1_constrained {
+                        encoder.write_u64(29)?;
+                        encoder.write_map((map_vec_field_1_constrained).len())?;
+                        for (key, value) in (map_vec_field_1_constrained).iter() {
+                            encoder.write_string((key).as_str())?;
+                            encoder.write_array((value).len())?;
+                            for item in (value).iter() {
+                                encoder.write_u32(*(item))?;
+                            }
+                        }
+                    }
+                    if let Some(map_vec_field_2_constrained) = &value.map_vec_field_2_constrained {
+                        encoder.write_u64(30)?;
+                        encoder.write_map((map_vec_field_2_constrained).len())?;
+                        for (key, value) in (map_vec_field_2_constrained).iter() {
+                            encoder.write_string((key).as_str())?;
+                            encoder.write_array((value).len())?;
+                            for item in (value).iter() {
+                                encoder.write_bytes((item).as_slice())?;
+                            }
+                        }
+                    }
+                    if let Some(timestamp_64) = &value.timestamp_64 {
+                        encoder.write_u64(31)?;
                         encoder.write_struct(timestamp_64)?;
                     }
                     if let Some(timestamp_96) = &value.timestamp_96 {
-                        encoder.write_u64(23)?;
+                        encoder.write_u64(32)?;
                         encoder.write_struct(timestamp_96)?;
                     }
                     Ok(())
@@ -654,7 +909,6 @@ pub mod omnius {
                     let mut u64_field: Option<u64> = None;
                     let mut f32_field: Option<f32> = None;
                     let mut f64_field: Option<f64> = None;
-                    let mut struct_field: Option<SimpleMessage> = None;
                     let mut string_field: Option<String> = None;
                     let mut bytes_field: Option<Vec<u8>> = None;
                     let mut vec_field_1: Option<Vec<u8>> = None;
@@ -664,6 +918,16 @@ pub mod omnius {
                     let mut map_field_2: Option<std::collections::BTreeMap<String, u8>> = None;
                     let mut map_vec_field_1: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
                     let mut map_vec_field_2: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
+                    let mut struct_field: Option<SimpleMessage> = None;
+                    let mut string_field_constrained: Option<String> = None;
+                    let mut bytes_field_constrained: Option<Vec<u8>> = None;
+                    let mut vec_field_1_constrained: Option<Vec<u8>> = None;
+                    let mut vec_field_2_constrained: Option<Vec<String>> = None;
+                    let mut vec_field_3_constrained: Option<Vec<Vec<u8>>> = None;
+                    let mut map_field_1_constrained: Option<std::collections::BTreeMap<u8, String>> = None;
+                    let mut map_field_2_constrained: Option<std::collections::BTreeMap<String, u8>> = None;
+                    let mut map_vec_field_1_constrained: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
+                    let mut map_vec_field_2_constrained: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
                     let mut timestamp_64: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
                     let mut timestamp_96: Option<omnius_core_rocketpack::primitive::Timestamp96> = None;
                     let count = decoder.read_map()?;
@@ -701,62 +965,59 @@ pub mod omnius {
                                 f64_field = Some(decoder.read_f64()?);
                             }
                             12 => {
-                                struct_field = Some(decoder.read_struct::<SimpleMessage>()?);
+                                string_field = Some(decoder.read_string()?);
                             }
                             13 => {
-                                string_field = Some(decoder.read_string_bounded("PrimitiveShowcase2.string_field", 1, 32)?);
+                                bytes_field = Some(decoder.read_bytes_vec()?);
                             }
                             14 => {
-                                bytes_field = Some(decoder.read_bytes_bounded("PrimitiveShowcase2.bytes_field", 1, 1048576)?);
-                            }
-                            15 => {
-                                let __count_0 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_1", 1, 8)?;
+                                let __count_0 = decoder.read_array()?;
                                 let mut __values_1: Vec<u8> = Vec::with_capacity(__count_0 as usize);
                                 for _ in 0..__count_0 {
                                     __values_1.push(decoder.read_u8()?);
                                 }
                                 vec_field_1 = Some(__values_1);
                             }
-                            16 => {
-                                let __count_2 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_2", 1, 8)?;
+                            15 => {
+                                let __count_2 = decoder.read_array()?;
                                 let mut __values_3: Vec<String> = Vec::with_capacity(__count_2 as usize);
                                 for _ in 0..__count_2 {
-                                    __values_3.push(decoder.read_string_bounded("PrimitiveShowcase2.vec_field_2[]", 1, 16)?);
+                                    __values_3.push(decoder.read_string()?);
                                 }
                                 vec_field_2 = Some(__values_3);
                             }
-                            17 => {
-                                let __count_4 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_3", 1, 4)?;
+                            16 => {
+                                let __count_4 = decoder.read_array()?;
                                 let mut __values_5: Vec<Vec<u8>> = Vec::with_capacity(__count_4 as usize);
                                 for _ in 0..__count_4 {
-                                    __values_5.push(decoder.read_bytes_bounded("PrimitiveShowcase2.vec_field_3[]", 1, 8)?);
+                                    __values_5.push(decoder.read_bytes_vec()?);
                                 }
                                 vec_field_3 = Some(__values_5);
                             }
-                            18 => {
-                                let __count_6 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_1", 1, 4)?;
+                            17 => {
+                                let __count_6 = decoder.read_map()?;
                                 let mut __map_7: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
                                 for _ in 0..__count_6 {
                                     let __key_8 = decoder.read_u8()?;
-                                    __map_7.insert(__key_8, decoder.read_string_bounded("PrimitiveShowcase2.map_field_1.value", 1, 16)?);
+                                    __map_7.insert(__key_8, decoder.read_string()?);
                                 }
                                 map_field_1 = Some(__map_7);
                             }
-                            19 => {
-                                let __count_9 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_2", 0, 4)?;
+                            18 => {
+                                let __count_9 = decoder.read_map()?;
                                 let mut __map_10: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
                                 for _ in 0..__count_9 {
-                                    let __key_11 = decoder.read_string_bounded("PrimitiveShowcase2.map_field_2.key", 1, 8)?;
+                                    let __key_11 = decoder.read_string()?;
                                     __map_10.insert(__key_11, decoder.read_u8()?);
                                 }
                                 map_field_2 = Some(__map_10);
                             }
-                            20 => {
-                                let __count_12 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_1", 0, 4)?;
+                            19 => {
+                                let __count_12 = decoder.read_map()?;
                                 let mut __map_13: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
                                 for _ in 0..__count_12 {
-                                    let __key_14 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_1.key", 1, 8)?;
-                                    let __count_15 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_1.value", 0, 8)?;
+                                    let __key_14 = decoder.read_string()?;
+                                    let __count_15 = decoder.read_array()?;
                                     let mut __values_16: Vec<u32> = Vec::with_capacity(__count_15 as usize);
                                     for _ in 0..__count_15 {
                                         __values_16.push(decoder.read_u32()?);
@@ -765,24 +1026,103 @@ pub mod omnius {
                                 }
                                 map_vec_field_1 = Some(__map_13);
                             }
-                            21 => {
-                                let __count_17 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_2", 0, 4)?;
+                            20 => {
+                                let __count_17 = decoder.read_map()?;
                                 let mut __map_18: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
                                 for _ in 0..__count_17 {
-                                    let __key_19 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_2.key", 1, 8)?;
-                                    let __count_20 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_2.value", 0, 4)?;
+                                    let __key_19 = decoder.read_string()?;
+                                    let __count_20 = decoder.read_array()?;
                                     let mut __values_21: Vec<Vec<u8>> = Vec::with_capacity(__count_20 as usize);
                                     for _ in 0..__count_20 {
-                                        __values_21.push(decoder.read_bytes_bounded("PrimitiveShowcase2.map_vec_field_2.value[]", 1, 8)?);
+                                        __values_21.push(decoder.read_bytes_vec()?);
                                     }
                                     __map_18.insert(__key_19, __values_21);
                                 }
                                 map_vec_field_2 = Some(__map_18);
                             }
+                            21 => {
+                                struct_field = Some(decoder.read_struct::<SimpleMessage>()?);
+                            }
                             22 => {
-                                timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                                string_field_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase2.string_field_constrained", 1, 32)?);
                             }
                             23 => {
+                                bytes_field_constrained = Some(decoder.read_bytes_bounded("PrimitiveShowcase2.bytes_field_constrained", 1, 1048576)?);
+                            }
+                            24 => {
+                                let __count_22 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_1_constrained", 1, 8)?;
+                                let mut __values_23: Vec<u8> = Vec::with_capacity(__count_22 as usize);
+                                for _ in 0..__count_22 {
+                                    __values_23.push(decoder.read_u8()?);
+                                }
+                                vec_field_1_constrained = Some(__values_23);
+                            }
+                            25 => {
+                                let __count_24 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_2_constrained", 1, 8)?;
+                                let mut __values_25: Vec<String> = Vec::with_capacity(__count_24 as usize);
+                                for _ in 0..__count_24 {
+                                    __values_25.push(decoder.read_string_bounded("PrimitiveShowcase2.vec_field_2_constrained[]", 1, 16)?);
+                                }
+                                vec_field_2_constrained = Some(__values_25);
+                            }
+                            26 => {
+                                let __count_26 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_3_constrained", 1, 4)?;
+                                let mut __values_27: Vec<Vec<u8>> = Vec::with_capacity(__count_26 as usize);
+                                for _ in 0..__count_26 {
+                                    __values_27.push(decoder.read_bytes_bounded("PrimitiveShowcase2.vec_field_3_constrained[]", 1, 8)?);
+                                }
+                                vec_field_3_constrained = Some(__values_27);
+                            }
+                            27 => {
+                                let __count_28 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_1_constrained", 1, 4)?;
+                                let mut __map_29: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_28 {
+                                    let __key_30 = decoder.read_u8()?;
+                                    __map_29.insert(__key_30, decoder.read_string_bounded("PrimitiveShowcase2.map_field_1_constrained.value", 1, 16)?);
+                                }
+                                map_field_1_constrained = Some(__map_29);
+                            }
+                            28 => {
+                                let __count_31 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_2_constrained", 0, 4)?;
+                                let mut __map_32: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_31 {
+                                    let __key_33 = decoder.read_string_bounded("PrimitiveShowcase2.map_field_2_constrained.key", 1, 8)?;
+                                    __map_32.insert(__key_33, decoder.read_u8()?);
+                                }
+                                map_field_2_constrained = Some(__map_32);
+                            }
+                            29 => {
+                                let __count_34 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_1_constrained", 0, 4)?;
+                                let mut __map_35: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_34 {
+                                    let __key_36 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_1_constrained.key", 1, 8)?;
+                                    let __count_37 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_1_constrained.value", 0, 8)?;
+                                    let mut __values_38: Vec<u32> = Vec::with_capacity(__count_37 as usize);
+                                    for _ in 0..__count_37 {
+                                        __values_38.push(decoder.read_u32()?);
+                                    }
+                                    __map_35.insert(__key_36, __values_38);
+                                }
+                                map_vec_field_1_constrained = Some(__map_35);
+                            }
+                            30 => {
+                                let __count_39 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_2_constrained", 0, 4)?;
+                                let mut __map_40: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
+                                for _ in 0..__count_39 {
+                                    let __key_41 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.key", 1, 8)?;
+                                    let __count_42 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.value", 0, 4)?;
+                                    let mut __values_43: Vec<Vec<u8>> = Vec::with_capacity(__count_42 as usize);
+                                    for _ in 0..__count_42 {
+                                        __values_43.push(decoder.read_bytes_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.value[]", 1, 8)?);
+                                    }
+                                    __map_40.insert(__key_41, __values_43);
+                                }
+                                map_vec_field_2_constrained = Some(__map_40);
+                            }
+                            31 => {
+                                timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                            }
+                            32 => {
                                 timestamp_96 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp96>()?);
                             }
                             _ => decoder.skip_field()?,
@@ -800,7 +1140,6 @@ pub mod omnius {
                         u64_field: u64_field,
                         f32_field: f32_field,
                         f64_field: f64_field,
-                        struct_field: struct_field,
                         string_field: string_field,
                         bytes_field: bytes_field,
                         vec_field_1: vec_field_1,
@@ -810,6 +1149,16 @@ pub mod omnius {
                         map_field_2: map_field_2,
                         map_vec_field_1: map_vec_field_1,
                         map_vec_field_2: map_vec_field_2,
+                        struct_field: struct_field,
+                        string_field_constrained: string_field_constrained,
+                        bytes_field_constrained: bytes_field_constrained,
+                        vec_field_1_constrained: vec_field_1_constrained,
+                        vec_field_2_constrained: vec_field_2_constrained,
+                        vec_field_3_constrained: vec_field_3_constrained,
+                        map_field_1_constrained: map_field_1_constrained,
+                        map_field_2_constrained: map_field_2_constrained,
+                        map_vec_field_1_constrained: map_vec_field_1_constrained,
+                        map_vec_field_2_constrained: map_vec_field_2_constrained,
                         timestamp_64: timestamp_64,
                         timestamp_96: timestamp_96,
                     })
@@ -821,10 +1170,12 @@ pub mod omnius {
                 First,
                 Second {
                     entity: String,
+                    entity_constrained: String,
                     payload: ByteList,
                 },
                 Third {
                     entity: String,
+                    entity_constrained: String,
                     status: Status,
                     retries: u32,
                     struct_field: Option<SimpleMessage>,
@@ -835,15 +1186,15 @@ pub mod omnius {
                 fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
                     match value {
                         Self::First => {},
-                        Self::Second { entity, payload } => {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.0", 1, 32, (entity).len())?;
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.1", 1, 4, (payload).len())?;
+                        Self::Second { entity: _, entity_constrained, payload } => {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.1", 1, 32, (entity_constrained).len())?;
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.2", 1, 4, (payload).len())?;
                             for item in (payload).iter() {
-                                omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.1[]", 1, 8, (item).len())?;
+                                omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.2[]", 1, 8, (item).len())?;
                             }
                         },
-                        Self::Third { entity, status, retries: _, struct_field } => {
-                            omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Third.entity", 1, 32, (entity).len())?;
+                        Self::Third { entity: _, entity_constrained, status, retries: _, struct_field } => {
+                            omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Third.entity_constrained", 1, 32, (entity_constrained).len())?;
                             <Status as omnius_core_rocketpack::RocketPackStruct>::validate(status)?;
                             if let Some(struct_field) = struct_field.as_ref() {
                                 <SimpleMessage as omnius_core_rocketpack::RocketPackStruct>::validate(struct_field)?;
@@ -865,20 +1216,22 @@ pub mod omnius {
                             encoder.write_u64(1)?;
                             encoder.write_map(0)?;
                         }
-                        Self::Second { entity, payload } => {
+                        Self::Second { entity, entity_constrained, payload } => {
                             encoder.write_u64(2)?;
-                            encoder.write_map(2)?;
+                            encoder.write_map(3)?;
                             encoder.write_u64(0)?;
                             encoder.write_string((entity).as_str())?;
                             encoder.write_u64(1)?;
+                            encoder.write_string((entity_constrained).as_str())?;
+                            encoder.write_u64(2)?;
                             encoder.write_array((payload).len())?;
                             for item in (payload).iter() {
                                 encoder.write_bytes((item).as_slice())?;
                             }
                         }
-                        Self::Third { entity, status, retries, struct_field } => {
+                        Self::Third { entity, entity_constrained, status, retries, struct_field } => {
                             encoder.write_u64(3)?;
-                            let mut count = 3;
+                            let mut count = 4;
                             if struct_field.is_some() {
                                 count += 1;
                             }
@@ -886,11 +1239,13 @@ pub mod omnius {
                             encoder.write_u64(1)?;
                             encoder.write_string((entity).as_str())?;
                             encoder.write_u64(2)?;
-                            encoder.write_struct(status)?;
+                            encoder.write_string((entity_constrained).as_str())?;
                             encoder.write_u64(3)?;
+                            encoder.write_struct(status)?;
+                            encoder.write_u64(4)?;
                             encoder.write_u32(*(retries))?;
                             if let Some(struct_field) = struct_field.as_ref() {
-                                encoder.write_u64(4)?;
+                                encoder.write_u64(5)?;
                                 encoder.write_struct(struct_field)?;
                             }
                         }
@@ -921,49 +1276,57 @@ pub mod omnius {
                             2 => {
                                 let __inner_count_1 = decoder.read_map()?;
                                 let mut entity: Option<String> = None;
+                                let mut entity_constrained: Option<String> = None;
                                 let mut payload: Option<ByteList> = None;
                                 for _ in 0..__inner_count_1 {
                                     match decoder.read_u64()? {
                                         0 => {
-                                            entity = Some(decoder.read_string_bounded("PrimitiveShowcase3.Second.0", 1, 32)?);
+                                            entity = Some(decoder.read_string()?);
                                         }
                                         1 => {
-                                            let __count_2 = decoder.read_array_bounded("PrimitiveShowcase3.Second.1", 1, 4)?;
+                                            entity_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase3.Second.1", 1, 32)?);
+                                        }
+                                        2 => {
+                                            let __count_2 = decoder.read_array_bounded("PrimitiveShowcase3.Second.2", 1, 4)?;
                                             let mut __values_3: Vec<Vec<u8>> = Vec::with_capacity(__count_2 as usize);
                                             for _ in 0..__count_2 {
-                                                __values_3.push(decoder.read_bytes_bounded("PrimitiveShowcase3.Second.1[]", 1, 8)?);
+                                                __values_3.push(decoder.read_bytes_bounded("PrimitiveShowcase3.Second.2[]", 1, 8)?);
                                             }
                                             payload = Some(__values_3);
                                         }
                                         _ => decoder.skip_field()?,
                                     }
                                 }
-                                result = Some(Self::Second { entity: entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?, payload: payload.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: payload"))? });
+                                result = Some(Self::Second { entity: entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?, entity_constrained: entity_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity_constrained"))?, payload: payload.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: payload"))? });
                             }
                             3 => {
                                 let __inner_count_4 = decoder.read_map()?;
                                 let mut entity: Option<String> = None;
+                                let mut entity_constrained: Option<String> = None;
                                 let mut status: Option<Status> = None;
                                 let mut retries: Option<u32> = None;
                                 let mut struct_field: Option<SimpleMessage> = None;
                                 for _ in 0..__inner_count_4 {
                                     match decoder.read_u64()? {
                                         1 => {
-                                            entity = Some(decoder.read_string_bounded("PrimitiveShowcase3.Third.entity", 1, 32)?);
+                                            entity = Some(decoder.read_string()?);
                                         }
                                         2 => {
-                                            status = Some(decoder.read_struct::<Status>()?);
+                                            entity_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase3.Third.entity_constrained", 1, 32)?);
                                         }
                                         3 => {
-                                            retries = Some(decoder.read_u32()?);
+                                            status = Some(decoder.read_struct::<Status>()?);
                                         }
                                         4 => {
+                                            retries = Some(decoder.read_u32()?);
+                                        }
+                                        5 => {
                                             struct_field = Some(decoder.read_struct::<SimpleMessage>()?);
                                         }
                                         _ => decoder.skip_field()?,
                                     }
                                 }
-                                result = Some(Self::Third { entity: entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?, status: status.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: status"))?, retries: retries.unwrap_or(0), struct_field: struct_field });
+                                result = Some(Self::Third { entity: entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?, entity_constrained: entity_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity_constrained"))?, status: status.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: status"))?, retries: retries.unwrap_or(0), struct_field: struct_field });
                             }
                             _ => decoder.skip_field()?,
                         }

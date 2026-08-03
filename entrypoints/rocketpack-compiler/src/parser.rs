@@ -637,11 +637,26 @@ mod tests {
     }
 
     #[test]
+    fn parses_types_without_length_ranges() {
+        let file = parse_source(
+            "test.rpf",
+            "version 1; package test; struct Sample { @1 value: string; @2 nested: Map<string, Vec<bytes>>; }",
+        )
+        .expect("types without a range must parse");
+
+        let Item::Struct(sample) = &file.items[0] else { panic!("expected struct") };
+        assert!(matches!(sample.fields[0].ty.value, Type::Path(_)));
+        assert!(matches!(sample.fields[1].ty.value, Type::Map(_, _)));
+    }
+
+    #[test]
     fn rejects_incomplete_or_exclusive_length_ranges() {
+        // 範囲を書くなら包含かつ有限に限る。無制限にしたい場合は括弧ごと省略する
         for source in [
             "version 1; package test; struct Sample { @1 value: string[..4]; }",
             "version 1; package test; struct Sample { @1 value: string[1..4]; }",
             "version 1; package test; struct Sample { @1 value: string[..]; }",
+            "version 1; package test; struct Sample { @1 value: string[1..]; }",
         ] {
             assert!(parse_source("test.rpf", source).is_err(), "{source}");
         }

@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fmt::Write as _,
     fs,
     path::{Path as FsPath, PathBuf},
@@ -280,12 +280,14 @@ fn validate_sources(parsed_sources: &[ParsedSource], package_indexes: &BTreeMap<
         for item in &parsed_source.file.items {
             match item {
                 Item::Struct(item) => {
+                    validate_unique_tags(parsed_source, &item.name.value, "field", item.fields.iter().map(|field| field.tag.value))?;
                     for field in &item.fields {
                         let context = format!("{}.{}", item.name.value, field.name.value);
                         validate_field(index, parsed_source, field, &context)?;
                     }
                 }
                 Item::Enum(item) => {
+                    validate_unique_tags(parsed_source, &item.name.value, "variant", item.variants.iter().map(|variant| variant.tag.value))?;
                     for variant in &item.variants {
                         let variant_context = format!("{}.{}", item.name.value, variant.name.value);
                         match &variant.kind {
@@ -296,6 +298,7 @@ fn validate_sources(parsed_sources: &[ParsedSource], package_indexes: &BTreeMap<
                                 }
                             }
                             VariantKind::Record(fields) => {
+                                validate_unique_tags(parsed_source, &variant_context, "field", fields.iter().map(|field| field.tag.value))?;
                                 for field in fields {
                                     validate_field(index, parsed_source, field, &format!("{variant_context}.{}", field.name.value))?;
                                 }
@@ -343,6 +346,17 @@ fn validate_reserved_type_names(parsed_source: &ParsedSource) -> Result<(), Code
     Ok(())
 }
 
+fn validate_unique_tags(parsed_source: &ParsedSource, context: &str, kind: &str, tags: impl Iterator<Item = u32>) -> Result<(), CodegenError> {
+    let mut seen = BTreeSet::new();
+    for tag in tags {
+        if !seen.insert(tag) {
+            return Err(schema_error(parsed_source, context, format!("duplicate {kind} tag @{tag}")));
+        }
+    }
+
+    Ok(())
+}
+
 fn validate_field(index: &SchemaIndex, parsed_source: &ParsedSource, field: &Field, context: &str) -> Result<(), CodegenError> {
     validate_type(index, parsed_source, &field.ty.value, context)?;
 
@@ -373,22 +387,19 @@ fn validate_const(parsed_source: &ParsedSource, item: &Const) -> Result<(), Code
 
 fn validate_type(index: &SchemaIndex, parsed_source: &ParsedSource, ty: &Type, context: &str) -> Result<(), CodegenError> {
     match ty {
-        Type::Path(path) if matches!(builtin_type(path), Some(BuiltinType::String | BuiltinType::Bytes)) => {
-            Err(schema_error(parsed_source, context, "variable-length type is missing an inclusive finite range"))
-        }
         Type::Path(_) => Ok(()),
         Type::Option(inner) | Type::Array(inner, _) => validate_type(index, parsed_source, inner, context),
-        Type::Vec(inner) => {
-            let _ = inner;
-            Err(schema_error(parsed_source, context, "variable-length type is missing an inclusive finite range"))
+        Type::Vec(inner) => validate_type(index, parsed_source, inner, &format!("{context}[]")),
+        Type::Map(key, value) => {
+            validate_type(index, parsed_source, key, &format!("{context}.key"))?;
+            validate_type(index, parsed_source, value, &format!("{context}.value"))
         }
-        Type::Map(_, _) => Err(schema_error(parsed_source, context, "variable-length type is missing an inclusive finite range")),
         Type::Constrained(inner, range) => {
             if !is_direct_variable_length_type(inner) {
                 return Err(schema_error(
                     parsed_source,
                     context,
-                    "only string, bytes, Vec, and Map occurrences may carry a range; type aliases cannot be re-constrained",
+                    "only string, bytes, Vec, and Map occurrences may carry a range; a range cannot be attached to a type alias",
                 ));
             }
             resolve_length_range(index, range).map_err(|error| schema_error(parsed_source, context, error.to_string()))?;
@@ -2019,14 +2030,59 @@ mod tests {
     }
 
     #[test]
-    fn rejects_missing_invalid_or_unresolved_constraints_before_rendering() {
+    fn rejects_invalid_or_unresolved_constraints_before_rendering() {
         for schema in [
-            "version 1; package test; struct Sample { @1 value: string; }",
             "version 1; package test; struct Sample { @1 value: Vec<u8>[4..=1]; }",
             "version 1; package test; const LIMIT: i32 = 4; struct Sample { @1 value: bytes[..=LIMIT]; }",
             "version 1; package test; struct Sample { @1 value: string[..=UNKNOWN]; }",
             "version 1; package test; struct Sample { @1 value: string[..=2] = \"too long\"; }",
+            // 制約付き alias にも制約なし alias にも、利用側で範囲は付けられない
             "version 1; package test; type Label = string[..=4]; struct Sample { @1 value: Label[..=2]; }",
+            "version 1; package test; type Label = string; struct Sample { @1 value: Label[..=2]; }",
+        ] {
+            let source = parsed_source(schema);
+            assert!(render_sources(&[source]).is_err(), "{schema}");
+        }
+    }
+
+    #[test]
+    fn renders_unconstrained_variable_length_types_without_length_checks() {
+        let source = parsed_source(
+            "version 1; package test; type FreeBytes = Vec<bytes>; struct Sample { @1 text: string; @2 data: bytes; @3 values: Vec<string>; @4 entries: Map<string, Vec<u32>>; @5 free: FreeBytes; @6 optional: Option<Vec<u8>>; }",
+        );
+        let rendered = render_sources(&[source]).expect("unconstrained variable-length types must render")[0].contents.clone();
+
+        assert!(rendered.contains("pub text: String"));
+        assert!(rendered.contains("pub entries: std::collections::BTreeMap<String, Vec<u32>>"));
+
+        // 制約なしなので境界検査は一切生成されない
+        assert!(!rendered.contains("validate_length"));
+        assert!(!rendered.contains("_bounded("));
+
+        // 無制限版の runtime API へ落ちる
+        assert!(rendered.contains("decoder.read_string()?"));
+        assert!(rendered.contains("decoder.read_bytes_vec()?"));
+        assert!(rendered.contains("decoder.read_array()?"));
+        assert!(rendered.contains("decoder.read_map()?"));
+    }
+
+    #[test]
+    fn keeps_length_checks_for_constrained_types_mixed_with_unconstrained_ones() {
+        let source = parsed_source("version 1; package test; struct Sample { @1 free: Vec<string>; @2 bounded: Vec<string[1..=2]>[..=3]; }");
+        let rendered = render_sources(&[source]).expect("mixed schema must render")[0].contents.clone();
+
+        assert!(rendered.contains("validate_length(\"Sample.bounded\", 0, 3"));
+        assert!(rendered.contains("validate_length(\"Sample.bounded[]\", 1, 2"));
+        assert!(rendered.contains("read_array_bounded(\"Sample.bounded\", 0, 3"));
+        assert!(!rendered.contains("Sample.free"));
+    }
+
+    #[test]
+    fn rejects_duplicate_tags() {
+        for schema in [
+            "version 1; package test; struct Sample { @1 first: u8; @1 second: u8; }",
+            "version 1; package test; enum Sample { @1 First; @1 Second; }",
+            "version 1; package test; enum Sample { @1 First { @2 a: u8; @2 b: u8; }; }",
         ] {
             let source = parsed_source(schema);
             assert!(render_sources(&[source]).is_err(), "{schema}");

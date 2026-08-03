@@ -422,6 +422,11 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
 
+        // 要素は最低 1 byte を占めるため、残りより多い要素数は表現できない
+        if (self.remaining() as u64) < len {
+            return Err(RocketPackDecoderError::UnexpectedEof);
+        }
+
         Ok(len)
     }
 
@@ -438,6 +443,11 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         let Some(len) = self.read_raw_len(info)? else {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
+
+        // entry は key と value で最低 2 byte を占めるため、残りより多い entry 数は表現できない
+        if (self.remaining() as u64) < len {
+            return Err(RocketPackDecoderError::UnexpectedEof);
+        }
 
         Ok(len)
     }

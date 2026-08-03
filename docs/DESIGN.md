@@ -69,11 +69,17 @@ schema の制約は compiler が一度解決し、生成コードと runtime の
 `string` と `bytes` は byte 数、`Vec` は要素数、`Map` は wire 上の entry 数を長さとする。
 `Option` は値の有無だけを表し、固定長 array は外側の長さが型で決まるため、それぞれ内包する可変長型だけが制約を持つ。
 
+制約は各出現箇所で任意である。
+制約を書かない可変長型を **制約なしの可変長型** と呼び、schema はその値の長さを制限しない。
+制約なしの可変長型に残る唯一の上限は、decoder が入力の残り byte 数に対して行う検査（§5.2）である。
+
 ## 5. 制約の検査境界
 
 ### 5.1 Schema compile 時
 
-compiler は有限な上限、境界値の解決、範囲の順序、type alias 内の制約、default literal を生成前に検査する。
+compiler は field tag と enum variant tag の重複、type alias 内の制約、default literal を生成前に検査する。
+tag の重複は struct の field、enum の variant、record variant 内の field のそれぞれで検査する。
+制約を書いた出現箇所については、加えて有限な上限、境界値の解決、範囲の順序を検査する。
 どの schema にも不正があれば、生成物を書き出す前に失敗する。
 
 ### 5.2 Codec 実行時
@@ -82,21 +88,32 @@ compiler は有限な上限、境界値の解決、範囲の順序、type alias 
 encode は length prefix を書く前に検査し、decode は collection の確保、反復、payload の所有化より前に宣言長を検査する。
 制約違反は schema path と実際の長さを持つ専用 error として返す。
 
+制約の有無に関わらず、decoder は array と map の宣言長が入力の残り byte 数に収まることを検査する。
+この検査は schema 由来の制約ではなく wire の整合性に属するため、schema path を持たない `UnexpectedEof` として返す。
+
 ## 6. 設計判断
 
 ### 6.1 決定済み
 
 <a id="d-rpf-length-syntax"></a>
-#### 有限な包含レンジを可変長型へ後置する
+#### 有限な包含レンジを可変長型へ任意で後置する
 
 **決定**
-`string`、`bytes`、`Vec`、`Map` の各出現箇所は `[..=max]` または `[min..=max]` を必須とし、上限なしと排他的上限を認めない。
+`string`、`bytes`、`Vec`、`Map` の各出現箇所は `[..=max]` または `[min..=max]` を後置できる。
+範囲を書かない出現箇所は制約なしの可変長型となり、schema は長さを制限しない。
+範囲を書く場合は包含かつ有限に限り、上限なしと排他的上限を認めない。
 制約は nest 内でも各可変長型へ個別に置く。
 
 **理由**
-型に制約を結び付けると、外側と内側のどちらへ適用するかが構文上明確になり、有限な最大値を compiler が一律に検査できる。
+型に制約を結び付けると、外側と内側のどちらへ適用するかが構文上明確になり、範囲を書いた箇所の有限な最大値を compiler が一律に検査できる。
+上限を定める根拠がない値にまで範囲を強いると、schema 作者は根拠のない数値を書くことになり、制約が書かれている事実そのものが contract として信用できなくなる。
+括弧の有無で「上限を定めた」と「定めていない」が読み分けられるため、任意にしても曖昧さは生じない。
 
 **却下案**
+すべての出現箇所へ範囲を必須とする案は、上記の理由により採用しない。
+`[..]` のような無制限を表す明示構文は、括弧の省略と同義の表記を増やすため採用しない。
+`[min..]` のような下限のみの範囲は、両端を前提とする既存の runtime API と生成コードの分岐を増やす一方、必要な場合は `[min..=max]` で表現できるため採用しない。
+生成器の設定で必須と任意を切り替える案は、同じ `.rpf` の可否が設定に依存し、schema が正本でなくなるため採用しない。
 field attribute は nest 内の対象指定が複雑になるため採用しない。
 名前付き generic 引数は型引数と設定値が混在するため採用しない。
 bounded wrapper 型は生成 API を重くするため採用しない。
@@ -113,6 +130,24 @@ bounded wrapper 型は生成 API を重くするため採用しない。
 **却下案**
 decode だけの検査は local の不正値を wire へ出力できるため採用しない。
 構築時に不正値を表現できない wrapper 型は既存 field 型を変えるため採用しない。
+
+<a id="d-declared-length-within-buffer"></a>
+#### 宣言長が残り buffer に収まることを decoder が検査する
+
+**決定**
+`read_array` と `read_map` は、読み取った宣言長が入力の残り byte 数を超える場合に `UnexpectedEof` を返す。
+この検査は schema の制約とは独立に働き、制約なしの可変長型にも、runtime API を直接呼ぶ利用側にも適用される。
+
+**理由**
+array と map の宣言長は wire 上で 8 byte まで取り得るため、9 byte の入力が `u64::MAX` 個の要素を宣言できる。
+生成される decode は宣言長を容量として collection を確保するので、この検査がないと入力長に比例しない確保を外部から誘発できる。
+要素は wire 上で最低 1 byte を占めるため、残り byte 数は要素数の正当な上限であり、正当な入力を一つも拒否しない。
+`read_bytes` と `read_string` は payload を入力から切り出す時点で同じ検査を通るため、この決定は array と map だけに残っていた非対称を埋める。
+
+**却下案**
+宣言長を残り byte 数で切り詰める案は、不正な入力を error にせず短い値として受理するため採用しない。
+生成コード側へ検査を置く案は、runtime API を直接使う呼び出し側を保護せず、同じ検査が生成物へ散らばるため採用しない。
+message 全体の byte 数や総要素数の上限を runtime に持たせる案は、[長さ制約を各値へ限定する](#d-per-value-scope) と衝突するため採用しない。
 
 <a id="d-timestamp-builtins"></a>
 #### Timestamp を runtime 組み込み型として解決する
@@ -141,20 +176,23 @@ generator 内での wire encoding の再実装は runtime と二重管理にな�
 
 **決定**
 境界値は数値 literal または同じ package の符号なし整数定数とし、定数型は `u8`、`u16`、`u32`、`u64` に限定する。
-type alias は宣言内の制約を引き継ぎ、利用側で再制約しない。
+type alias は宣言内の制約を引き継ぎ、利用側で範囲を後置できない。
+宣言内に範囲を書かなかった alias も同じであり、利用側から初めて制約を与えることもできない。
 `string` と `bytes` の default literal は schema compile 時に検査する。
 
 **理由**
 代表値を再利用できる一方で、式評価と制約合成を schema 言語へ持ち込まずに済む。
+alias 名から contract が一意に定まるため、同じ alias が使用箇所ごとに違う長さを許すことがない。
 
 **却下案**
 imported const、演算式、負数、alias 利用側の制約上書きは、名前解決と優先順位を増やすため採用しない。
+制約なしの alias にだけ利用側の制約を許す案は、alias を解決するまで可否が決まらず、制約合成を裏口から導入するため採用しない。
 
 <a id="d-schema-version"></a>
 #### Schema version 1 と wire encoding を維持する
 
 **決定**
-可変長制約の必須化後も `.rpf` は `version 1;` を使い、wire encoding を変更しない。
+可変長制約の導入後も `.rpf` は `version 1;` を使い、wire encoding を変更しない。
 
 **理由**
 schema は一般公開されておらず、制約は既存 wire 値へ追加する検証 contract である。
@@ -189,7 +227,7 @@ encoder と decoder は `LengthOutOfRange` を返し、`Request.tags[]`、`Reque
 
 ## 7. 現状と残作業
 
-可変長型の制約は parser、意味検査、Rust generator、runtime の境界検査へ反映されている。
+可変長型の制約は任意であり、制約あり制約なしのどちらも parser、意味検査、Rust generator、runtime の境界検査へ反映されている。
 `Timestamp64` と `Timestamp96` は Rust generator と生成例で利用できる。
 §6.1 の決定済み contract に残作業はない。
 
