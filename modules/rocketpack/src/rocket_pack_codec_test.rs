@@ -477,8 +477,11 @@ mod tests {
         }
 
         // 宣言した個数がちょうど残りに収まる場合は受け入れる
-        for major in [4, 5] {
-            let bytes = vec![compose(major, 2), compose(0, 0), compose(0, 0)];
+        // 要素は最低 1 byte、entry は key と value で最低 2 byte を占める
+        for (major, min_bytes_per_item) in [(4usize, 1usize), (5, 2)] {
+            let min_payload = min_bytes_per_item * 2;
+            let mut bytes = vec![compose(major as u8, 2)];
+            bytes.extend(std::iter::repeat_n(compose(0, 0), min_payload));
 
             let mut decoder = RocketPackBytesDecoder::new(&bytes);
             let decoded = if major == 4 { decoder.read_array()? } else { decoder.read_map()? };

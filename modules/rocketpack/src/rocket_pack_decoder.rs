@@ -444,8 +444,8 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
 
-        // entry は key と value で最低 2 byte を占めるため、残りより多い entry 数は表現できない
-        if (self.remaining() as u64) < len {
+        // entry は key と value で最低 2 byte を占めるため、残り / 2 より多い entry 数は表現できない
+        if ((self.remaining() as u64) / 2) < len {
             return Err(RocketPackDecoderError::UnexpectedEof);
         }
 
