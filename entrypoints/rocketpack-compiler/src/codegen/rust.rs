@@ -129,7 +129,11 @@ fn parse_sources(sources: &[DiscoveredSource]) -> Result<Vec<ParsedSource>, Code
     for source in sources {
         let text = fs::read_to_string(&source.absolute_path)?;
         let file = parser::parse_source(&source.absolute_path, &text)?;
-        parsed_sources.push(ParsedSource { source: source.clone(), file, text });
+        parsed_sources.push(ParsedSource {
+            source: source.clone(),
+            file,
+            text,
+        });
     }
 
     Ok(parsed_sources)
@@ -569,18 +573,7 @@ const DEFAULT_RUST_DERIVES: &[&str] = &["Debug", "Clone", "PartialEq"];
 
 /// `#[rust::derive(...)]` で追加指定できるトレイトの allowlist。
 /// スキーマコンパイル時点でタイポや未知のトレイトを検出するために使う。
-const ALLOWED_RUST_DERIVES: &[&str] = &[
-    "Copy",
-    "Debug",
-    "Default",
-    "Eq",
-    "Hash",
-    "Ord",
-    "PartialEq",
-    "PartialOrd",
-    "Serialize",
-    "Deserialize",
-];
+const ALLOWED_RUST_DERIVES: &[&str] = &["Copy", "Debug", "Default", "Eq", "Hash", "Ord", "PartialEq", "PartialOrd", "Serialize", "Deserialize"];
 
 /// `#[rust::derive(...)]` attribute で追加指定されたトレイトを
 /// デフォルトの derive リスト (`DEFAULT_RUST_DERIVES`) へ追記する。
@@ -616,11 +609,7 @@ fn render_rust_derive_line(parsed_source: &ParsedSource, attributes: &[Attribute
     if let Some(attr) = rust_derive_attr {
         for arg in &attr.args {
             if !ALLOWED_RUST_DERIVES.contains(&arg.value.as_str()) {
-                return Err(attribute_error(
-                    parsed_source,
-                    arg.span.clone(),
-                    "unexpected derive trait: not in the allowlist",
-                ));
+                return Err(attribute_error(parsed_source, arg.span.clone(), "unexpected derive trait: not in the allowlist"));
             }
             if !derives.iter().any(|d| d == &arg.value) {
                 derives.push(arg.value.clone());
@@ -635,11 +624,7 @@ fn render_rust_derive_line(parsed_source: &ParsedSource, attributes: &[Attribute
 /// item_name はエラー文に含めず、span が示す位置とソース行 (caret) で該当箇所を特定する。
 fn attribute_error(parsed_source: &ParsedSource, span: Span, message: &'static str) -> CodegenError {
     let error = ParseError::new(ParseErrorKind::Unexpected(message), span.start, span.end);
-    CodegenError::Parse(ParseErrorBundle::new(
-        parsed_source.source.absolute_path.clone(),
-        parsed_source.text.clone(),
-        vec![error],
-    ))
+    CodegenError::Parse(ParseErrorBundle::new(parsed_source.source.absolute_path.clone(), parsed_source.text.clone(), vec![error]))
 }
 
 fn write_struct_declaration(out: &mut String, parsed_source: &ParsedSource, index: &SchemaIndex, item: &Struct, depth: usize) -> Result<(), CodegenError> {
