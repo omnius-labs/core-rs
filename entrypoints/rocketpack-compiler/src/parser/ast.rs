@@ -32,6 +32,18 @@ pub struct Use {
     pub alias: Option<Spanned<String>>,
 }
 
+// ===== attribute =====
+//
+// `#[namespace::name(arg1, arg2, ...)]` を struct/enum の直前に書く。
+// namespace はコード生成ターゲット (例: `rust`) を表し、自分のnamespaceと一致しない
+// attribute は各ジェネレータが無視する。
+
+#[derive(Debug, Clone)]
+pub struct Attribute {
+    pub path: Spanned<Path>,
+    pub args: Vec<Spanned<String>>,
+}
+
 #[derive(Debug, Clone)]
 pub enum Item {
     Struct(Struct),
@@ -95,6 +107,7 @@ pub enum Literal {
 pub struct Struct {
     pub name: Spanned<String>,
     pub fields: Vec<Field>,
+    pub attributes: Vec<Attribute>,
 }
 
 #[derive(Debug, Clone)]
@@ -111,6 +124,7 @@ pub struct Field {
 pub struct Enum {
     pub name: Spanned<String>,
     pub variants: Vec<Variant>,
+    pub attributes: Vec<Attribute>,
 }
 
 #[derive(Debug, Clone)]

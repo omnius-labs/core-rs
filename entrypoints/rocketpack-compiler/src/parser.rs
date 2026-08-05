@@ -88,6 +88,7 @@ impl Parser {
             Some(Token::Str(_)) => "string",
             Some(Token::Bytes(_)) => "bytes",
             Some(Token::At) => "@",
+            Some(Token::Hash) => "#",
             Some(Token::Semi) => ";",
             Some(Token::Colon) => ":",
             Some(Token::Comma) => ",",
@@ -119,6 +120,26 @@ impl Parser {
 
         // 任意の順序でトップレベルを読み込む
         while let Some(_) = self.peek() {
+            if self.at(Token::Hash) {
+                let attributes = self.parse_attributes();
+                match self.peek_keyword().as_deref() {
+                    Some("struct") => {
+                        let mut s = self.parse_struct();
+                        s.attributes = attributes;
+                        file.items.push(Item::Struct(s));
+                    }
+                    Some("enum") => {
+                        let mut e = self.parse_enum();
+                        e.attributes = attributes;
+                        file.items.push(Item::Enum(e));
+                    }
+                    _ => {
+                        self.error_here(ParseErrorKind::Unexpected("attributes are only allowed on struct/enum"));
+                    }
+                }
+                continue;
+            }
+
             // キーワードは Ident で来るので先読みして判定
             if let Some(kw) = self.peek_keyword() {
                 match kw.as_str() {
@@ -180,6 +201,39 @@ impl Parser {
         }
     }
 
+    // ===== attribute =====
+
+    fn parse_attributes(&mut self) -> Vec<Attribute> {
+        let mut attributes = Vec::new();
+        while self.at(Token::Hash) {
+            attributes.push(self.parse_attribute());
+        }
+        attributes
+    }
+
+    fn parse_attribute(&mut self) -> Attribute {
+        self.expect(Token::Hash, "#");
+        self.expect(Token::LBracket, "[");
+        let path = Spanned::new(self.parse_path(), self.prev_start(), self.prev_end());
+
+        let mut args = Vec::new();
+        if self.at(Token::LParen) {
+            self.bump();
+            while !self.at(Token::RParen) && self.peek().is_some() {
+                args.push(self.expect_ident());
+                if self.at(Token::Comma) {
+                    self.bump();
+                } else {
+                    break;
+                }
+            }
+            self.expect(Token::RParen, ")");
+        }
+
+        self.expect(Token::RBracket, "]");
+        Attribute { path, args }
+    }
+
     // ===== トップレベル要素 =====
 
     fn parse_version(&mut self) -> Spanned<u32> {
@@ -224,7 +278,11 @@ impl Parser {
             }
         }
         self.expect(Token::RBrace, "}");
-        Struct { name, fields }
+        Struct {
+            name,
+            fields,
+            attributes: Vec::new(),
+        }
     }
 
     fn parse_enum(&mut self) -> Enum {
@@ -241,7 +299,11 @@ impl Parser {
             }
         }
         self.expect(Token::RBrace, "}");
-        Enum { name, variants }
+        Enum {
+            name,
+            variants,
+            attributes: Vec::new(),
+        }
     }
 
     fn parse_type_alias(&mut self) -> TypeAlias {
@@ -430,6 +492,7 @@ impl Parser {
             Token::Str(_) => "string",
             Token::Bytes(_) => "bytes",
             Token::At => "@",
+            Token::Hash => "#",
             Token::Semi => ";",
             Token::Colon => ":",
             Token::Comma => ",",

@@ -13,7 +13,7 @@ use crate::{
     error::CodegenError,
     parser::{
         self,
-        ast::{Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Struct, Type, VariantKind},
+        ast::{Attribute, Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Struct, Type, VariantKind},
     },
 };
 
@@ -541,12 +541,12 @@ fn render_rust_file(parsed_source: &ParsedSource, index: &SchemaIndex) -> Result
     for item in &parsed_source.file.items {
         match item {
             Item::Struct(item) => {
-                write_struct_declaration(&mut out, index, item, depth);
+                write_struct_declaration(&mut out, index, item, depth)?;
                 writeln!(&mut out).ok();
                 write_struct_codec_impl(&mut out, index, item, depth)?;
             }
             Item::Enum(item) => {
-                write_enum_declaration(&mut out, index, item, depth);
+                write_enum_declaration(&mut out, index, item, depth)?;
                 writeln!(&mut out).ok();
                 write_enum_codec_impl(&mut out, index, item, depth)?;
             }
@@ -563,8 +563,36 @@ fn render_rust_file(parsed_source: &ParsedSource, index: &SchemaIndex) -> Result
     Ok(out)
 }
 
-fn write_struct_declaration(out: &mut String, index: &SchemaIndex, item: &Struct, depth: usize) {
-    writeln!(out, "{}#[derive(Debug, Clone, PartialEq)]", indent(depth)).ok();
+const DEFAULT_RUST_DERIVES: &[&str] = &["Debug", "Clone", "PartialEq"];
+
+/// `#[rust::derive(...)]` attribute で追加指定されたトレイトを
+/// デフォルトの derive リスト (`DEFAULT_RUST_DERIVES`) へ追記する。
+/// 実行可能性 (フィールド型が対応しているか) は検証せず、そのまま出力する。
+fn render_rust_derive_line(attributes: &[Attribute], item_name: &str) -> Result<String, CodegenError> {
+    let mut rust_derive_attrs = attributes.iter().filter(|attr| {
+        let segments = path_segments(&attr.path.value);
+        segments.len() == 2 && segments[0] == "rust" && segments[1] == "derive"
+    });
+
+    let mut derives: Vec<String> = DEFAULT_RUST_DERIVES.iter().map(|s| s.to_string()).collect();
+
+    if let Some(attr) = rust_derive_attrs.next() {
+        if rust_derive_attrs.next().is_some() {
+            return Err(CodegenError::Other(format!("duplicate #[rust::derive(...)] attribute on `{item_name}`")));
+        }
+
+        for arg in &attr.args {
+            if !derives.iter().any(|d| d == &arg.value) {
+                derives.push(arg.value.clone());
+            }
+        }
+    }
+
+    Ok(format!("#[derive({})]", derives.join(", ")))
+}
+
+fn write_struct_declaration(out: &mut String, index: &SchemaIndex, item: &Struct, depth: usize) -> Result<(), CodegenError> {
+    writeln!(out, "{}{}", indent(depth), render_rust_derive_line(&item.attributes, &item.name.value)?).ok();
     writeln!(out, "{}pub struct {} {{", indent(depth), sanitize_ident(&item.name.value)).ok();
 
     for field in &item.fields {
@@ -579,6 +607,8 @@ fn write_struct_declaration(out: &mut String, index: &SchemaIndex, item: &Struct
     }
 
     writeln!(out, "{}}}", indent(depth)).ok();
+
+    Ok(())
 }
 
 fn write_struct_codec_impl(out: &mut String, index: &SchemaIndex, item: &Struct, depth: usize) -> Result<(), CodegenError> {
@@ -1599,8 +1629,8 @@ fn declare_record_variant_storage(out: &mut String, index: &SchemaIndex, fields:
     }
 }
 
-fn write_enum_declaration(out: &mut String, index: &SchemaIndex, item: &Enum, depth: usize) {
-    writeln!(out, "{}#[derive(Debug, Clone, PartialEq)]", indent(depth)).ok();
+fn write_enum_declaration(out: &mut String, index: &SchemaIndex, item: &Enum, depth: usize) -> Result<(), CodegenError> {
+    writeln!(out, "{}{}", indent(depth), render_rust_derive_line(&item.attributes, &item.name.value)?).ok();
     writeln!(out, "{}pub enum {} {{", indent(depth), sanitize_ident(&item.name.value)).ok();
 
     for variant in &item.variants {
@@ -1633,6 +1663,8 @@ fn write_enum_declaration(out: &mut String, index: &SchemaIndex, item: &Enum, de
     }
 
     writeln!(out, "{}}}", indent(depth)).ok();
+
+    Ok(())
 }
 
 fn write_type_alias_declaration(out: &mut String, index: &SchemaIndex, item: &crate::parser::ast::TypeAlias, depth: usize) {
@@ -1955,6 +1987,41 @@ mod tests {
             },
             file: parser::parse_source("test.rpf", source).expect("test schema must parse"),
         }
+    }
+
+    #[test]
+    fn appends_rust_derive_attribute_to_default_derives() {
+        let source = parsed_source(
+            "version 1; package test; #[rust::derive(Eq, Hash)] struct Sample { @1 value: string; } #[rust::derive(Eq, Hash)] enum Kind { @1 A; @2 B; } struct Plain { @1 value: u32; }",
+        );
+        let rendered = render_sources(&[source]).expect("valid schema must render")[0].contents.clone();
+
+        assert!(rendered.contains("#[derive(Debug, Clone, PartialEq, Eq, Hash)]\n    pub struct Sample"));
+        assert!(rendered.contains("#[derive(Debug, Clone, PartialEq, Eq, Hash)]\n    pub enum Kind"));
+        assert!(rendered.contains("#[derive(Debug, Clone, PartialEq)]\n    pub struct Plain"));
+    }
+
+    #[test]
+    fn dedupes_rust_derive_attribute_args_overlapping_defaults() {
+        let source = parsed_source("version 1; package test; #[rust::derive(PartialEq, Eq)] struct Sample { @1 value: string; }");
+        let rendered = render_sources(&[source]).expect("valid schema must render")[0].contents.clone();
+
+        assert!(rendered.contains("#[derive(Debug, Clone, PartialEq, Eq)]\n    pub struct Sample"));
+    }
+
+    #[test]
+    fn rejects_duplicate_rust_derive_attribute_on_same_item() {
+        let source = parsed_source("version 1; package test; #[rust::derive(Eq)] #[rust::derive(Hash)] struct Sample { @1 value: string; }");
+        let error = render_sources(&[source]).expect_err("duplicate rust::derive attribute must fail");
+        assert!(error.to_string().contains("duplicate #[rust::derive(...)] attribute on `Sample`"), "{error}");
+    }
+
+    #[test]
+    fn ignores_attributes_with_a_different_namespace() {
+        let source = parsed_source("version 1; package test; #[csharp::partial] struct Sample { @1 value: string; }");
+        let rendered = render_sources(&[source]).expect("unrelated namespace attribute must be ignored")[0].contents.clone();
+
+        assert!(rendered.contains("#[derive(Debug, Clone, PartialEq)]\n    pub struct Sample"));
     }
 
     #[test]
