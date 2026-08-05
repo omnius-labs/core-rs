@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{
     error::{ParseError, ParseErrorBundle, ParseErrorKind},
@@ -7,18 +7,6 @@ use crate::{
 
 pub mod ast;
 pub mod lexer;
-
-pub fn parse(path: &std::path::Path) -> Result<File, ParseErrorBundle> {
-    let source = fs::read_to_string(path).map_err(|err| {
-        ParseErrorBundle::new(
-            path,
-            String::new(),
-            vec![ParseError::new(ParseErrorKind::Other(format!("failed to read file: {err}")), 0, 0)],
-        )
-    })?;
-
-    parse_source(path.to_path_buf(), &source)
-}
 
 pub fn parse_source(path: impl Into<PathBuf>, source: &str) -> Result<File, ParseErrorBundle> {
     let path = path.into();
@@ -214,7 +202,10 @@ impl Parser {
     fn parse_attribute(&mut self) -> Attribute {
         self.expect(Token::Hash, "#");
         self.expect(Token::LBracket, "[");
-        let path = Spanned::new(self.parse_path(), self.prev_start(), self.prev_end());
+        let path_start = self.peek().map(|t| t.span.start).unwrap_or(self.prev_end());
+        let path = self.parse_path();
+        let path_end = self.prev_end();
+        let path = Spanned::new(path, path_start, path_end);
 
         let mut args = Vec::new();
         if self.at(Token::LParen) {

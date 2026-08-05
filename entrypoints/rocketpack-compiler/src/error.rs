@@ -108,9 +108,6 @@ pub enum ParseErrorKind {
 
     #[error("duplicate attribute or item")]
     Duplicate,
-
-    #[error("other error: {0}")]
-    Other(String),
 }
 
 #[derive(Error, Debug)]

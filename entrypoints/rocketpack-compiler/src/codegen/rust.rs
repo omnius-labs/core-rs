@@ -10,10 +10,10 @@ use tracing::info;
 
 use crate::{
     config::{GeneratorConfig, GeneratorTargetConfig, SourceConfig},
-    error::CodegenError,
+    error::{CodegenError, ParseError, ParseErrorBundle, ParseErrorKind},
     parser::{
         self,
-        ast::{Attribute, Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Struct, Type, VariantKind},
+        ast::{Attribute, Const, Enum, Field, File, Item, LengthBound, LengthRange, Literal, Path as AstPath, Span, Struct, Type, VariantKind},
     },
 };
 
@@ -28,6 +28,7 @@ struct DiscoveredSource {
 struct ParsedSource {
     source: DiscoveredSource,
     file: File,
+    text: String,
 }
 
 #[derive(Debug, Clone)]
@@ -126,8 +127,9 @@ fn parse_sources(sources: &[DiscoveredSource]) -> Result<Vec<ParsedSource>, Code
     let mut parsed_sources = Vec::with_capacity(sources.len());
 
     for source in sources {
-        let file = parser::parse(&source.absolute_path)?;
-        parsed_sources.push(ParsedSource { source: source.clone(), file });
+        let text = fs::read_to_string(&source.absolute_path)?;
+        let file = parser::parse_source(&source.absolute_path, &text)?;
+        parsed_sources.push(ParsedSource { source: source.clone(), file, text });
     }
 
     Ok(parsed_sources)
@@ -541,12 +543,12 @@ fn render_rust_file(parsed_source: &ParsedSource, index: &SchemaIndex) -> Result
     for item in &parsed_source.file.items {
         match item {
             Item::Struct(item) => {
-                write_struct_declaration(&mut out, index, item, depth)?;
+                write_struct_declaration(&mut out, parsed_source, index, item, depth)?;
                 writeln!(&mut out).ok();
                 write_struct_codec_impl(&mut out, index, item, depth)?;
             }
             Item::Enum(item) => {
-                write_enum_declaration(&mut out, index, item, depth)?;
+                write_enum_declaration(&mut out, parsed_source, index, item, depth)?;
                 writeln!(&mut out).ok();
                 write_enum_codec_impl(&mut out, index, item, depth)?;
             }
@@ -565,23 +567,61 @@ fn render_rust_file(parsed_source: &ParsedSource, index: &SchemaIndex) -> Result
 
 const DEFAULT_RUST_DERIVES: &[&str] = &["Debug", "Clone", "PartialEq"];
 
+/// `#[rust::derive(...)]` で追加指定できるトレイトの allowlist。
+/// スキーマコンパイル時点でタイポや未知のトレイトを検出するために使う。
+const ALLOWED_RUST_DERIVES: &[&str] = &[
+    "Copy",
+    "Debug",
+    "Default",
+    "Eq",
+    "Hash",
+    "Ord",
+    "PartialEq",
+    "PartialOrd",
+    "Serialize",
+    "Deserialize",
+];
+
 /// `#[rust::derive(...)]` attribute で追加指定されたトレイトを
 /// デフォルトの derive リスト (`DEFAULT_RUST_DERIVES`) へ追記する。
-/// 実行可能性 (フィールド型が対応しているか) は検証せず、そのまま出力する。
-fn render_rust_derive_line(attributes: &[Attribute], item_name: &str) -> Result<String, CodegenError> {
-    let mut rust_derive_attrs = attributes.iter().filter(|attr| {
+/// トレイト名は `ALLOWED_RUST_DERIVES` で検証し、`rust::` 配下の未知アトリビュート
+/// や重複した `#[rust::derive(...)]` は `ParseErrorKind::Unexpected` の parse error にする。
+/// フィールド型がそのトレイトを実装できるか (実行可能性) は検証せず、そのまま出力する。
+fn render_rust_derive_line(parsed_source: &ParsedSource, attributes: &[Attribute]) -> Result<String, CodegenError> {
+    let mut rust_derive_attr: Option<&Attribute> = None;
+    for attr in attributes {
         let segments = path_segments(&attr.path.value);
-        segments.len() == 2 && segments[0] == "rust" && segments[1] == "derive"
-    });
+        if segments.len() == 2 && segments[0] == "rust" {
+            if segments[1] != "derive" {
+                return Err(attribute_error(
+                    parsed_source,
+                    attr.path.span.clone(),
+                    "unexpected attribute: only `rust::derive` is supported under the `rust::` namespace",
+                ));
+            }
+            if rust_derive_attr.is_some() {
+                return Err(attribute_error(
+                    parsed_source,
+                    attr.path.span.clone(),
+                    "unexpected attribute: duplicate `#[rust::derive(...)]`",
+                ));
+            }
+            rust_derive_attr = Some(attr);
+        }
+        // 他 namespace (例: `csharp::partial`) はこのジェネレータでは無視する。
+    }
 
     let mut derives: Vec<String> = DEFAULT_RUST_DERIVES.iter().map(|s| s.to_string()).collect();
 
-    if let Some(attr) = rust_derive_attrs.next() {
-        if rust_derive_attrs.next().is_some() {
-            return Err(CodegenError::Other(format!("duplicate #[rust::derive(...)] attribute on `{item_name}`")));
-        }
-
+    if let Some(attr) = rust_derive_attr {
         for arg in &attr.args {
+            if !ALLOWED_RUST_DERIVES.contains(&arg.value.as_str()) {
+                return Err(attribute_error(
+                    parsed_source,
+                    arg.span.clone(),
+                    "unexpected derive trait: not in the allowlist",
+                ));
+            }
             if !derives.iter().any(|d| d == &arg.value) {
                 derives.push(arg.value.clone());
             }
@@ -591,8 +631,19 @@ fn render_rust_derive_line(attributes: &[Attribute], item_name: &str) -> Result<
     Ok(format!("#[derive({})]", derives.join(", ")))
 }
 
-fn write_struct_declaration(out: &mut String, index: &SchemaIndex, item: &Struct, depth: usize) -> Result<(), CodegenError> {
-    writeln!(out, "{}{}", indent(depth), render_rust_derive_line(&item.attributes, &item.name.value)?).ok();
+/// アトリビュートの検証エラーを parse error (`ParseErrorKind::Unexpected`) として返す。
+/// item_name はエラー文に含めず、span が示す位置とソース行 (caret) で該当箇所を特定する。
+fn attribute_error(parsed_source: &ParsedSource, span: Span, message: &'static str) -> CodegenError {
+    let error = ParseError::new(ParseErrorKind::Unexpected(message), span.start, span.end);
+    CodegenError::Parse(ParseErrorBundle::new(
+        parsed_source.source.absolute_path.clone(),
+        parsed_source.text.clone(),
+        vec![error],
+    ))
+}
+
+fn write_struct_declaration(out: &mut String, parsed_source: &ParsedSource, index: &SchemaIndex, item: &Struct, depth: usize) -> Result<(), CodegenError> {
+    writeln!(out, "{}{}", indent(depth), render_rust_derive_line(parsed_source, &item.attributes)?).ok();
     writeln!(out, "{}pub struct {} {{", indent(depth), sanitize_ident(&item.name.value)).ok();
 
     for field in &item.fields {
@@ -1629,8 +1680,8 @@ fn declare_record_variant_storage(out: &mut String, index: &SchemaIndex, fields:
     }
 }
 
-fn write_enum_declaration(out: &mut String, index: &SchemaIndex, item: &Enum, depth: usize) -> Result<(), CodegenError> {
-    writeln!(out, "{}{}", indent(depth), render_rust_derive_line(&item.attributes, &item.name.value)?).ok();
+fn write_enum_declaration(out: &mut String, parsed_source: &ParsedSource, index: &SchemaIndex, item: &Enum, depth: usize) -> Result<(), CodegenError> {
+    writeln!(out, "{}{}", indent(depth), render_rust_derive_line(parsed_source, &item.attributes)?).ok();
     writeln!(out, "{}pub enum {} {{", indent(depth), sanitize_ident(&item.name.value)).ok();
 
     for variant in &item.variants {
@@ -1986,6 +2037,7 @@ mod tests {
                 relative_path: PathBuf::from("test.rpf"),
             },
             file: parser::parse_source("test.rpf", source).expect("test schema must parse"),
+            text: source.to_string(),
         }
     }
 
@@ -2013,7 +2065,21 @@ mod tests {
     fn rejects_duplicate_rust_derive_attribute_on_same_item() {
         let source = parsed_source("version 1; package test; #[rust::derive(Eq)] #[rust::derive(Hash)] struct Sample { @1 value: string; }");
         let error = render_sources(&[source]).expect_err("duplicate rust::derive attribute must fail");
-        assert!(error.to_string().contains("duplicate #[rust::derive(...)] attribute on `Sample`"), "{error}");
+        assert!(error.to_string().contains("duplicate `#[rust::derive(...)]`"), "{error}");
+    }
+
+    #[test]
+    fn rejects_unknown_rust_attribute() {
+        let source = parsed_source("version 1; package test; #[rust::partial] struct Sample { @1 value: string; }");
+        let error = render_sources(&[source]).expect_err("unsupported rust:: attribute must fail");
+        assert!(error.to_string().contains("only `rust::derive` is supported"), "{error}");
+    }
+
+    #[test]
+    fn rejects_derive_trait_outside_the_allowlist() {
+        let source = parsed_source("version 1; package test; #[rust::derive(PartialEq, TotallyMadeUp)] struct Sample { @1 value: string; }");
+        let error = render_sources(&[source]).expect_err("unknown derive trait must fail");
+        assert!(error.to_string().contains("unexpected derive trait: not in the allowlist"), "{error}");
     }
 
     #[test]
