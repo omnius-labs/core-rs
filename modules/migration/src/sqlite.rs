@@ -56,21 +56,25 @@ SELECT name, executed_at FROM _migrations
 
     async fn execute_migration_queries(db: &SqlitePool, requests: Vec<MigrationRequest>) -> Result<()> {
         for r in requests {
+            let mut tx = db.begin().await?;
+
             for query in r.queries.split(';') {
                 let query = query.trim();
                 if query.is_empty() {
                     continue;
                 }
-                sqlx::query(sqlx::AssertSqlSafe(query)).execute(db).await?;
+                sqlx::query(sqlx::AssertSqlSafe(query)).execute(&mut *tx).await?;
             }
 
-            Self::insert_migration_history(db, r.name.as_str(), r.queries.as_str()).await?;
+            Self::insert_migration_history(&mut tx, r.name.as_str(), r.queries.as_str()).await?;
+
+            tx.commit().await?;
         }
 
         Ok(())
     }
 
-    async fn insert_migration_history(db: &SqlitePool, name: &str, queries: &str) -> Result<()> {
+    async fn insert_migration_history(tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>, name: &str, queries: &str) -> Result<()> {
         sqlx::query(
             r#"
 INSERT INTO _migrations (name, queries) VALUES ($1, $2)
@@ -78,7 +82,7 @@ INSERT INTO _migrations (name, queries) VALUES ($1, $2)
         )
         .bind(name)
         .bind(queries)
-        .execute(db)
+        .execute(&mut **tx)
         .await?;
 
         Ok(())
