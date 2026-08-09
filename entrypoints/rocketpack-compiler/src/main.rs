@@ -3,12 +3,13 @@ use std::path::{Path, PathBuf};
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
-use crate::{codegen::generate, config::AppConfig, error::CodegenError};
+use crate::{codegen::generate, config::ManifestGraph, error::CodegenError, semantic::SemanticGraph};
 
 mod codegen;
 mod config;
 mod error;
 mod parser;
+mod semantic;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about = "rocketpack format compiler", long_about = None)]
@@ -47,7 +48,8 @@ async fn run() -> Result<(), CodegenError> {
 }
 
 async fn run_compile(dir: &Path) -> Result<(), CodegenError> {
-    let conf = AppConfig::load(dir.join("rocketpack.yaml")).await?;
-    generate(conf).await?;
+    let manifests = ManifestGraph::load(dir.join("rocketpack.yaml")).await?;
+    let graph = SemanticGraph::build(manifests)?;
+    generate(&graph).await?;
     Ok(())
 }
