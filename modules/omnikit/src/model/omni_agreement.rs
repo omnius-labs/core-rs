@@ -4,7 +4,7 @@ use rand_core::UnwrapErr;
 
 use crate::prelude::*;
 
-use super::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPrivateKey, OmniAgreementPublicKey};
+pub use crate::generated::omni_agreement::*;
 
 impl OmniAgreement {
     pub fn new(algorithm_type: OmniAgreementAlgorithmType, created_time: DateTime<Utc>) -> Result<Self> {

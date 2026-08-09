@@ -4,7 +4,7 @@ mod encoder;
 mod stream;
 mod util;
 
-use crate::generated::omnius::core::omnikit::{AuthType, CIPHER_AES_256_GCM, CipherAlgorithmType, HASH_SHA3_256, KEY_DERIVATION_HKDF, KEY_EXCHANGE_X25519, ProfileMessage};
+use crate::generated::omni_secure::{AuthType, CIPHER_AES_256_GCM, CipherAlgorithmType, HASH_SHA3_256, KEY_DERIVATION_HKDF, KEY_EXCHANGE_X25519, ProfileMessage};
 
 use auth::*;
 use decoder::*;

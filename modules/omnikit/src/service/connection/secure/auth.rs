@@ -10,7 +10,10 @@ use omnius_core_base::clock::Clock;
 use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 
 use crate::{
-    model::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey, OmniCert, OmniSigner},
+    model::{
+        omni_agreement::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey},
+        omni_sign::{OmniCert, OmniSigner},
+    },
     prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv, FramedSend, FramedSender},
 };

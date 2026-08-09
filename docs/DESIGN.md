@@ -14,8 +14,8 @@
 | [RocketPack compiler の設計](./design/rocketpack-compiler.md) | compiler 固有の責務、不変条件、設計判断、実装状況 |
 | [entrypoints/rocketpack-compiler](../entrypoints/rocketpack-compiler) | `.rpf` の構文、意味検査、Rust code generation の実装 |
 | [modules/rocketpack](../modules/rocketpack) | wire codec と生成コードが利用する runtime API の実装 |
-| [rpfs](../rpfs) | omnikit プロトコルが使う `.rpf` schema の正本 |
-| [entrypoints/rocketpack-compiled-example/rpfs](../entrypoints/rocketpack-compiled-example/rpfs) | 生成例が利用する `.rpf` schema の正本 |
+| [modules/omnikit/rpfs](../modules/omnikit/rpfs) | omnikit プロトコルが使う `.rpf` schema の正本 |
+| [entrypoints/rocketpack-compiled-example/showcase/rpfs](../entrypoints/rocketpack-compiled-example/showcase/rpfs) | 生成例が利用する `.rpf` schema の正本 |
 | [README.md](../README.md) | プロジェクト概要と外部ドキュメントへのリンク |
 
 ### 1.2 本書の時制について
@@ -58,7 +58,7 @@ core-rs は、Omnius Labs の各プロダクトが共有する Rust 製 crate �
 | [modules/testkit](../modules/testkit) | `omnius-core-testkit` | 統合テスト用の Docker container 起動 helper |
 | [modules/image](../modules/image) | `omnius-core-image` | EXIF metadata 関連の依存関係のみを宣言した crate（詳細は §12） |
 | [entrypoints/rocketpack-compiler](../entrypoints/rocketpack-compiler) | `omnius-core-rocketpack-compiler` | `.rpf` の parse、意味検査、Rust code generation を行う CLI |
-| [entrypoints/rocketpack-compiled-example](../entrypoints/rocketpack-compiled-example) | 該当なし（workspace から除外） | 生成コードの実例と round trip 検証用の sample project |
+| [entrypoints/rocketpack-compiled-example](../entrypoints/rocketpack-compiled-example) | 該当なし（workspace から除外） | 生成コードの実例と round trip 検証用の sample project。`showcase`、`provider`、`consumer` の 3 project を同じ構造で並べ、`provider` と `consumer` は manifest 間の path dependency を検証する |
 
 ### 3.2 処理の流れ
 
@@ -79,7 +79,7 @@ flowchart LR
         image[image]
     end
 
-    rpf["rpfs/omnikit.rpf"] --> compiler["rocketpack-compiler"] --> gen["modules/omnikit/src/generated"]
+    rpf["modules/omnikit/rpfs/*.rpf"] --> compiler["rocketpack-compiler"] --> gen["modules/omnikit/src/generated"]
 
     base --> omnikit
     base --> yamux
@@ -118,7 +118,7 @@ Schema はこの trait の実装を生成させる入力であり、RocketPackSt
 
 **Schema** は `.rpf` に記述した package、型、field tag、定数、制約の集合である。
 `.rpf` が正本であり、生成された Rust code は schema から再生成できる派生成果物である。
-[rpfs](../rpfs) と [entrypoints/rocketpack-compiled-example/rpfs](../entrypoints/rocketpack-compiled-example/rpfs) は、それぞれ omnikit プロトコルと生成例が使う schema の正本である。
+[modules/omnikit/rpfs](../modules/omnikit/rpfs) と [entrypoints/rocketpack-compiled-example/showcase/rpfs](../entrypoints/rocketpack-compiled-example/showcase/rpfs) は、それぞれ omnikit プロトコルと生成例が使う schema の正本である。
 
 ### 4.4 可変長型の制約
 
@@ -142,11 +142,11 @@ core-rs 以外にある `.rpf` の移行は各 repository が所有し、core-rs
 | --- | --- | --- |
 | [modules/rocketpack](../modules/rocketpack) | `omnius-core-rocketpack` | encoder、decoder、`RocketPackStruct` の runtime contract |
 | [entrypoints/rocketpack-compiler](../entrypoints/rocketpack-compiler) | `omnius-core-rocketpack-compiler` | `.rpf` の parse、意味検査、Rust code generation |
-| [rpfs](../rpfs) | 該当なし | omnikit プロトコルが使う schema の正本 |
-| [rocketpack.yaml](../rocketpack.yaml) | 該当なし | repository root で `rocketpack-compiler` を実行する際の設定。`rpfs/omnikit.rpf` を [modules/omnikit/src/generated](../modules/omnikit/src/generated) へ生成する |
-| [gen-rocketpack.sh](../gen-rocketpack.sh) | 該当なし | `rocketpack-compiler` を実行して omnikit の生成コードを更新する script |
-| [entrypoints/rocketpack-compiled-example/rpfs](../entrypoints/rocketpack-compiled-example/rpfs) | 該当なし | 生成例が利用する schema の正本 |
-| [entrypoints/rocketpack-compiled-example/rust/gen](../entrypoints/rocketpack-compiled-example/rust/gen) | `rocketpack-compiled-example` | compiler が出力する Rust code であり、手で編集しない |
+| [modules/omnikit/rpfs](../modules/omnikit/rpfs) | 該当なし | omnikit プロトコルが使う schema の正本 |
+| [modules/omnikit/rocketpack.yaml](../modules/omnikit/rocketpack.yaml) | 該当なし | omnikit の schema module manifest。`rpfs` 配下の全 `.rpf` を [modules/omnikit/src/generated](../modules/omnikit/src/generated) へ生成する |
+| [gen-rocketpack.sh](../gen-rocketpack.sh) | 該当なし | repository root から `rocketpack-compiler` を実行して omnikit の生成コードを更新する script |
+| [entrypoints/rocketpack-compiled-example/showcase/rpfs](../entrypoints/rocketpack-compiled-example/showcase/rpfs) | 該当なし | 生成例が利用する schema の正本 |
+| [entrypoints/rocketpack-compiled-example/showcase/rust/gen](../entrypoints/rocketpack-compiled-example/showcase/rust/gen) | `rocketpack-showcase` | compiler が出力する Rust code であり、手で編集しない |
 
 ```mermaid
 flowchart LR
@@ -178,7 +178,7 @@ encode は length prefix を書く前に検査し、decode は collection の確
 
 ## 6. omnikit
 
-omnikit は、RocketPack で定義した message（[rpfs/omnikit.rpf](../rpfs/omnikit.rpf)）の上に、鍵交換と認証付き暗号化を行うセキュアな接続と、関数単位のリモート呼び出しを構築する crate である。
+omnikit は、RocketPack で定義した message（[modules/omnikit/rpfs](../modules/omnikit/rpfs)）の上に、鍵交換と認証付き暗号化を行うセキュアな接続と、関数単位のリモート呼び出しを構築する crate である。
 
 ### 6.1 層構造
 
@@ -251,8 +251,9 @@ sequenceDiagram
 
 ### 6.4 model
 
-`model/omni_hash.rs`、`omni_sign.rs`、`omni_agreement.rs` は、[rpfs/omnikit.rpf](../rpfs/omnikit.rpf) から生成された `OmniHash`、`OmniSigner`、`OmniCert`、`OmniAgreement*` という wire 構造体に、業務ロジックを直接 `impl` する。
+`model/omni_hash.rs`、`omni_sign.rs`、`omni_agreement.rs` は、同名の `.rpf`（[modules/omnikit/rpfs](../modules/omnikit/rpfs)）から生成された `OmniHash`、`OmniSigner`、`OmniCert`、`OmniAgreement*` という wire 構造体を `pub use` で再 export し、そこへ業務ロジックを直接 `impl` する。
 別の wrapper 型は用意しない。
+`.rpf` の package 名、`src/generated` 直下の module 名、`model` 直下の module 名は同一であり、利用側は `model::omni_sign::OmniSigner` のように参照する。
 `OmniHash::compute_hash` は SHA3-256、`OmniSigner::sign` と `OmniCert::verify` は Ed25519（`ed25519_dalek`）、`OmniAgreement::gen_secret` は X25519（`x25519_dalek`）を使う。
 `OmniHash`、`OmniSigner`、`OmniCert` の `Display` は、[service/converter/omni_base.rs](../modules/omnikit/src/service/converter/omni_base.rs) の `OmniBase`（multibase 準拠の `f` が hex、`u` が base64url encoding）を経由する。
 `OmniHash` は `sha3_256:u<base64url>`、`OmniSigner` と `OmniCert` は `{name}@u<base64url(sha3_256(public_key))>` のような人間可読な文字列を生成する。

@@ -1,0 +1,14 @@
+version 1;
+package omni_hash;
+
+enum OmniHashAlgorithmType {
+  @1 None;
+  @2 Sha3256;
+}
+
+struct OmniHash {
+  @1 typ: OmniHashAlgorithmType;
+  @2 value: bytes[..=MAX_HASH_LENGTH];
+}
+
+const MAX_HASH_LENGTH: u32 = 64;

@@ -1,0 +1,24 @@
+version 1;
+package omni_sign;
+
+enum OmniSignType {
+  @1 None;
+  @2 Ed25519Sha3256Base64Url;
+}
+
+struct OmniSigner {
+  @1 typ: OmniSignType;
+  @2 name: string[..=MAX_NAME_LENGTH];
+  @3 key: bytes[..=MAX_KEY_LENGTH];
+}
+
+struct OmniCert {
+  @1 typ: OmniSignType;
+  @2 name: string[..=MAX_NAME_LENGTH];
+  @3 public_key: bytes[..=MAX_KEY_LENGTH];
+  @4 value: bytes[..=MAX_SIGNATURE_LENGTH];
+}
+
+const MAX_NAME_LENGTH: u32 = 256;
+const MAX_KEY_LENGTH: u32 = 4096;
+const MAX_SIGNATURE_LENGTH: u32 = 128;

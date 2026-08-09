@@ -1,0 +1,14 @@
+version: 1
+name: omnius-core-omnikit
+
+sources:
+  - base_dir: rpfs
+    includes:
+      - "**/*.rpf"
+
+generators:
+  - id: rust
+    plugin: rocketpack-rust
+    options:
+      output_dir: src
+      module_name: generated

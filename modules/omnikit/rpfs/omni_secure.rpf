@@ -1,0 +1,27 @@
+version 1;
+package omni_secure;
+
+enum AuthType {
+  @1 None;
+  @2 Sign;
+}
+
+enum CipherAlgorithmType {
+  @1 Aes256Gcm;
+}
+
+struct ProfileMessage {
+  @1 session_id: bytes[SESSION_ID_LENGTH..=SESSION_ID_LENGTH];
+  @2 auth_type: AuthType;
+  @3 key_exchange_algorithm_type_flags: u32;
+  @4 key_derivation_algorithm_type_flags: u32;
+  @5 cipher_algorithm_type_flags: u32;
+  @6 hash_algorithm_type_flags: u32;
+}
+
+const SESSION_ID_LENGTH: u32 = 32;
+
+const KEY_EXCHANGE_X25519: u32 = 1;
+const KEY_DERIVATION_HKDF: u32 = 2;
+const CIPHER_AES_256_GCM: u32 = 1;
+const HASH_SHA3_256: u32 = 1;
