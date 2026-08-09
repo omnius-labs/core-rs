@@ -3,7 +3,7 @@ package omni_sign;
 
 enum OmniSignType {
   @1 None;
-  @2 Ed25519Sha3256Base64Url;
+  @2 Ed25519_Sha3_256_Base64Url;
 }
 
 struct OmniSigner {

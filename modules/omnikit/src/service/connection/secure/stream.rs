@@ -8,7 +8,7 @@ use tracing::trace;
 
 use omnius_core_base::clock::Clock;
 
-use crate::{model::omni_sign::OmniSigner, prelude::*};
+use crate::{generated::omni_sign::OmniSigner, prelude::*};
 
 use super::*;
 

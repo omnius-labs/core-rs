@@ -8,12 +8,12 @@ use sha3::{Digest, Sha3_256};
 
 use crate::{prelude::*, service::converter::OmniBase};
 
-pub use crate::generated::omni_sign::*;
+use crate::generated::omni_sign::*;
 
 impl OmniSigner {
     pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> Result<Self> {
         match &typ {
-            OmniSignType::Ed25519Sha3256Base64Url => {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::generate(&mut UnwrapErr(SysRng));
                 let name = name.as_ref().to_string();
                 let key = signing_key.to_pkcs8_der()?.to_bytes().to_vec();
@@ -25,7 +25,7 @@ impl OmniSigner {
 
     pub fn sign(&self, msg: &[u8]) -> Result<OmniCert> {
         match &self.typ {
-            OmniSignType::Ed25519Sha3256Base64Url => {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(self.key.as_slice())?;
 
                 let typ = self.typ.clone();
@@ -42,7 +42,7 @@ impl OmniSigner {
 impl std::fmt::Display for OmniSigner {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match &self.typ {
-            OmniSignType::Ed25519Sha3256Base64Url => {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let signing_key = ed25519_dalek::SigningKey::from_pkcs8_der(&self.key).map_err(|_| std::fmt::Error)?;
                 let public_key = signing_key.verifying_key().to_public_key_der().map_err(|_| std::fmt::Error)?.into_vec();
 
@@ -60,7 +60,7 @@ impl std::fmt::Display for OmniSigner {
 impl OmniCert {
     pub fn verify(&self, msg: &[u8]) -> Result<()> {
         match &self.typ {
-            OmniSignType::Ed25519Sha3256Base64Url => {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let public_key = ed25519_dalek::VerifyingKey::from_public_key_der(&self.public_key)?;
 
                 let signature: [u8; ed25519_dalek::SIGNATURE_LENGTH] = self
@@ -83,7 +83,7 @@ impl OmniCert {
 impl std::fmt::Display for OmniCert {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match &self.typ {
-            OmniSignType::Ed25519Sha3256Base64Url => {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
                 let mut hasher = Sha3_256::new();
                 hasher.update(&self.public_key);
                 let hash = hasher.finalize();
@@ -103,7 +103,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple_test() -> TestResult {
-        let signer = OmniSigner::new(OmniSignType::Ed25519Sha3256Base64Url, "test_user")?;
+        let signer = OmniSigner::new(OmniSignType::Ed25519_Sha3_256_Base64Url, "test_user")?;
         let cert = signer.sign(b"test")?;
 
         let signer_decoded = OmniSigner::import(&signer.export()?)?;

@@ -1,4 +1,6 @@
 pub mod omni_addr;
-pub mod omni_agreement;
-pub mod omni_hash;
-pub mod omni_sign;
+
+// 生成型への impl だけを持つ module。型そのものは `crate::generated` 側から参照する。
+mod omni_agreement;
+mod omni_hash;
+mod omni_sign;
