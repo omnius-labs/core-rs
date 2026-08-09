@@ -1,5 +1,4 @@
 mod error;
-#[path = "generated/omnikit.rs"]
 mod generated;
 pub mod model;
 mod prelude;

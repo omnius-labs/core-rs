@@ -12,7 +12,7 @@
 | 本書 | 構成要素の責務、不変条件、設計判断、採用理由、保留事項 |
 | [ISSUES.md](../ISSUES.md) | 現行コードで確認した不具合と、その修正までの追跡 |
 | [RPF parser](../../entrypoints/rocketpack-compiler/src/parser) | RPF の具象構文と AST の正本 |
-| [rocketpack.yaml の例](../../entrypoints/rocketpack-compiled-example/rocketpack.yaml) | 利用可能な設定値の実例 |
+| [rocketpack.yaml の例](../../entrypoints/rocketpack-compiled-example/showcase/rocketpack.yaml) | 利用可能な設定値の実例 |
 | [README.md](../../README.md) | リポジトリ全体の入口と外部リンク |
 
 本書は RPF のフィールド構文、wire encoding、CLI のセットアップ手順を複写しない。
@@ -52,8 +52,8 @@ path dependency により、ローカル filesystem 上にある別 crate の sc
 | [entrypoints/rocketpack-compiler/src/parser](../../entrypoints/rocketpack-compiler/src/parser) | `parser` | RPF を source location 付き AST へ変換する |
 | [entrypoints/rocketpack-compiler/src/semantic.rs](../../entrypoints/rocketpack-compiler/src/semantic.rs) | `semantic` | schema symbol の登録、可視性検証、型参照の解決 |
 | [entrypoints/rocketpack-compiler/src/codegen](../../entrypoints/rocketpack-compiler/src/codegen) | `codegen` | semantic graph を言語別の生成物へ変換する |
-| [entrypoints/rocketpack-compiled-example](../../entrypoints/rocketpack-compiled-example) | `rocketpack-compiled-example` | 生成物を実際の Rust crate へ組み込む結合検証 |
-| [entrypoints/rocketpack-compiled-example/rust/gen](../../entrypoints/rocketpack-compiled-example/rust/gen) | 自動生成物 | generator が専有し、手で編集しない Rust source tree |
+| [entrypoints/rocketpack-compiled-example](../../entrypoints/rocketpack-compiled-example) | `rocketpack-showcase`、`rocketpack-provider`、`rocketpack-consumer` | 生成物を実際の Rust crate へ組み込む結合検証 |
+| [entrypoints/rocketpack-compiled-example/showcase/rust/gen](../../entrypoints/rocketpack-compiled-example/showcase/rust/gen) | 自動生成物 | generator が専有し、手で編集しない Rust source tree |
 
 ### 3.2 処理の流れ
 

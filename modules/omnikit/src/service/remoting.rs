@@ -2,7 +2,7 @@ mod caller;
 mod listener;
 mod stream;
 
-use crate::generated::omnius::core::omnikit::{HelloMessage, OmniRemotingVersion};
+use crate::generated::omni_remoting::{HelloMessage, OmniRemotingVersion};
 
 pub use caller::*;
 pub use listener::*;
@@ -14,7 +14,7 @@ mod tests {
 
     use testresult::TestResult;
 
-    use crate::generated::omnius::core::omnikit::TestMessage;
+    use crate::generated::omni_remoting::TestMessage;
     use crate::prelude::*;
 
     use super::*;

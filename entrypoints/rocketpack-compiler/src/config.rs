@@ -265,10 +265,10 @@ mod tests {
 
     #[tokio::test]
     async fn config_load_test() -> TestResult {
-        let config_path = Path::new("../rocketpack-compiled-example/rocketpack.yaml");
+        let config_path = Path::new("../rocketpack-compiled-example/showcase/rocketpack.yaml");
         let config = AppConfig::load(config_path).await?;
         assert_eq!(config.version, 1);
-        assert_eq!(config.name, "rocketpack-compiled-example");
+        assert_eq!(config.name, "rocketpack-showcase-schema");
         Ok(())
     }
 

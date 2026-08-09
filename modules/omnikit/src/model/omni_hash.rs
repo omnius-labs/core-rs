@@ -4,7 +4,7 @@ use sha3::{Digest, Sha3_256};
 
 use crate::{prelude::*, service::converter::OmniBase};
 
-use super::{OmniHash, OmniHashAlgorithmType};
+pub use crate::generated::omni_hash::*;
 
 impl OmniHash {
     pub fn compute_hash<V>(typ: OmniHashAlgorithmType, bytes: V) -> Self

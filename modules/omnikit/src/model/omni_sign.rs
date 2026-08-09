@@ -8,7 +8,7 @@ use sha3::{Digest, Sha3_256};
 
 use crate::{prelude::*, service::converter::OmniBase};
 
-use super::{OmniCert, OmniSignType, OmniSigner};
+pub use crate::generated::omni_sign::*;
 
 impl OmniSigner {
     pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> Result<Self> {

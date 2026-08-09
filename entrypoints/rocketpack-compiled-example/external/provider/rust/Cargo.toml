@@ -1,8 +1,0 @@
-[package]
-name = "rocketpack-provider"
-version = "0.1.0"
-edition = "2024"
-workspace = "../../../rust"
-
-[dependencies]
-omnius-core-rocketpack = { path = "../../../../../modules/rocketpack" }
