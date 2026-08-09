@@ -1,13 +1,13 @@
 use tracing::{info, warn};
 
-use crate::{config::AppConfig, error::CodegenError};
+use crate::{error::CodegenError, semantic::SemanticGraph};
 
 mod rust;
 
-pub async fn generate(conf: AppConfig) -> Result<(), CodegenError> {
-    for generator_conf in &conf.generators {
+pub async fn generate(graph: &SemanticGraph) -> Result<(), CodegenError> {
+    for generator_conf in &graph.root_manifest().config.generators {
         match generator_conf.plugin.as_str() {
-            "rocketpack-rust" => rust::generate(&conf.root_dir, &conf.sources, generator_conf).await?,
+            "rocketpack-rust" => rust::generate(graph, generator_conf).await?,
             "rocketpack-csharp" | "rocketpack-swift" => {
                 info!(
                     generator_id = %generator_conf.id,

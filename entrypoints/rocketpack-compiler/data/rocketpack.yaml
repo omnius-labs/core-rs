@@ -1,4 +1,5 @@
 version: 1
+name: rocketpack-compiler-example
 
 sources:
   - base_dir: rpfs
@@ -29,16 +30,8 @@ generators:
   - id: rust
     plugin: rocketpack-rust
     options:
-      edition: 2024
-      visibility: public
-    targets:
-      - pattern: example/first.rpf
-        options:
-          dir: rust/gen/src/example/first
-      - pattern: example/*.rpf
-        options:
-          dir: rust/gen/src/example/second
-          visibility: internal
+      output_dir: rust/gen/src
+      module_name: rocketpack
 
   - id: swift
     plugin: rocketpack-swift

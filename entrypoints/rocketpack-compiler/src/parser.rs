@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{
     error::{ParseError, ParseErrorBundle, ParseErrorKind},
@@ -7,18 +7,6 @@ use crate::{
 
 pub mod ast;
 pub mod lexer;
-
-pub fn parse(path: &std::path::Path) -> Result<File, ParseErrorBundle> {
-    let source = fs::read_to_string(path).map_err(|err| {
-        ParseErrorBundle::new(
-            path,
-            String::new(),
-            vec![ParseError::new(ParseErrorKind::Other(format!("failed to read file: {err}")), 0, 0)],
-        )
-    })?;
-
-    parse_source(path.to_path_buf(), &source)
-}
 
 pub fn parse_source(path: impl Into<PathBuf>, source: &str) -> Result<File, ParseErrorBundle> {
     let path = path.into();
@@ -55,10 +43,6 @@ impl Parser {
         self.tokens.get(self.i)
     }
 
-    fn nth(&self, n: usize) -> Option<&SpannedToken> {
-        self.tokens.get(self.i + n)
-    }
-
     fn bump(&mut self) -> Option<SpannedToken> {
         let t = self.tokens.get(self.i).cloned();
         self.i += 1;
@@ -92,6 +76,7 @@ impl Parser {
             Some(Token::Str(_)) => "string",
             Some(Token::Bytes(_)) => "bytes",
             Some(Token::At) => "@",
+            Some(Token::Hash) => "#",
             Some(Token::Semi) => ";",
             Some(Token::Colon) => ":",
             Some(Token::Comma) => ",",
@@ -123,6 +108,26 @@ impl Parser {
 
         // 任意の順序でトップレベルを読み込む
         while let Some(_) = self.peek() {
+            if self.at(Token::Hash) {
+                let attributes = self.parse_attributes();
+                match self.peek_keyword().as_deref() {
+                    Some("struct") => {
+                        let mut s = self.parse_struct();
+                        s.attributes = attributes;
+                        file.items.push(Item::Struct(s));
+                    }
+                    Some("enum") => {
+                        let mut e = self.parse_enum();
+                        e.attributes = attributes;
+                        file.items.push(Item::Enum(e));
+                    }
+                    _ => {
+                        self.error_here(ParseErrorKind::Unexpected("attributes are only allowed on struct/enum"));
+                    }
+                }
+                continue;
+            }
+
             // キーワードは Ident で来るので先読みして判定
             if let Some(kw) = self.peek_keyword() {
                 match kw.as_str() {
@@ -184,6 +189,42 @@ impl Parser {
         }
     }
 
+    // ===== attribute =====
+
+    fn parse_attributes(&mut self) -> Vec<Attribute> {
+        let mut attributes = Vec::new();
+        while self.at(Token::Hash) {
+            attributes.push(self.parse_attribute());
+        }
+        attributes
+    }
+
+    fn parse_attribute(&mut self) -> Attribute {
+        self.expect(Token::Hash, "#");
+        self.expect(Token::LBracket, "[");
+        let path_start = self.peek().map(|t| t.span.start).unwrap_or(self.prev_end());
+        let path = self.parse_path();
+        let path_end = self.prev_end();
+        let path = Spanned::new(path, path_start, path_end);
+
+        let mut args = Vec::new();
+        if self.at(Token::LParen) {
+            self.bump();
+            while !self.at(Token::RParen) && self.peek().is_some() {
+                args.push(self.expect_ident());
+                if self.at(Token::Comma) {
+                    self.bump();
+                } else {
+                    break;
+                }
+            }
+            self.expect(Token::RParen, ")");
+        }
+
+        self.expect(Token::RBracket, "]");
+        Attribute { path, args }
+    }
+
     // ===== トップレベル要素 =====
 
     fn parse_version(&mut self) -> Spanned<u32> {
@@ -228,7 +269,11 @@ impl Parser {
             }
         }
         self.expect(Token::RBrace, "}");
-        Struct { name, fields }
+        Struct {
+            name,
+            fields,
+            attributes: Vec::new(),
+        }
     }
 
     fn parse_enum(&mut self) -> Enum {
@@ -245,7 +290,11 @@ impl Parser {
             }
         }
         self.expect(Token::RBrace, "}");
-        Enum { name, variants }
+        Enum {
+            name,
+            variants,
+            attributes: Vec::new(),
+        }
     }
 
     fn parse_type_alias(&mut self) -> TypeAlias {
@@ -352,7 +401,7 @@ impl Parser {
 
     fn parse_type_inner(&mut self) -> Type {
         // Option<T> / Vec<T> / Map<K,V> / [T;N] / Path
-        if self.is_ident_kw("Option") {
+        let ty = if self.is_ident_kw("Option") {
             self.expect(Token::Lt, "<");
             let inner = self.expect_type();
             self.expect(Token::Gt, ">");
@@ -379,6 +428,76 @@ impl Parser {
             Type::Array(Box::new(inner.value), n)
         } else {
             Type::Path(self.parse_path())
+        };
+
+        if self.at(Token::LBracket) {
+            Type::Constrained(Box::new(ty), self.parse_length_range())
+        } else {
+            ty
+        }
+    }
+
+    fn parse_length_range(&mut self) -> LengthRange {
+        self.expect(Token::LBracket, "[");
+        let min = if self.at(Token::Dots) { None } else { Some(self.expect_length_bound()) };
+        self.expect(Token::Dots, "..");
+        self.expect(Token::Eq, "=");
+        let max = self.expect_length_bound();
+        self.expect(Token::RBracket, "]");
+        LengthRange { min, max }
+    }
+
+    fn expect_length_bound(&mut self) -> Spanned<LengthBound> {
+        match self.bump() {
+            Some(SpannedToken {
+                token: Token::Int(value) | Token::Hex(value),
+                span,
+            }) => Spanned::new(LengthBound::Literal(value), span.start, span.end),
+            Some(SpannedToken { token: Token::Ident(value), span }) => Spanned::new(LengthBound::Const(value), span.start, span.end),
+            Some(token) => {
+                self.errors.push(ParseError::new(
+                    ParseErrorKind::Expected {
+                        expected: "integer or constant",
+                        found: Self::token_name(&token.token),
+                    },
+                    token.span.start,
+                    token.span.end,
+                ));
+                Spanned::new(LengthBound::Literal(0), token.span.start, token.span.end)
+            }
+            None => {
+                let (start, end) = self.error_here(ParseErrorKind::Expected {
+                    expected: "integer or constant",
+                    found: "EOF",
+                });
+                Spanned::new(LengthBound::Literal(0), start, end)
+            }
+        }
+    }
+
+    fn token_name(token: &Token) -> &'static str {
+        match token {
+            Token::Ident(_) => "identifier",
+            Token::Int(_) | Token::Hex(_) => "integer",
+            Token::Float(_) => "float",
+            Token::Str(_) => "string",
+            Token::Bytes(_) => "bytes",
+            Token::At => "@",
+            Token::Hash => "#",
+            Token::Semi => ";",
+            Token::Colon => ":",
+            Token::Comma => ",",
+            Token::Eq => "=",
+            Token::LBrace => "{",
+            Token::RBrace => "}",
+            Token::LParen => "(",
+            Token::RParen => ")",
+            Token::LBracket => "[",
+            Token::RBracket => "]",
+            Token::Lt => "<",
+            Token::Gt => ">",
+            Token::Dots => "..",
+            Token::PathSep => "::",
         }
     }
 
@@ -551,5 +670,49 @@ impl Parser {
     }
     fn prev_end(&self) -> usize {
         if self.i == 0 { 0 } else { self.tokens[self.i - 1].span.end }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_inclusive_length_ranges() {
+        let file = parse_source(
+            "test.rpf",
+            "version 1; package test; const LIMIT: u32 = 4; struct Sample { @1 value: string[..=LIMIT]; @2 nested: Vec<bytes[1..=2]>[0..=3]; }",
+        )
+        .expect("valid inclusive ranges must parse");
+
+        let Item::Struct(sample) = &file.items[1] else { panic!("expected struct") };
+        assert!(matches!(sample.fields[0].ty.value, Type::Constrained(_, _)));
+        assert!(matches!(sample.fields[1].ty.value, Type::Constrained(_, _)));
+    }
+
+    #[test]
+    fn parses_types_without_length_ranges() {
+        let file = parse_source(
+            "test.rpf",
+            "version 1; package test; struct Sample { @1 value: string; @2 nested: Map<string, Vec<bytes>>; }",
+        )
+        .expect("types without a range must parse");
+
+        let Item::Struct(sample) = &file.items[0] else { panic!("expected struct") };
+        assert!(matches!(sample.fields[0].ty.value, Type::Path(_)));
+        assert!(matches!(sample.fields[1].ty.value, Type::Map(_, _)));
+    }
+
+    #[test]
+    fn rejects_incomplete_or_exclusive_length_ranges() {
+        // 範囲を書くなら包含かつ有限に限る。無制限にしたい場合は括弧ごと省略する
+        for source in [
+            "version 1; package test; struct Sample { @1 value: string[..4]; }",
+            "version 1; package test; struct Sample { @1 value: string[1..4]; }",
+            "version 1; package test; struct Sample { @1 value: string[..]; }",
+            "version 1; package test; struct Sample { @1 value: string[1..]; }",
+        ] {
+            assert!(parse_source("test.rpf", source).is_err(), "{source}");
+        }
     }
 }
