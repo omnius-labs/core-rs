@@ -14,6 +14,16 @@ pub enum RocketPackEncoderError {
     IoError(#[from] std::io::Error),
     #[error("length overflow")]
     LengthOverflow { len: usize },
+    #[error("length out of range for {context}: expected {min}..={max}, got {actual}")]
+    LengthOutOfRange { context: &'static str, min: u64, max: u64, actual: u64 },
+}
+
+pub fn validate_length(context: &'static str, min: u64, max: u64, actual: usize) -> Result<()> {
+    let actual = u64::try_from(actual).map_err(|_| RocketPackEncoderError::LengthOverflow { len: actual })?;
+    if actual < min || actual > max {
+        return Err(RocketPackEncoderError::LengthOutOfRange { context, min, max, actual });
+    }
+    Ok(())
 }
 
 pub trait RocketPackEncoder {

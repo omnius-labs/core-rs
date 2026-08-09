@@ -2,6 +2,7 @@ use chrono::{DateTime, Timelike, Utc};
 
 use crate::{RocketPackDecoder, RocketPackDecoderError, RocketPackEncoder, RocketPackEncoderError, RocketPackStruct};
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Timestamp64 {
     pub seconds: i64,
 }
@@ -39,6 +40,7 @@ impl RocketPackStruct for Timestamp64 {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Timestamp96 {
     pub seconds: i64,
     pub nanos: u32,
@@ -103,6 +105,15 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[test]
+    fn generated_container_traits_are_available() {
+        fn assert_traits<T: std::fmt::Debug + Clone + PartialEq + Eq + PartialOrd + Ord>() {}
+
+        assert_traits::<Timestamp64>();
+        assert_traits::<Timestamp96>();
+        let _: std::collections::BTreeMap<Timestamp64, Timestamp96> = std::collections::BTreeMap::new();
+    }
 
     #[test]
     fn normal_timestamp64_test() -> TestResult {
