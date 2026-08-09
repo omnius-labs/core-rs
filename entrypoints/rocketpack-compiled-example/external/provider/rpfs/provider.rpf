@@ -1,0 +1,6 @@
+version 1;
+package omnius::provider::v1;
+
+struct UserId {
+  @1 value: string;
+}

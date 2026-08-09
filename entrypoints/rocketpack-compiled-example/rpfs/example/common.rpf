@@ -1,0 +1,13 @@
+version 1;
+package omnius::demo::v1;
+
+enum Status {
+  @1 Success;
+  @2 Failed;
+}
+
+struct SimpleMessage {
+  @1 bool_field: Option<bool>;
+}
+
+type ByteList = Vec<bytes[1..=8]>[1..=4];

@@ -1,0 +1,22 @@
+version: 1
+name: rocketpack-consumer-schema
+
+dependencies:
+  rocketpack-provider-schema:
+    path: ../provider/rocketpack.yaml
+
+sources:
+  - base_dir: rpfs
+    includes:
+      - "**/*.rpf"
+
+generators:
+  - id: rust
+    plugin: rocketpack-rust
+    options:
+      output_dir: rust/gen/src
+      module_name: rocketpack
+      dependencies:
+        rocketpack-provider-schema:
+          crate: provider_alias
+          module_name: rocketpack
