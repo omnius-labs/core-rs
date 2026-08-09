@@ -114,8 +114,10 @@ pub enum ParseErrorKind {
 pub enum ConfigError {
     #[error("設定ファイルを読み込めませんでした: {0}")]
     Io(#[from] std::io::Error),
+
     #[error("設定ファイルを解析できませんでした: {0}")]
     Parse(#[from] serde_yaml_ng::Error),
+
     #[error("未対応の設定ファイルバージョンです: {0}")]
     UnsupportedVersion(u32),
 

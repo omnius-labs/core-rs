@@ -1,5 +1,5 @@
 mod error;
-mod generated;
+pub mod generated;
 pub mod model;
 mod prelude;
 mod result;

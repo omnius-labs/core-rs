@@ -3,7 +3,7 @@ package omni_hash;
 
 enum OmniHashAlgorithmType {
   @1 None;
-  @2 Sha3256;
+  @2 Sha3_256;
 }
 
 struct OmniHash {

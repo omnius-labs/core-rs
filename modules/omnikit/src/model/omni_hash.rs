@@ -4,7 +4,7 @@ use sha3::{Digest, Sha3_256};
 
 use crate::{prelude::*, service::converter::OmniBase};
 
-pub use crate::generated::omni_hash::*;
+use crate::generated::omni_hash::*;
 
 impl OmniHash {
     pub fn compute_hash<V>(typ: OmniHashAlgorithmType, bytes: V) -> Self
@@ -22,7 +22,7 @@ impl std::fmt::Display for OmniHash {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let typ = match &self.typ {
             OmniHashAlgorithmType::None => "none",
-            OmniHashAlgorithmType::Sha3256 => "sha3_256",
+            OmniHashAlgorithmType::Sha3_256 => "sha3_256",
         };
         write!(f, "{}:{}", typ, OmniBase::encode_by_base64_url(&self.value))
     }
@@ -47,7 +47,7 @@ impl FromStr for OmniHash {
         let value = iter.next().ok_or_else(|| Error::new(ErrorKind::InvalidFormat).with_message("value not found"))?;
 
         let typ = match typ {
-            "sha3_256" => OmniHashAlgorithmType::Sha3256,
+            "sha3_256" => OmniHashAlgorithmType::Sha3_256,
             _ => OmniHashAlgorithmType::None,
         };
         let value = OmniBase::decode(value)?;
@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn generated_roundtrip_test() -> Result<()> {
-        let value = OmniHash::compute_hash(OmniHashAlgorithmType::Sha3256, b"test");
+        let value = OmniHash::compute_hash(OmniHashAlgorithmType::Sha3_256, b"test");
         let decoded = OmniHash::import(&value.export()?)?;
 
         assert_eq!(value, decoded);
