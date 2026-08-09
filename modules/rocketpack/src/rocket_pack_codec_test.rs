@@ -286,7 +286,11 @@ mod tests {
 
         for (bytes, value) in cases {
             encode_test!(write_array, value, &bytes);
-            decode_test!(read_array, &bytes, value as u64);
+
+            // 宣言した要素数ぶんの payload を続けないと read_array は EOF を返す
+            let mut buf = bytes.clone();
+            buf.resize(bytes.len() + value, compose(0, 0));
+            decode_test!(read_array, &buf, value as u64);
         }
 
         Ok(())
@@ -300,7 +304,11 @@ mod tests {
 
         for (bytes, value) in cases {
             encode_test!(write_map, value, &bytes);
-            decode_test!(read_map, &bytes, value as u64);
+
+            // 宣言した entry 数ぶんの key と value を続けないと read_map は EOF を返す
+            let mut buf = bytes.clone();
+            buf.resize(bytes.len() + value * 2, compose(0, 0));
+            decode_test!(read_map, &buf, value as u64);
         }
 
         Ok(())
@@ -436,5 +444,50 @@ mod tests {
             Err(RocketPackDecoderError::UnexpectedEof) => Ok(()),
             other => panic!("expected UnexpectedEof, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn bounded_string_and_bytes_reject_before_payload_read() -> TestResult {
+        for (bytes, context) in [(&[compose(3, 3)][..], "Message.text"), (&[compose(2, 3)][..], "Message.data")] {
+            let mut decoder = RocketPackBytesDecoder::new(bytes);
+            let result = if bytes[0] >> 5 == 3 {
+                decoder.read_string_bounded(context, 0, 2).map(|_| ())
+            } else {
+                decoder.read_bytes_bounded(context, 0, 2).map(|_| ())
+            };
+            assert!(matches!(
+                result,
+                Err(RocketPackDecoderError::LengthOutOfRange { context: actual_context, min: 0, max: 2, actual: 3, position: 0 }) if actual_context == context
+            ));
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn array_and_map_reject_counts_larger_than_the_remaining_buffer() -> TestResult {
+        // 9 byte で u64::MAX 個を宣言する。要素は最低 1 byte を占めるので表現できない
+        for major in [4, 5] {
+            let mut bytes = vec![compose(major, 27)];
+            bytes.extend_from_slice(&u64::MAX.to_be_bytes());
+
+            let mut decoder = RocketPackBytesDecoder::new(&bytes);
+            let result = if major == 4 { decoder.read_array() } else { decoder.read_map() };
+            assert!(matches!(result, Err(RocketPackDecoderError::UnexpectedEof)), "major {major}: {result:?}");
+        }
+
+        // 宣言した個数がちょうど残りに収まる場合は受け入れる
+        // 要素は最低 1 byte、entry は key と value で最低 2 byte を占める
+        for (major, min_bytes_per_item) in [(4usize, 1usize), (5, 2)] {
+            let min_payload = min_bytes_per_item * 2;
+            let mut bytes = vec![compose(major as u8, 2)];
+            bytes.extend(std::iter::repeat_n(compose(0, 0), min_payload));
+
+            let mut decoder = RocketPackBytesDecoder::new(&bytes);
+            let decoded = if major == 4 { decoder.read_array()? } else { decoder.read_map()? };
+            assert_eq!(decoded, 2, "major {major}");
+        }
+
+        Ok(())
     }
 }
