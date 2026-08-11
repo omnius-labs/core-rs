@@ -22,7 +22,6 @@ RocketPack compiler 固有の論点は [RocketPack compiler の設計](./design/
 | [I-7](#i-7) | signed 正数デコードが iN 範囲超過を折り返して格納する | 高（未顕在） | |
 | [I-8](#i-8) | ワイヤ由来 count で Vec::with_capacity を呼びメモリ増幅する | 高（未顕在） | |
 | [I-9](#i-9) | skip_field が info 28 を 16 バイトと扱い read_raw_len と不一致 | 高（未顕在） | |
-| [I-10](#i-10) | 例示 config が base_dir: rpfs を宣言したまま rpfs を削除しコンパイル不能 | 高 | |
 | [I-11](#i-11) | pack が validate のために値ツリーをもう 1 パス走査する | 低 | |
 | [I-12](#i-12) | codegen が semantic の型体系を丸ごと再宣言する | 低 | |
 | [I-13](#i-13) | wip_tests が実経路を迂回した並行テスト harness として残っている | 低 | |
@@ -225,27 +224,6 @@ encoder は info 28 を生成しないため敵対入力のみで発火する。
 
 ### 対応方針
 `skip_field` の info 28 の扱いを `read_raw_len` と一致させる。
-
-<a id="i-10"></a>
-## I-10. 例示 config が base_dir: rpfs を宣言したまま rpfs を削除しコンパイル不能
-
-**深刻度: 高**
-
-### 症状
-head の `data/rocketpack.yaml` は `base_dir: rpfs` を宣言するが `rpfs` ディレクトリは削除済みで、`cargo run -- compile ./data` が `source base_dir is not a directory` で失敗する。
-
-### 該当箇所
-[`data/rocketpack.yaml#L5`](../entrypoints/rocketpack-compiler/data/rocketpack.yaml#L5) (head 時点)
-
-### 原因
-例示 config と rpfs の削除を同コミットにまとめていない。
-修正は working tree での yaml 削除のみで未コミットである。
-
-### 影響
-このコミットを新しく clone した人が `compile ./data` で失敗する。
-
-### 対応方針
-例示 config と rpfs の削除を同コミットにまとめる。
 
 <a id="i-11"></a>
 ## I-11. pack が validate のために値ツリーをもう 1 パス走査する
