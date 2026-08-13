@@ -2,13 +2,4 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "generated/omni_agreement.rs"]
-pub mod omni_agreement;
-#[path = "generated/omni_hash.rs"]
-pub mod omni_hash;
-#[path = "generated/omni_remoting.rs"]
-pub mod omni_remoting;
-#[path = "generated/omni_secure.rs"]
-pub mod omni_secure;
-#[path = "generated/omni_sign.rs"]
-pub mod omni_sign;
+include!("generated/.root.rs");

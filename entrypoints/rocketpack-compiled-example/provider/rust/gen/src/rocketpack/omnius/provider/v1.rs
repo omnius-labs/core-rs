@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "v1/__rpf_provider_bdeb66104e1a5237.rs"]
 mod __rpf_provider_bdeb66104e1a5237;
 pub use __rpf_provider_bdeb66104e1a5237::*;

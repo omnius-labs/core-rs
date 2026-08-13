@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "omni_sign/__rpf_omni_sign_82aa29df59d9d309.rs"]
 mod __rpf_omni_sign_82aa29df59d9d309;
 pub use __rpf_omni_sign_82aa29df59d9d309::*;

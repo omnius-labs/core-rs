@@ -12,32 +12,36 @@ impl omnius_core_rocketpack::RocketPackStruct for UserId {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
         encoder.write_u64(1)?;
         encoder.write_string((&value.value).as_str())?;
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut value: Option<String> = None;
+        let mut __rpf_storage_value: Option<String> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    value = Some(decoder.read_string()?);
+                    __rpf_storage_value = Some(decoder.read_string()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            value: value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
+            value: __rpf_storage_value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
         })
     }
 }

@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "omni_hash/__rpf_omni_hash_71c1c2d730c238a0.rs"]
 mod __rpf_omni_hash_71c1c2d730c238a0;
 pub use __rpf_omni_hash_71c1c2d730c238a0::*;

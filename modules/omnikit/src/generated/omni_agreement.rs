@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "omni_agreement/__rpf_omni_agreement_d6cdfcb98fb8a4f0.rs"]
 mod __rpf_omni_agreement_d6cdfcb98fb8a4f0;
 pub use __rpf_omni_agreement_d6cdfcb98fb8a4f0::*;
