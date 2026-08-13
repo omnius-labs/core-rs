@@ -436,6 +436,15 @@ mod tests {
     }
 
     #[test]
+    fn signed_positive_overflow_and_reserved_length_are_rejected() {
+        let mut decoder = RocketPackBytesDecoder::new(&[0x1b, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+        assert!(matches!(decoder.read_i64(), Err(RocketPackDecoderError::MismatchFieldType { .. })));
+
+        let mut decoder = RocketPackBytesDecoder::new(&[0x1c]);
+        assert!(matches!(decoder.skip_field(), Err(RocketPackDecoderError::MismatchFieldType { .. })));
+    }
+
+    #[test]
     fn truncated_negative_number_reports_eof() -> TestResult {
         let bytes = vec![compose(1, 24)];
         let decoder = RocketPackBytesDecoder::new(&bytes);

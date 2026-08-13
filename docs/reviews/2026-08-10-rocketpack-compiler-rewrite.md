@@ -459,3 +459,4 @@ ISSUES.md に I-13 として起票（深刻度 低）。
 
 - 2026-08-10: 発行。R-1 から R-10 と R-13 から R-15 を ISSUES.md に I-1 から I-13 として起票。R-11 と R-12 を DESIGN.md §11.2 保留に起票。
 - 2026-08-11: R-10 を修正。`entrypoints/rocketpack-compiler/data/rocketpack.yaml` を削除し、例示 config が消えた `rpfs` を指す状態を解消した。ISSUES.md の I-10 は削除済み。compiler の例示は `entrypoints/rocketpack-compiled-example/` の 3 project が引き継ぐ。
+- 2026-08-12: R-1 から R-9、R-13、R-15 を修正し、対応する ISSUES.md の項目を削除した。R-14 は未解決の I-12 として残した。R-11 は flag-day 移行、R-12 は明示的な意味的 preimage へ決定し、DESIGN.md の決定済みに記録した。

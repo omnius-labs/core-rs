@@ -176,8 +176,15 @@ where
     fn gen_hash(profile_message: &ProfileMessage, agreement_public_key: &OmniAgreementPublicKey, hash_algorithm: &u32) -> Result<Vec<u8>> {
         if has_flag(*hash_algorithm, HASH_SHA3_256) {
             let mut hasher = Sha3_256::new();
-            hasher.update(profile_message.export()?);
-            hasher.update(agreement_public_key.export()?);
+            hasher.update(&profile_message.session_id);
+            hasher.update(auth_type_tag(&profile_message.auth_type).to_le_bytes());
+            hasher.update(profile_message.key_exchange_algorithm_type_flags.to_le_bytes());
+            hasher.update(profile_message.key_derivation_algorithm_type_flags.to_le_bytes());
+            hasher.update(profile_message.cipher_algorithm_type_flags.to_le_bytes());
+            hasher.update(profile_message.hash_algorithm_type_flags.to_le_bytes());
+            hasher.update(agreement_public_key.created_time.seconds.to_be_bytes());
+            hasher.update(agreement_type_tag(&agreement_public_key.algorithm_type).to_le_bytes());
+            hasher.update(&agreement_public_key.public_key);
 
             Ok(hasher.finalize().to_vec())
         } else {
@@ -186,6 +193,57 @@ where
     }
 }
 
+fn auth_type_tag(value: &AuthType) -> u32 {
+    match value {
+        AuthType::None => 1,
+        AuthType::Sign => 2,
+    }
+}
+
+fn agreement_type_tag(value: &OmniAgreementAlgorithmType) -> u32 {
+    match value {
+        OmniAgreementAlgorithmType::None => 1,
+        OmniAgreementAlgorithmType::X25519 => 2,
+    }
+}
+
 const fn has_flag(flags: u32, flag: u32) -> bool {
     flags & flag != 0
+}
+
+#[cfg(test)]
+mod tests {
+    use omnius_core_rocketpack::primitive::Timestamp64;
+
+    use super::*;
+
+    #[test]
+    fn signature_preimage_uses_explicit_rpf_tags_not_wire_export() {
+        let profile = ProfileMessage {
+            session_id: vec![7; 32],
+            auth_type: AuthType::Sign,
+            key_exchange_algorithm_type_flags: 3,
+            key_derivation_algorithm_type_flags: 5,
+            cipher_algorithm_type_flags: 7,
+            hash_algorithm_type_flags: HASH_SHA3_256,
+        };
+        let agreement = OmniAgreementPublicKey {
+            algorithm_type: OmniAgreementAlgorithmType::X25519,
+            public_key: vec![9; 32],
+            created_time: Timestamp64::new(11),
+        };
+
+        let actual = Authenticator::<tokio::io::DuplexStream>::gen_hash(&profile, &agreement, &HASH_SHA3_256).unwrap();
+        let mut expected = Sha3_256::new();
+        expected.update([7; 32]);
+        expected.update(2_u32.to_le_bytes());
+        expected.update(3_u32.to_le_bytes());
+        expected.update(5_u32.to_le_bytes());
+        expected.update(7_u32.to_le_bytes());
+        expected.update(HASH_SHA3_256.to_le_bytes());
+        expected.update(11_i64.to_be_bytes());
+        expected.update(2_u32.to_le_bytes());
+        expected.update([9; 32]);
+        assert_eq!(actual, expected.finalize().to_vec());
+    }
 }
