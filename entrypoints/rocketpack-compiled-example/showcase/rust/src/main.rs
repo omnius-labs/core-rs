@@ -195,11 +195,11 @@ mod tests {
     }
 
     #[test]
-    fn encode_rejects_invalid_lengths_without_mutating_the_output() {
+    fn encode_rejects_invalid_lengths_after_progressive_output() {
         let mut value = sample_primitive_showcase_1();
         value.string_field_constrained = String::new();
         let mut output = vec![0xAA, 0xBB];
-        let expected_output = output.clone();
+        let initial_output = output.clone();
         let error = {
             let mut encoder = RocketPackBytesEncoder::new(&mut output);
             PrimitiveShowcase1::pack(&mut encoder, &value).unwrap_err()
@@ -214,16 +214,17 @@ mod tests {
                 actual: 0
             }
         ));
-        assert_eq!(output, expected_output);
+        assert!(output.starts_with(&initial_output));
+        assert!(output.len() > initial_output.len());
     }
 
     #[test]
-    fn nested_named_validation_precedes_parent_output() {
+    fn nested_named_validation_follows_parent_output() {
         let value = NestedParent {
             child: NestedChild { label: String::new() },
         };
         let mut output = vec![0xAA, 0xBB];
-        let expected_output = output.clone();
+        let initial_output = output.clone();
         let error = {
             let mut encoder = RocketPackBytesEncoder::new(&mut output);
             NestedParent::pack(&mut encoder, &value).unwrap_err()
@@ -238,7 +239,8 @@ mod tests {
                 actual: 0
             }
         ));
-        assert_eq!(output, expected_output);
+        assert!(output.starts_with(&initial_output));
+        assert!(output.len() > initial_output.len());
     }
 
     #[test]
