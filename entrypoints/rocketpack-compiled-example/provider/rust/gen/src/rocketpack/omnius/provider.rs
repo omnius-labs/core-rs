@@ -2,5 +2,4 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "provider/v1.rs"]
 pub mod v1;

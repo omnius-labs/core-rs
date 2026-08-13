@@ -11,13 +11,16 @@ pub enum OmniRemotingVersion {
 impl omnius_core_rocketpack::RocketPackStruct for OmniRemotingVersion {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::Unknown => {}
-            Self::V1 => {}
+            Self::Unknown => {},
+            Self::V1 => {},
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -34,7 +37,9 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniRemotingVersion {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -79,7 +84,10 @@ impl omnius_core_rocketpack::RocketPackStruct for HelloMessage {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(2)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.version)?;
@@ -88,7 +96,9 @@ impl omnius_core_rocketpack::RocketPackStruct for HelloMessage {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -125,14 +135,19 @@ impl omnius_core_rocketpack::RocketPackStruct for TestMessage {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
         encoder.write_u64(1)?;
         encoder.write_i32(*(&value.value))?;
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {

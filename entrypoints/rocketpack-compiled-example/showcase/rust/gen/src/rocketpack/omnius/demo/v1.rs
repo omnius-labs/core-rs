@@ -2,9 +2,7 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "v1/__rpf_common_e3639688fd246723.rs"]
 mod __rpf_common_e3639688fd246723;
 pub use __rpf_common_e3639688fd246723::*;
-#[path = "v1/__rpf_showcase_a06efbe0318edb47.rs"]
 mod __rpf_showcase_a06efbe0318edb47;
 pub use __rpf_showcase_a06efbe0318edb47::*;

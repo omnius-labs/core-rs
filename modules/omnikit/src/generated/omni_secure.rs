@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "omni_secure/__rpf_omni_secure_77c8b91862421dd1.rs"]
 mod __rpf_omni_secure_77c8b91862421dd1;
 pub use __rpf_omni_secure_77c8b91862421dd1::*;

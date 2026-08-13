@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "v1/__rpf_consumer_96f4f9ff072bf3df.rs"]
 mod __rpf_consumer_96f4f9ff072bf3df;
 pub use __rpf_consumer_96f4f9ff072bf3df::*;

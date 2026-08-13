@@ -11,13 +11,16 @@ pub enum OmniHashAlgorithmType {
 impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::None => {}
-            Self::Sha3_256 => {}
+            Self::None => {},
+            Self::Sha3_256 => {},
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -34,7 +37,9 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -80,7 +85,10 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHash {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(2)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.typ)?;
@@ -90,7 +98,9 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHash {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {

@@ -264,7 +264,8 @@ fn render_module_tree(graph: &SemanticGraph, options: &RustOptions) -> Result<BT
 
     let mut generated = BTreeMap::new();
     let root_node = nodes.get(&Vec::new()).expect("root package node must exist");
-    generated.insert(PathBuf::from(format!("{}.rs", options.module_name)), render_package_module(root_node, &[], graph, options)?);
+    generated.insert(PathBuf::from(format!("{}.rs", options.module_name)), render_root_module(options));
+    generated.insert(PathBuf::from(&options.module_name).join(".root.rs"), render_package_module(root_node, graph, false)?);
 
     for (package, node) in &nodes {
         if package.is_empty() {
@@ -275,7 +276,7 @@ fn render_module_tree(graph: &SemanticGraph, options: &RustOptions) -> Result<BT
             path.push(segment);
         }
         path.push(format!("{}.rs", package.last().expect("non-empty package")));
-        generated.insert(path, render_package_module(node, package, graph, options)?);
+        generated.insert(path, render_package_module(node, graph, true)?);
 
         for file_index in &node.files {
             let internal_name = internal_module_name(&graph.files[*file_index]);
@@ -290,16 +291,21 @@ fn render_module_tree(graph: &SemanticGraph, options: &RustOptions) -> Result<BT
     Ok(generated)
 }
 
-fn render_package_module(node: &PackageNode, package: &[String], graph: &SemanticGraph, options: &RustOptions) -> Result<String, CodegenError> {
+fn render_root_module(options: &RustOptions) -> String {
     let mut out = String::new();
     write_generated_header(&mut out);
+    writeln!(&mut out, "include!({:?});", format!("{}/.root.rs", options.module_name)).ok();
+    out
+}
+
+fn render_package_module(node: &PackageNode, graph: &SemanticGraph, include_header: bool) -> Result<String, CodegenError> {
+    let mut out = String::new();
+    if include_header {
+        write_generated_header(&mut out);
+    } else {
+        writeln!(&mut out, "{GENERATED_MARKER}").ok();
+    }
     for child in &node.children {
-        let child_path = if package.is_empty() {
-            format!("{}/{child}.rs", options.module_name)
-        } else {
-            format!("{}/{child}.rs", package.last().expect("non-root package"))
-        };
-        writeln!(&mut out, "#[path = {:?}]", child_path).ok();
         writeln!(&mut out, "pub mod {child};").ok();
     }
     if !node.children.is_empty() && !node.files.is_empty() {
@@ -307,12 +313,9 @@ fn render_package_module(node: &PackageNode, package: &[String], graph: &Semanti
     }
     for file_index in &node.files {
         let internal_name = internal_module_name(&graph.files[*file_index]);
-        let source_path = format!("{}/{internal_name}.rs", package.last().expect("source files require a package"));
-        writeln!(&mut out, "#[path = {:?}]", source_path).ok();
         writeln!(&mut out, "mod {internal_name};").ok();
         writeln!(&mut out, "pub use {internal_name}::*;").ok();
     }
-    let _ = options;
     Ok(out)
 }
 
@@ -323,7 +326,7 @@ fn render_rust_file(graph: &SemanticGraph, file_index: usize, options: &RustOpti
 
     write_generated_header(&mut out);
     let depth = 0usize;
-    for item in &file.items {
+    for (item_index, item) in file.items.iter().enumerate() {
         match item {
             Item::Struct(item) => {
                 write_struct_declaration(&mut out, &index, item, depth)?;
@@ -338,7 +341,9 @@ fn render_rust_file(graph: &SemanticGraph, file_index: usize, options: &RustOpti
             Item::TypeAlias(item) => write_type_alias_declaration(&mut out, &index, item, depth),
             Item::Const(item) => write_const_declaration(&mut out, &index, item, depth)?,
         }
-        writeln!(&mut out).ok();
+        if item_index + 1 < file.items.len() {
+            writeln!(&mut out).ok();
+        }
     }
 
     Ok(out)
@@ -1938,11 +1943,23 @@ mod integration_tests {
 
         let output = manifest.parent().expect("manifest parent").join("gen/src");
         assert!(output.join("rocketpack.rs").is_file());
-        assert!(!output.join("mod.rs").exists());
+        assert!(output.join("rocketpack/.root.rs").is_file());
         assert!(!output.join("rocketpack/example/v1/mod.rs").exists());
         let package_dir = output.join("rocketpack/example/v1");
         let before = generated_source_names(&package_dir)?;
         assert_eq!(before.len(), 2);
+        let root_module = fs::read_to_string(output.join("rocketpack.rs"))?;
+        assert!(root_module.contains("include!(\"rocketpack/.root.rs\");"));
+        let root_package_module = fs::read_to_string(output.join("rocketpack/.root.rs"))?;
+        assert!(root_package_module.contains("pub mod example;"));
+        let example_module = fs::read_to_string(output.join("rocketpack/example.rs"))?;
+        assert!(example_module.contains("pub mod v1;"));
+        let package_module = fs::read_to_string(output.join("rocketpack/example/v1.rs"))?;
+        for source_name in &before {
+            let internal_name = source_name.strip_suffix(".rs").expect("Rust source extension");
+            assert!(package_module.contains(&format!("mod {internal_name};\npub use {internal_name}::*;")));
+        }
+        assert_generated_tree_has_no_path_attributes(&output)?;
 
         fs::rename(output.join("rocketpack.rs"), output.join(".rocketpack-rocketpack.rs.backup"))?;
         let stale_stage = output.join(".rocketpack-rocketpack.stage-interrupted");
@@ -2109,6 +2126,20 @@ mod integration_tests {
             .collect::<Vec<_>>();
         names.sort();
         Ok(names)
+    }
+
+    fn assert_generated_tree_has_no_path_attributes(directory: &Path) -> std::io::Result<()> {
+        for entry in fs::read_dir(directory)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                assert_generated_tree_has_no_path_attributes(&path)?;
+            } else if path.extension().is_some_and(|extension| extension == "rs") {
+                let contents = fs::read_to_string(&path)?;
+                assert!(!contents.contains("#[path"), "generated Rust source contains #[path]: {}", path.display());
+            }
+        }
+        Ok(())
     }
 
     fn write_module(root: &Path, name: &str, extra: &str, sources: &[(&str, &str)]) -> std::io::Result<PathBuf> {

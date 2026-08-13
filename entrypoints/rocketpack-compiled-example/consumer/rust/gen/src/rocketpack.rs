@@ -2,5 +2,4 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "rocketpack/omnius.rs"]
-pub mod omnius;
+include!("rocketpack/.root.rs");

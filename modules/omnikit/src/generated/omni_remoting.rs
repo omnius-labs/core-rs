@@ -2,6 +2,5 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "omni_remoting/__rpf_omni_remoting_9ff6e1bff292880d.rs"]
 mod __rpf_omni_remoting_9ff6e1bff292880d;
 pub use __rpf_omni_remoting_9ff6e1bff292880d::*;

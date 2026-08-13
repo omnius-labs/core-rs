@@ -78,8 +78,10 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(32)?;
         encoder.write_u64(1)?;
         encoder.write_bool(*(&value.bool_field))?;
@@ -158,51 +160,69 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
         encoder.write_u64(22)?;
         encoder.write_struct(&value.struct_field)?;
         encoder.write_u64(23)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.string_field_constrained", 1, 32, (&value.string_field_constrained).len())?;
         encoder.write_string((&value.string_field_constrained).as_str())?;
         encoder.write_u64(24)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.bytes_field_constrained", 1, 1048576, (&value.bytes_field_constrained).len())?;
         encoder.write_bytes((&value.bytes_field_constrained).as_slice())?;
         encoder.write_u64(25)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_1_constrained", 1, 8, (&value.vec_field_1_constrained).len())?;
         encoder.write_array((&value.vec_field_1_constrained).len())?;
         for item in (&value.vec_field_1_constrained).iter() {
             encoder.write_u8(*(item))?;
         }
         encoder.write_u64(26)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_2_constrained", 1, 8, (&value.vec_field_2_constrained).len())?;
         encoder.write_array((&value.vec_field_2_constrained).len())?;
         for item in (&value.vec_field_2_constrained).iter() {
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_2_constrained[]", 1, 16, (item).len())?;
             encoder.write_string((item).as_str())?;
         }
         encoder.write_u64(27)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_3_constrained", 1, 4, (&value.vec_field_3_constrained).len())?;
         encoder.write_array((&value.vec_field_3_constrained).len())?;
         for item in (&value.vec_field_3_constrained).iter() {
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.vec_field_3_constrained[]", 1, 8, (item).len())?;
             encoder.write_bytes((item).as_slice())?;
         }
         encoder.write_u64(28)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_1_constrained", 1, 4, (&value.map_field_1_constrained).len())?;
         encoder.write_map((&value.map_field_1_constrained).len())?;
         for (key, value) in (&value.map_field_1_constrained).iter() {
             encoder.write_u8(*(key))?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_1_constrained.value", 1, 16, (value).len())?;
             encoder.write_string((value).as_str())?;
         }
         encoder.write_u64(29)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_2_constrained", 0, 4, (&value.map_field_2_constrained).len())?;
         encoder.write_map((&value.map_field_2_constrained).len())?;
         for (key, value) in (&value.map_field_2_constrained).iter() {
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_field_2_constrained.key", 1, 8, (key).len())?;
             encoder.write_string((key).as_str())?;
             encoder.write_u8(*(value))?;
         }
         encoder.write_u64(30)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1_constrained", 0, 4, (&value.map_vec_field_1_constrained).len())?;
         encoder.write_map((&value.map_vec_field_1_constrained).len())?;
         for (key, value) in (&value.map_vec_field_1_constrained).iter() {
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1_constrained.key", 1, 8, (key).len())?;
             encoder.write_string((key).as_str())?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_1_constrained.value", 0, 8, (value).len())?;
             encoder.write_array((value).len())?;
             for item in (value).iter() {
                 encoder.write_u32(*(item))?;
             }
         }
         encoder.write_u64(31)?;
+        omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained", 0, 4, (&value.map_vec_field_2_constrained).len())?;
         encoder.write_map((&value.map_vec_field_2_constrained).len())?;
         for (key, value) in (&value.map_vec_field_2_constrained).iter() {
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained.key", 1, 8, (key).len())?;
             encoder.write_string((key).as_str())?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained.value", 0, 4, (value).len())?;
             encoder.write_array((value).len())?;
             for item in (value).iter() {
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase1.map_vec_field_2_constrained.value[]", 1, 8, (item).len())?;
                 encoder.write_bytes((item).as_slice())?;
             }
         }
@@ -213,105 +233,107 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut bool_field: Option<bool> = None;
-        let mut u8_field: Option<u8> = None;
-        let mut i16_field: Option<i16> = None;
-        let mut i32_field: Option<i32> = None;
-        let mut i64_field: Option<i64> = None;
-        let mut u16_field: Option<u16> = None;
-        let mut u32_field: Option<u32> = None;
-        let mut u64_field: Option<u64> = None;
-        let mut f32_field: Option<f32> = None;
-        let mut f64_field: Option<f64> = None;
-        let mut string_field: Option<String> = None;
-        let mut bytes_field: Option<Vec<u8>> = None;
-        let mut vec_field_1: Option<Vec<u8>> = None;
-        let mut vec_field_2: Option<Vec<String>> = None;
-        let mut vec_field_3: Option<Vec<Vec<u8>>> = None;
-        let mut map_field_1: Option<std::collections::BTreeMap<u8, String>> = None;
-        let mut map_field_2: Option<std::collections::BTreeMap<String, u8>> = None;
-        let mut map_vec_field_1: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
-        let mut map_vec_field_2: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
-        let mut slice_field: Option<[i64; 4]> = None;
-        let mut struct_field: Option<crate::rocketpack::omnius::demo::v1::SimpleMessage> = None;
-        let mut string_field_constrained: Option<String> = None;
-        let mut bytes_field_constrained: Option<Vec<u8>> = None;
-        let mut vec_field_1_constrained: Option<Vec<u8>> = None;
-        let mut vec_field_2_constrained: Option<Vec<String>> = None;
-        let mut vec_field_3_constrained: Option<Vec<Vec<u8>>> = None;
-        let mut map_field_1_constrained: Option<std::collections::BTreeMap<u8, String>> = None;
-        let mut map_field_2_constrained: Option<std::collections::BTreeMap<String, u8>> = None;
-        let mut map_vec_field_1_constrained: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
-        let mut map_vec_field_2_constrained: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
-        let mut timestamp_64: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
-        let mut timestamp_96: Option<omnius_core_rocketpack::primitive::Timestamp96> = None;
+        let mut __rpf_storage_bool_field: Option<bool> = None;
+        let mut __rpf_storage_u8_field: Option<u8> = None;
+        let mut __rpf_storage_i16_field: Option<i16> = None;
+        let mut __rpf_storage_i32_field: Option<i32> = None;
+        let mut __rpf_storage_i64_field: Option<i64> = None;
+        let mut __rpf_storage_u16_field: Option<u16> = None;
+        let mut __rpf_storage_u32_field: Option<u32> = None;
+        let mut __rpf_storage_u64_field: Option<u64> = None;
+        let mut __rpf_storage_f32_field: Option<f32> = None;
+        let mut __rpf_storage_f64_field: Option<f64> = None;
+        let mut __rpf_storage_string_field: Option<String> = None;
+        let mut __rpf_storage_bytes_field: Option<Vec<u8>> = None;
+        let mut __rpf_storage_vec_field_1: Option<Vec<u8>> = None;
+        let mut __rpf_storage_vec_field_2: Option<Vec<String>> = None;
+        let mut __rpf_storage_vec_field_3: Option<Vec<Vec<u8>>> = None;
+        let mut __rpf_storage_map_field_1: Option<std::collections::BTreeMap<u8, String>> = None;
+        let mut __rpf_storage_map_field_2: Option<std::collections::BTreeMap<String, u8>> = None;
+        let mut __rpf_storage_map_vec_field_1: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
+        let mut __rpf_storage_map_vec_field_2: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
+        let mut __rpf_storage_slice_field: Option<[i64; 4]> = None;
+        let mut __rpf_storage_struct_field: Option<crate::rocketpack::omnius::demo::v1::SimpleMessage> = None;
+        let mut __rpf_storage_string_field_constrained: Option<String> = None;
+        let mut __rpf_storage_bytes_field_constrained: Option<Vec<u8>> = None;
+        let mut __rpf_storage_vec_field_1_constrained: Option<Vec<u8>> = None;
+        let mut __rpf_storage_vec_field_2_constrained: Option<Vec<String>> = None;
+        let mut __rpf_storage_vec_field_3_constrained: Option<Vec<Vec<u8>>> = None;
+        let mut __rpf_storage_map_field_1_constrained: Option<std::collections::BTreeMap<u8, String>> = None;
+        let mut __rpf_storage_map_field_2_constrained: Option<std::collections::BTreeMap<String, u8>> = None;
+        let mut __rpf_storage_map_vec_field_1_constrained: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
+        let mut __rpf_storage_map_vec_field_2_constrained: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
+        let mut __rpf_storage_timestamp_64: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
+        let mut __rpf_storage_timestamp_96: Option<omnius_core_rocketpack::primitive::Timestamp96> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    bool_field = Some(decoder.read_bool()?);
+                    __rpf_storage_bool_field = Some(decoder.read_bool()?);
                 }
                 2 => {
-                    u8_field = Some(decoder.read_u8()?);
+                    __rpf_storage_u8_field = Some(decoder.read_u8()?);
                 }
                 3 => {
-                    i16_field = Some(decoder.read_i16()?);
+                    __rpf_storage_i16_field = Some(decoder.read_i16()?);
                 }
                 4 => {
-                    i32_field = Some(decoder.read_i32()?);
+                    __rpf_storage_i32_field = Some(decoder.read_i32()?);
                 }
                 5 => {
-                    i64_field = Some(decoder.read_i64()?);
+                    __rpf_storage_i64_field = Some(decoder.read_i64()?);
                 }
                 6 => {
-                    u16_field = Some(decoder.read_u16()?);
+                    __rpf_storage_u16_field = Some(decoder.read_u16()?);
                 }
                 7 => {
-                    u32_field = Some(decoder.read_u32()?);
+                    __rpf_storage_u32_field = Some(decoder.read_u32()?);
                 }
                 8 => {
-                    u64_field = Some(decoder.read_u64()?);
+                    __rpf_storage_u64_field = Some(decoder.read_u64()?);
                 }
                 10 => {
-                    f32_field = Some(decoder.read_f32()?);
+                    __rpf_storage_f32_field = Some(decoder.read_f32()?);
                 }
                 11 => {
-                    f64_field = Some(decoder.read_f64()?);
+                    __rpf_storage_f64_field = Some(decoder.read_f64()?);
                 }
                 12 => {
-                    string_field = Some(decoder.read_string()?);
+                    __rpf_storage_string_field = Some(decoder.read_string()?);
                 }
                 13 => {
-                    bytes_field = Some(decoder.read_bytes_vec()?);
+                    __rpf_storage_bytes_field = Some(decoder.read_bytes_vec()?);
                 }
                 14 => {
                     let __count_0 = decoder.read_array()?;
-                    let mut __values_1: Vec<u8> = Vec::with_capacity(__count_0 as usize);
+                    let mut __values_1: Vec<u8> = Vec::new();
                     for _ in 0..__count_0 {
                         __values_1.push(decoder.read_u8()?);
                     }
-                    vec_field_1 = Some(__values_1);
+                    __rpf_storage_vec_field_1 = Some(__values_1);
                 }
                 15 => {
                     let __count_2 = decoder.read_array()?;
-                    let mut __values_3: Vec<String> = Vec::with_capacity(__count_2 as usize);
+                    let mut __values_3: Vec<String> = Vec::new();
                     for _ in 0..__count_2 {
                         __values_3.push(decoder.read_string()?);
                     }
-                    vec_field_2 = Some(__values_3);
+                    __rpf_storage_vec_field_2 = Some(__values_3);
                 }
                 16 => {
                     let __count_4 = decoder.read_array()?;
-                    let mut __values_5: Vec<Vec<u8>> = Vec::with_capacity(__count_4 as usize);
+                    let mut __values_5: Vec<Vec<u8>> = Vec::new();
                     for _ in 0..__count_4 {
                         __values_5.push(decoder.read_bytes_vec()?);
                     }
-                    vec_field_3 = Some(__values_5);
+                    __rpf_storage_vec_field_3 = Some(__values_5);
                 }
                 17 => {
                     let __count_6 = decoder.read_map()?;
@@ -320,7 +342,7 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                         let __key_8 = decoder.read_u8()?;
                         __map_7.insert(__key_8, decoder.read_string()?);
                     }
-                    map_field_1 = Some(__map_7);
+                    __rpf_storage_map_field_1 = Some(__map_7);
                 }
                 18 => {
                     let __count_9 = decoder.read_map()?;
@@ -329,7 +351,7 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                         let __key_11 = decoder.read_string()?;
                         __map_10.insert(__key_11, decoder.read_u8()?);
                     }
-                    map_field_2 = Some(__map_10);
+                    __rpf_storage_map_field_2 = Some(__map_10);
                 }
                 19 => {
                     let __count_12 = decoder.read_map()?;
@@ -337,13 +359,13 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                     for _ in 0..__count_12 {
                         let __key_14 = decoder.read_string()?;
                         let __count_15 = decoder.read_array()?;
-                        let mut __values_16: Vec<u32> = Vec::with_capacity(__count_15 as usize);
+                        let mut __values_16: Vec<u32> = Vec::new();
                         for _ in 0..__count_15 {
                             __values_16.push(decoder.read_u32()?);
                         }
                         __map_13.insert(__key_14, __values_16);
                     }
-                    map_vec_field_1 = Some(__map_13);
+                    __rpf_storage_map_vec_field_1 = Some(__map_13);
                 }
                 20 => {
                     let __count_17 = decoder.read_map()?;
@@ -351,62 +373,58 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                     for _ in 0..__count_17 {
                         let __key_19 = decoder.read_string()?;
                         let __count_20 = decoder.read_array()?;
-                        let mut __values_21: Vec<Vec<u8>> = Vec::with_capacity(__count_20 as usize);
+                        let mut __values_21: Vec<Vec<u8>> = Vec::new();
                         for _ in 0..__count_20 {
                             __values_21.push(decoder.read_bytes_vec()?);
                         }
                         __map_18.insert(__key_19, __values_21);
                     }
-                    map_vec_field_2 = Some(__map_18);
+                    __rpf_storage_map_vec_field_2 = Some(__map_18);
                 }
                 21 => {
                     let __count_22 = decoder.read_array()?;
                     if __count_22 != 4 {
-                        return Err(omnius_core_rocketpack::RocketPackDecoderError::Other(
-                            "array length mismatch: PrimitiveShowcase1.slice_field",
-                        ));
+                        return Err(omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"));
                     }
-                    let mut __values_23: Vec<i64> = Vec::with_capacity(__count_22 as usize);
+                    let mut __values_23: Vec<i64> = Vec::new();
                     for _ in 0..__count_22 {
                         __values_23.push(decoder.read_i64()?);
                     }
-                    let __array_24: [i64; 4] = __values_23
-                        .try_into()
-                        .map_err(|_| omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"))?;
-                    slice_field = Some(__array_24);
+                    let __array_24: [i64; 4] = __values_23.try_into().map_err(|_| omnius_core_rocketpack::RocketPackDecoderError::Other("array length mismatch: PrimitiveShowcase1.slice_field"))?;
+                    __rpf_storage_slice_field = Some(__array_24);
                 }
                 22 => {
-                    struct_field = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::SimpleMessage>()?);
+                    __rpf_storage_struct_field = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::SimpleMessage>()?);
                 }
                 23 => {
-                    string_field_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase1.string_field_constrained", 1, 32)?);
+                    __rpf_storage_string_field_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase1.string_field_constrained", 1, 32)?);
                 }
                 24 => {
-                    bytes_field_constrained = Some(decoder.read_bytes_bounded("PrimitiveShowcase1.bytes_field_constrained", 1, 1048576)?);
+                    __rpf_storage_bytes_field_constrained = Some(decoder.read_bytes_bounded("PrimitiveShowcase1.bytes_field_constrained", 1, 1048576)?);
                 }
                 25 => {
                     let __count_25 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_1_constrained", 1, 8)?;
-                    let mut __values_26: Vec<u8> = Vec::with_capacity(__count_25 as usize);
+                    let mut __values_26: Vec<u8> = Vec::new();
                     for _ in 0..__count_25 {
                         __values_26.push(decoder.read_u8()?);
                     }
-                    vec_field_1_constrained = Some(__values_26);
+                    __rpf_storage_vec_field_1_constrained = Some(__values_26);
                 }
                 26 => {
                     let __count_27 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_2_constrained", 1, 8)?;
-                    let mut __values_28: Vec<String> = Vec::with_capacity(__count_27 as usize);
+                    let mut __values_28: Vec<String> = Vec::new();
                     for _ in 0..__count_27 {
                         __values_28.push(decoder.read_string_bounded("PrimitiveShowcase1.vec_field_2_constrained[]", 1, 16)?);
                     }
-                    vec_field_2_constrained = Some(__values_28);
+                    __rpf_storage_vec_field_2_constrained = Some(__values_28);
                 }
                 27 => {
                     let __count_29 = decoder.read_array_bounded("PrimitiveShowcase1.vec_field_3_constrained", 1, 4)?;
-                    let mut __values_30: Vec<Vec<u8>> = Vec::with_capacity(__count_29 as usize);
+                    let mut __values_30: Vec<Vec<u8>> = Vec::new();
                     for _ in 0..__count_29 {
                         __values_30.push(decoder.read_bytes_bounded("PrimitiveShowcase1.vec_field_3_constrained[]", 1, 8)?);
                     }
-                    vec_field_3_constrained = Some(__values_30);
+                    __rpf_storage_vec_field_3_constrained = Some(__values_30);
                 }
                 28 => {
                     let __count_31 = decoder.read_map_bounded("PrimitiveShowcase1.map_field_1_constrained", 1, 4)?;
@@ -415,7 +433,7 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                         let __key_33 = decoder.read_u8()?;
                         __map_32.insert(__key_33, decoder.read_string_bounded("PrimitiveShowcase1.map_field_1_constrained.value", 1, 16)?);
                     }
-                    map_field_1_constrained = Some(__map_32);
+                    __rpf_storage_map_field_1_constrained = Some(__map_32);
                 }
                 29 => {
                     let __count_34 = decoder.read_map_bounded("PrimitiveShowcase1.map_field_2_constrained", 0, 4)?;
@@ -424,7 +442,7 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                         let __key_36 = decoder.read_string_bounded("PrimitiveShowcase1.map_field_2_constrained.key", 1, 8)?;
                         __map_35.insert(__key_36, decoder.read_u8()?);
                     }
-                    map_field_2_constrained = Some(__map_35);
+                    __rpf_storage_map_field_2_constrained = Some(__map_35);
                 }
                 30 => {
                     let __count_37 = decoder.read_map_bounded("PrimitiveShowcase1.map_vec_field_1_constrained", 0, 4)?;
@@ -432,13 +450,13 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                     for _ in 0..__count_37 {
                         let __key_39 = decoder.read_string_bounded("PrimitiveShowcase1.map_vec_field_1_constrained.key", 1, 8)?;
                         let __count_40 = decoder.read_array_bounded("PrimitiveShowcase1.map_vec_field_1_constrained.value", 0, 8)?;
-                        let mut __values_41: Vec<u32> = Vec::with_capacity(__count_40 as usize);
+                        let mut __values_41: Vec<u32> = Vec::new();
                         for _ in 0..__count_40 {
                             __values_41.push(decoder.read_u32()?);
                         }
                         __map_38.insert(__key_39, __values_41);
                     }
-                    map_vec_field_1_constrained = Some(__map_38);
+                    __rpf_storage_map_vec_field_1_constrained = Some(__map_38);
                 }
                 31 => {
                     let __count_42 = decoder.read_map_bounded("PrimitiveShowcase1.map_vec_field_2_constrained", 0, 4)?;
@@ -446,57 +464,57 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase1 {
                     for _ in 0..__count_42 {
                         let __key_44 = decoder.read_string_bounded("PrimitiveShowcase1.map_vec_field_2_constrained.key", 1, 8)?;
                         let __count_45 = decoder.read_array_bounded("PrimitiveShowcase1.map_vec_field_2_constrained.value", 0, 4)?;
-                        let mut __values_46: Vec<Vec<u8>> = Vec::with_capacity(__count_45 as usize);
+                        let mut __values_46: Vec<Vec<u8>> = Vec::new();
                         for _ in 0..__count_45 {
                             __values_46.push(decoder.read_bytes_bounded("PrimitiveShowcase1.map_vec_field_2_constrained.value[]", 1, 8)?);
                         }
                         __map_43.insert(__key_44, __values_46);
                     }
-                    map_vec_field_2_constrained = Some(__map_43);
+                    __rpf_storage_map_vec_field_2_constrained = Some(__map_43);
                 }
                 32 => {
-                    timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                    __rpf_storage_timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
                 }
                 33 => {
-                    timestamp_96 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp96>()?);
+                    __rpf_storage_timestamp_96 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp96>()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            bool_field: bool_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bool_field"))?,
-            u8_field: u8_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u8_field"))?,
-            i16_field: i16_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: i16_field"))?,
-            i32_field: i32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: i32_field"))?,
-            i64_field: i64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: i64_field"))?,
-            u16_field: u16_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u16_field"))?,
-            u32_field: u32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u32_field"))?,
-            u64_field: u64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u64_field"))?,
-            f32_field: f32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: f32_field"))?,
-            f64_field: f64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: f64_field"))?,
-            string_field: string_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: string_field"))?,
-            bytes_field: bytes_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bytes_field"))?,
-            vec_field_1: vec_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_1"))?,
-            vec_field_2: vec_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_2"))?,
-            vec_field_3: vec_field_3.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_3"))?,
-            map_field_1: map_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_1"))?,
-            map_field_2: map_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_2"))?,
-            map_vec_field_1: map_vec_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_1"))?,
-            map_vec_field_2: map_vec_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_2"))?,
-            slice_field: slice_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: slice_field"))?,
-            struct_field: struct_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: struct_field"))?,
-            string_field_constrained: string_field_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: string_field_constrained"))?,
-            bytes_field_constrained: bytes_field_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bytes_field_constrained"))?,
-            vec_field_1_constrained: vec_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_1_constrained"))?,
-            vec_field_2_constrained: vec_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_2_constrained"))?,
-            vec_field_3_constrained: vec_field_3_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_3_constrained"))?,
-            map_field_1_constrained: map_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_1_constrained"))?,
-            map_field_2_constrained: map_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_2_constrained"))?,
-            map_vec_field_1_constrained: map_vec_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_1_constrained"))?,
-            map_vec_field_2_constrained: map_vec_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_2_constrained"))?,
-            timestamp_64: timestamp_64.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: timestamp_64"))?,
-            timestamp_96: timestamp_96.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: timestamp_96"))?,
+            bool_field: __rpf_storage_bool_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bool_field"))?,
+            u8_field: __rpf_storage_u8_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u8_field"))?,
+            i16_field: __rpf_storage_i16_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: i16_field"))?,
+            i32_field: __rpf_storage_i32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: i32_field"))?,
+            i64_field: __rpf_storage_i64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: i64_field"))?,
+            u16_field: __rpf_storage_u16_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u16_field"))?,
+            u32_field: __rpf_storage_u32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u32_field"))?,
+            u64_field: __rpf_storage_u64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: u64_field"))?,
+            f32_field: __rpf_storage_f32_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: f32_field"))?,
+            f64_field: __rpf_storage_f64_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: f64_field"))?,
+            string_field: __rpf_storage_string_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: string_field"))?,
+            bytes_field: __rpf_storage_bytes_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bytes_field"))?,
+            vec_field_1: __rpf_storage_vec_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_1"))?,
+            vec_field_2: __rpf_storage_vec_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_2"))?,
+            vec_field_3: __rpf_storage_vec_field_3.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_3"))?,
+            map_field_1: __rpf_storage_map_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_1"))?,
+            map_field_2: __rpf_storage_map_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_2"))?,
+            map_vec_field_1: __rpf_storage_map_vec_field_1.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_1"))?,
+            map_vec_field_2: __rpf_storage_map_vec_field_2.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_2"))?,
+            slice_field: __rpf_storage_slice_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: slice_field"))?,
+            struct_field: __rpf_storage_struct_field.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: struct_field"))?,
+            string_field_constrained: __rpf_storage_string_field_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: string_field_constrained"))?,
+            bytes_field_constrained: __rpf_storage_bytes_field_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: bytes_field_constrained"))?,
+            vec_field_1_constrained: __rpf_storage_vec_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_1_constrained"))?,
+            vec_field_2_constrained: __rpf_storage_vec_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_2_constrained"))?,
+            vec_field_3_constrained: __rpf_storage_vec_field_3_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: vec_field_3_constrained"))?,
+            map_field_1_constrained: __rpf_storage_map_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_1_constrained"))?,
+            map_field_2_constrained: __rpf_storage_map_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_field_2_constrained"))?,
+            map_vec_field_1_constrained: __rpf_storage_map_vec_field_1_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_1_constrained"))?,
+            map_vec_field_2_constrained: __rpf_storage_map_vec_field_2_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: map_vec_field_2_constrained"))?,
+            timestamp_64: __rpf_storage_timestamp_64.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: timestamp_64"))?,
+            timestamp_96: __rpf_storage_timestamp_96.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: timestamp_96"))?,
         })
     }
 }
@@ -600,8 +618,10 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase2 {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         let mut count = 0;
         if value.bool_field.is_some() {
             count += 1;
@@ -810,14 +830,17 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase2 {
         }
         if let Some(string_field_constrained) = &value.string_field_constrained {
             encoder.write_u64(22)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.string_field_constrained", 1, 32, (string_field_constrained).len())?;
             encoder.write_string((string_field_constrained).as_str())?;
         }
         if let Some(bytes_field_constrained) = &value.bytes_field_constrained {
             encoder.write_u64(23)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.bytes_field_constrained", 1, 1048576, (bytes_field_constrained).len())?;
             encoder.write_bytes((bytes_field_constrained).as_slice())?;
         }
         if let Some(vec_field_1_constrained) = &value.vec_field_1_constrained {
             encoder.write_u64(24)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_1_constrained", 1, 8, (vec_field_1_constrained).len())?;
             encoder.write_array((vec_field_1_constrained).len())?;
             for item in (vec_field_1_constrained).iter() {
                 encoder.write_u8(*(item))?;
@@ -825,39 +848,50 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase2 {
         }
         if let Some(vec_field_2_constrained) = &value.vec_field_2_constrained {
             encoder.write_u64(25)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_2_constrained", 1, 8, (vec_field_2_constrained).len())?;
             encoder.write_array((vec_field_2_constrained).len())?;
             for item in (vec_field_2_constrained).iter() {
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_2_constrained[]", 1, 16, (item).len())?;
                 encoder.write_string((item).as_str())?;
             }
         }
         if let Some(vec_field_3_constrained) = &value.vec_field_3_constrained {
             encoder.write_u64(26)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_3_constrained", 1, 4, (vec_field_3_constrained).len())?;
             encoder.write_array((vec_field_3_constrained).len())?;
             for item in (vec_field_3_constrained).iter() {
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.vec_field_3_constrained[]", 1, 8, (item).len())?;
                 encoder.write_bytes((item).as_slice())?;
             }
         }
         if let Some(map_field_1_constrained) = &value.map_field_1_constrained {
             encoder.write_u64(27)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_1_constrained", 1, 4, (map_field_1_constrained).len())?;
             encoder.write_map((map_field_1_constrained).len())?;
             for (key, value) in (map_field_1_constrained).iter() {
                 encoder.write_u8(*(key))?;
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_1_constrained.value", 1, 16, (value).len())?;
                 encoder.write_string((value).as_str())?;
             }
         }
         if let Some(map_field_2_constrained) = &value.map_field_2_constrained {
             encoder.write_u64(28)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_2_constrained", 0, 4, (map_field_2_constrained).len())?;
             encoder.write_map((map_field_2_constrained).len())?;
             for (key, value) in (map_field_2_constrained).iter() {
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_field_2_constrained.key", 1, 8, (key).len())?;
                 encoder.write_string((key).as_str())?;
                 encoder.write_u8(*(value))?;
             }
         }
         if let Some(map_vec_field_1_constrained) = &value.map_vec_field_1_constrained {
             encoder.write_u64(29)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1_constrained", 0, 4, (map_vec_field_1_constrained).len())?;
             encoder.write_map((map_vec_field_1_constrained).len())?;
             for (key, value) in (map_vec_field_1_constrained).iter() {
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1_constrained.key", 1, 8, (key).len())?;
                 encoder.write_string((key).as_str())?;
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_1_constrained.value", 0, 8, (value).len())?;
                 encoder.write_array((value).len())?;
                 for item in (value).iter() {
                     encoder.write_u32(*(item))?;
@@ -866,11 +900,15 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase2 {
         }
         if let Some(map_vec_field_2_constrained) = &value.map_vec_field_2_constrained {
             encoder.write_u64(30)?;
+            omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained", 0, 4, (map_vec_field_2_constrained).len())?;
             encoder.write_map((map_vec_field_2_constrained).len())?;
             for (key, value) in (map_vec_field_2_constrained).iter() {
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained.key", 1, 8, (key).len())?;
                 encoder.write_string((key).as_str())?;
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained.value", 0, 4, (value).len())?;
                 encoder.write_array((value).len())?;
                 for item in (value).iter() {
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase2.map_vec_field_2_constrained.value[]", 1, 8, (item).len())?;
                     encoder.write_bytes((item).as_slice())?;
                 }
             }
@@ -886,272 +924,460 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase2 {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut bool_field: Option<bool> = None;
-        let mut u8_field: Option<u8> = None;
-        let mut i16_field: Option<i16> = None;
-        let mut i32_field: Option<i32> = None;
-        let mut i64_field: Option<i64> = None;
-        let mut u16_field: Option<u16> = None;
-        let mut u32_field: Option<u32> = None;
-        let mut u64_field: Option<u64> = None;
-        let mut f32_field: Option<f32> = None;
-        let mut f64_field: Option<f64> = None;
-        let mut string_field: Option<String> = None;
-        let mut bytes_field: Option<Vec<u8>> = None;
-        let mut vec_field_1: Option<Vec<u8>> = None;
-        let mut vec_field_2: Option<Vec<String>> = None;
-        let mut vec_field_3: Option<Vec<Vec<u8>>> = None;
-        let mut map_field_1: Option<std::collections::BTreeMap<u8, String>> = None;
-        let mut map_field_2: Option<std::collections::BTreeMap<String, u8>> = None;
-        let mut map_vec_field_1: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
-        let mut map_vec_field_2: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
-        let mut struct_field: Option<crate::rocketpack::omnius::demo::v1::SimpleMessage> = None;
-        let mut string_field_constrained: Option<String> = None;
-        let mut bytes_field_constrained: Option<Vec<u8>> = None;
-        let mut vec_field_1_constrained: Option<Vec<u8>> = None;
-        let mut vec_field_2_constrained: Option<Vec<String>> = None;
-        let mut vec_field_3_constrained: Option<Vec<Vec<u8>>> = None;
-        let mut map_field_1_constrained: Option<std::collections::BTreeMap<u8, String>> = None;
-        let mut map_field_2_constrained: Option<std::collections::BTreeMap<String, u8>> = None;
-        let mut map_vec_field_1_constrained: Option<std::collections::BTreeMap<String, Vec<u32>>> = None;
-        let mut map_vec_field_2_constrained: Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>> = None;
-        let mut timestamp_64: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
-        let mut timestamp_96: Option<omnius_core_rocketpack::primitive::Timestamp96> = None;
+        let mut __rpf_storage_bool_field: Option<Option<bool>> = None;
+        let mut __rpf_storage_u8_field: Option<Option<u8>> = None;
+        let mut __rpf_storage_i16_field: Option<Option<i16>> = None;
+        let mut __rpf_storage_i32_field: Option<Option<i32>> = None;
+        let mut __rpf_storage_i64_field: Option<Option<i64>> = None;
+        let mut __rpf_storage_u16_field: Option<Option<u16>> = None;
+        let mut __rpf_storage_u32_field: Option<Option<u32>> = None;
+        let mut __rpf_storage_u64_field: Option<Option<u64>> = None;
+        let mut __rpf_storage_f32_field: Option<Option<f32>> = None;
+        let mut __rpf_storage_f64_field: Option<Option<f64>> = None;
+        let mut __rpf_storage_string_field: Option<Option<String>> = None;
+        let mut __rpf_storage_bytes_field: Option<Option<Vec<u8>>> = None;
+        let mut __rpf_storage_vec_field_1: Option<Option<Vec<u8>>> = None;
+        let mut __rpf_storage_vec_field_2: Option<Option<Vec<String>>> = None;
+        let mut __rpf_storage_vec_field_3: Option<Option<Vec<Vec<u8>>>> = None;
+        let mut __rpf_storage_map_field_1: Option<Option<std::collections::BTreeMap<u8, String>>> = None;
+        let mut __rpf_storage_map_field_2: Option<Option<std::collections::BTreeMap<String, u8>>> = None;
+        let mut __rpf_storage_map_vec_field_1: Option<Option<std::collections::BTreeMap<String, Vec<u32>>>> = None;
+        let mut __rpf_storage_map_vec_field_2: Option<Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>>> = None;
+        let mut __rpf_storage_struct_field: Option<Option<crate::rocketpack::omnius::demo::v1::SimpleMessage>> = None;
+        let mut __rpf_storage_string_field_constrained: Option<Option<String>> = None;
+        let mut __rpf_storage_bytes_field_constrained: Option<Option<Vec<u8>>> = None;
+        let mut __rpf_storage_vec_field_1_constrained: Option<Option<Vec<u8>>> = None;
+        let mut __rpf_storage_vec_field_2_constrained: Option<Option<Vec<String>>> = None;
+        let mut __rpf_storage_vec_field_3_constrained: Option<Option<Vec<Vec<u8>>>> = None;
+        let mut __rpf_storage_map_field_1_constrained: Option<Option<std::collections::BTreeMap<u8, String>>> = None;
+        let mut __rpf_storage_map_field_2_constrained: Option<Option<std::collections::BTreeMap<String, u8>>> = None;
+        let mut __rpf_storage_map_vec_field_1_constrained: Option<Option<std::collections::BTreeMap<String, Vec<u32>>>> = None;
+        let mut __rpf_storage_map_vec_field_2_constrained: Option<Option<std::collections::BTreeMap<String, Vec<Vec<u8>>>>> = None;
+        let mut __rpf_storage_timestamp_64: Option<Option<omnius_core_rocketpack::primitive::Timestamp64>> = None;
+        let mut __rpf_storage_timestamp_96: Option<Option<omnius_core_rocketpack::primitive::Timestamp96>> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    bool_field = Some(decoder.read_bool()?);
+                    let __option_0 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_bool()?)
+                    };
+                    __rpf_storage_bool_field = Some(__option_0);
                 }
                 2 => {
-                    u8_field = Some(decoder.read_u8()?);
+                    let __option_1 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_u8()?)
+                    };
+                    __rpf_storage_u8_field = Some(__option_1);
                 }
                 3 => {
-                    i16_field = Some(decoder.read_i16()?);
+                    let __option_2 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_i16()?)
+                    };
+                    __rpf_storage_i16_field = Some(__option_2);
                 }
                 4 => {
-                    i32_field = Some(decoder.read_i32()?);
+                    let __option_3 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_i32()?)
+                    };
+                    __rpf_storage_i32_field = Some(__option_3);
                 }
                 5 => {
-                    i64_field = Some(decoder.read_i64()?);
+                    let __option_4 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_i64()?)
+                    };
+                    __rpf_storage_i64_field = Some(__option_4);
                 }
                 6 => {
-                    u16_field = Some(decoder.read_u16()?);
+                    let __option_5 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_u16()?)
+                    };
+                    __rpf_storage_u16_field = Some(__option_5);
                 }
                 7 => {
-                    u32_field = Some(decoder.read_u32()?);
+                    let __option_6 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_u32()?)
+                    };
+                    __rpf_storage_u32_field = Some(__option_6);
                 }
                 8 => {
-                    u64_field = Some(decoder.read_u64()?);
+                    let __option_7 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_u64()?)
+                    };
+                    __rpf_storage_u64_field = Some(__option_7);
                 }
                 10 => {
-                    f32_field = Some(decoder.read_f32()?);
+                    let __option_8 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_f32()?)
+                    };
+                    __rpf_storage_f32_field = Some(__option_8);
                 }
                 11 => {
-                    f64_field = Some(decoder.read_f64()?);
+                    let __option_9 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_f64()?)
+                    };
+                    __rpf_storage_f64_field = Some(__option_9);
                 }
                 12 => {
-                    string_field = Some(decoder.read_string()?);
+                    let __option_10 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_string()?)
+                    };
+                    __rpf_storage_string_field = Some(__option_10);
                 }
                 13 => {
-                    bytes_field = Some(decoder.read_bytes_vec()?);
+                    let __option_11 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_bytes_vec()?)
+                    };
+                    __rpf_storage_bytes_field = Some(__option_11);
                 }
                 14 => {
-                    let __count_0 = decoder.read_array()?;
-                    let mut __values_1: Vec<u8> = Vec::with_capacity(__count_0 as usize);
-                    for _ in 0..__count_0 {
-                        __values_1.push(decoder.read_u8()?);
-                    }
-                    vec_field_1 = Some(__values_1);
+                    let __option_12 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_13 = decoder.read_array()?;
+                        let mut __values_14: Vec<u8> = Vec::new();
+                        for _ in 0..__count_13 {
+                            __values_14.push(decoder.read_u8()?);
+                        }
+                        Some(__values_14)
+                    };
+                    __rpf_storage_vec_field_1 = Some(__option_12);
                 }
                 15 => {
-                    let __count_2 = decoder.read_array()?;
-                    let mut __values_3: Vec<String> = Vec::with_capacity(__count_2 as usize);
-                    for _ in 0..__count_2 {
-                        __values_3.push(decoder.read_string()?);
-                    }
-                    vec_field_2 = Some(__values_3);
+                    let __option_15 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_16 = decoder.read_array()?;
+                        let mut __values_17: Vec<String> = Vec::new();
+                        for _ in 0..__count_16 {
+                            __values_17.push(decoder.read_string()?);
+                        }
+                        Some(__values_17)
+                    };
+                    __rpf_storage_vec_field_2 = Some(__option_15);
                 }
                 16 => {
-                    let __count_4 = decoder.read_array()?;
-                    let mut __values_5: Vec<Vec<u8>> = Vec::with_capacity(__count_4 as usize);
-                    for _ in 0..__count_4 {
-                        __values_5.push(decoder.read_bytes_vec()?);
-                    }
-                    vec_field_3 = Some(__values_5);
+                    let __option_18 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_19 = decoder.read_array()?;
+                        let mut __values_20: Vec<Vec<u8>> = Vec::new();
+                        for _ in 0..__count_19 {
+                            __values_20.push(decoder.read_bytes_vec()?);
+                        }
+                        Some(__values_20)
+                    };
+                    __rpf_storage_vec_field_3 = Some(__option_18);
                 }
                 17 => {
-                    let __count_6 = decoder.read_map()?;
-                    let mut __map_7: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_6 {
-                        let __key_8 = decoder.read_u8()?;
-                        __map_7.insert(__key_8, decoder.read_string()?);
-                    }
-                    map_field_1 = Some(__map_7);
+                    let __option_21 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_22 = decoder.read_map()?;
+                        let mut __map_23: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_22 {
+                            let __key_24 = decoder.read_u8()?;
+                            __map_23.insert(__key_24, decoder.read_string()?);
+                        }
+                        Some(__map_23)
+                    };
+                    __rpf_storage_map_field_1 = Some(__option_21);
                 }
                 18 => {
-                    let __count_9 = decoder.read_map()?;
-                    let mut __map_10: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_9 {
-                        let __key_11 = decoder.read_string()?;
-                        __map_10.insert(__key_11, decoder.read_u8()?);
-                    }
-                    map_field_2 = Some(__map_10);
+                    let __option_25 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_26 = decoder.read_map()?;
+                        let mut __map_27: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_26 {
+                            let __key_28 = decoder.read_string()?;
+                            __map_27.insert(__key_28, decoder.read_u8()?);
+                        }
+                        Some(__map_27)
+                    };
+                    __rpf_storage_map_field_2 = Some(__option_25);
                 }
                 19 => {
-                    let __count_12 = decoder.read_map()?;
-                    let mut __map_13: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_12 {
-                        let __key_14 = decoder.read_string()?;
-                        let __count_15 = decoder.read_array()?;
-                        let mut __values_16: Vec<u32> = Vec::with_capacity(__count_15 as usize);
-                        for _ in 0..__count_15 {
-                            __values_16.push(decoder.read_u32()?);
+                    let __option_29 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_30 = decoder.read_map()?;
+                        let mut __map_31: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_30 {
+                            let __key_32 = decoder.read_string()?;
+                            let __count_33 = decoder.read_array()?;
+                            let mut __values_34: Vec<u32> = Vec::new();
+                            for _ in 0..__count_33 {
+                                __values_34.push(decoder.read_u32()?);
+                            }
+                            __map_31.insert(__key_32, __values_34);
                         }
-                        __map_13.insert(__key_14, __values_16);
-                    }
-                    map_vec_field_1 = Some(__map_13);
+                        Some(__map_31)
+                    };
+                    __rpf_storage_map_vec_field_1 = Some(__option_29);
                 }
                 20 => {
-                    let __count_17 = decoder.read_map()?;
-                    let mut __map_18: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_17 {
-                        let __key_19 = decoder.read_string()?;
-                        let __count_20 = decoder.read_array()?;
-                        let mut __values_21: Vec<Vec<u8>> = Vec::with_capacity(__count_20 as usize);
-                        for _ in 0..__count_20 {
-                            __values_21.push(decoder.read_bytes_vec()?);
+                    let __option_35 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_36 = decoder.read_map()?;
+                        let mut __map_37: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_36 {
+                            let __key_38 = decoder.read_string()?;
+                            let __count_39 = decoder.read_array()?;
+                            let mut __values_40: Vec<Vec<u8>> = Vec::new();
+                            for _ in 0..__count_39 {
+                                __values_40.push(decoder.read_bytes_vec()?);
+                            }
+                            __map_37.insert(__key_38, __values_40);
                         }
-                        __map_18.insert(__key_19, __values_21);
-                    }
-                    map_vec_field_2 = Some(__map_18);
+                        Some(__map_37)
+                    };
+                    __rpf_storage_map_vec_field_2 = Some(__option_35);
                 }
                 21 => {
-                    struct_field = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::SimpleMessage>()?);
+                    let __option_41 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::SimpleMessage>()?)
+                    };
+                    __rpf_storage_struct_field = Some(__option_41);
                 }
                 22 => {
-                    string_field_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase2.string_field_constrained", 1, 32)?);
+                    let __option_42 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_string_bounded("PrimitiveShowcase2.string_field_constrained", 1, 32)?)
+                    };
+                    __rpf_storage_string_field_constrained = Some(__option_42);
                 }
                 23 => {
-                    bytes_field_constrained = Some(decoder.read_bytes_bounded("PrimitiveShowcase2.bytes_field_constrained", 1, 1048576)?);
+                    let __option_43 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_bytes_bounded("PrimitiveShowcase2.bytes_field_constrained", 1, 1048576)?)
+                    };
+                    __rpf_storage_bytes_field_constrained = Some(__option_43);
                 }
                 24 => {
-                    let __count_22 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_1_constrained", 1, 8)?;
-                    let mut __values_23: Vec<u8> = Vec::with_capacity(__count_22 as usize);
-                    for _ in 0..__count_22 {
-                        __values_23.push(decoder.read_u8()?);
-                    }
-                    vec_field_1_constrained = Some(__values_23);
+                    let __option_44 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_45 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_1_constrained", 1, 8)?;
+                        let mut __values_46: Vec<u8> = Vec::new();
+                        for _ in 0..__count_45 {
+                            __values_46.push(decoder.read_u8()?);
+                        }
+                        Some(__values_46)
+                    };
+                    __rpf_storage_vec_field_1_constrained = Some(__option_44);
                 }
                 25 => {
-                    let __count_24 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_2_constrained", 1, 8)?;
-                    let mut __values_25: Vec<String> = Vec::with_capacity(__count_24 as usize);
-                    for _ in 0..__count_24 {
-                        __values_25.push(decoder.read_string_bounded("PrimitiveShowcase2.vec_field_2_constrained[]", 1, 16)?);
-                    }
-                    vec_field_2_constrained = Some(__values_25);
+                    let __option_47 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_48 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_2_constrained", 1, 8)?;
+                        let mut __values_49: Vec<String> = Vec::new();
+                        for _ in 0..__count_48 {
+                            __values_49.push(decoder.read_string_bounded("PrimitiveShowcase2.vec_field_2_constrained[]", 1, 16)?);
+                        }
+                        Some(__values_49)
+                    };
+                    __rpf_storage_vec_field_2_constrained = Some(__option_47);
                 }
                 26 => {
-                    let __count_26 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_3_constrained", 1, 4)?;
-                    let mut __values_27: Vec<Vec<u8>> = Vec::with_capacity(__count_26 as usize);
-                    for _ in 0..__count_26 {
-                        __values_27.push(decoder.read_bytes_bounded("PrimitiveShowcase2.vec_field_3_constrained[]", 1, 8)?);
-                    }
-                    vec_field_3_constrained = Some(__values_27);
+                    let __option_50 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_51 = decoder.read_array_bounded("PrimitiveShowcase2.vec_field_3_constrained", 1, 4)?;
+                        let mut __values_52: Vec<Vec<u8>> = Vec::new();
+                        for _ in 0..__count_51 {
+                            __values_52.push(decoder.read_bytes_bounded("PrimitiveShowcase2.vec_field_3_constrained[]", 1, 8)?);
+                        }
+                        Some(__values_52)
+                    };
+                    __rpf_storage_vec_field_3_constrained = Some(__option_50);
                 }
                 27 => {
-                    let __count_28 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_1_constrained", 1, 4)?;
-                    let mut __map_29: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_28 {
-                        let __key_30 = decoder.read_u8()?;
-                        __map_29.insert(__key_30, decoder.read_string_bounded("PrimitiveShowcase2.map_field_1_constrained.value", 1, 16)?);
-                    }
-                    map_field_1_constrained = Some(__map_29);
+                    let __option_53 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_54 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_1_constrained", 1, 4)?;
+                        let mut __map_55: std::collections::BTreeMap<u8, String> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_54 {
+                            let __key_56 = decoder.read_u8()?;
+                            __map_55.insert(__key_56, decoder.read_string_bounded("PrimitiveShowcase2.map_field_1_constrained.value", 1, 16)?);
+                        }
+                        Some(__map_55)
+                    };
+                    __rpf_storage_map_field_1_constrained = Some(__option_53);
                 }
                 28 => {
-                    let __count_31 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_2_constrained", 0, 4)?;
-                    let mut __map_32: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_31 {
-                        let __key_33 = decoder.read_string_bounded("PrimitiveShowcase2.map_field_2_constrained.key", 1, 8)?;
-                        __map_32.insert(__key_33, decoder.read_u8()?);
-                    }
-                    map_field_2_constrained = Some(__map_32);
+                    let __option_57 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_58 = decoder.read_map_bounded("PrimitiveShowcase2.map_field_2_constrained", 0, 4)?;
+                        let mut __map_59: std::collections::BTreeMap<String, u8> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_58 {
+                            let __key_60 = decoder.read_string_bounded("PrimitiveShowcase2.map_field_2_constrained.key", 1, 8)?;
+                            __map_59.insert(__key_60, decoder.read_u8()?);
+                        }
+                        Some(__map_59)
+                    };
+                    __rpf_storage_map_field_2_constrained = Some(__option_57);
                 }
                 29 => {
-                    let __count_34 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_1_constrained", 0, 4)?;
-                    let mut __map_35: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_34 {
-                        let __key_36 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_1_constrained.key", 1, 8)?;
-                        let __count_37 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_1_constrained.value", 0, 8)?;
-                        let mut __values_38: Vec<u32> = Vec::with_capacity(__count_37 as usize);
-                        for _ in 0..__count_37 {
-                            __values_38.push(decoder.read_u32()?);
+                    let __option_61 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_62 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_1_constrained", 0, 4)?;
+                        let mut __map_63: std::collections::BTreeMap<String, Vec<u32>> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_62 {
+                            let __key_64 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_1_constrained.key", 1, 8)?;
+                            let __count_65 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_1_constrained.value", 0, 8)?;
+                            let mut __values_66: Vec<u32> = Vec::new();
+                            for _ in 0..__count_65 {
+                                __values_66.push(decoder.read_u32()?);
+                            }
+                            __map_63.insert(__key_64, __values_66);
                         }
-                        __map_35.insert(__key_36, __values_38);
-                    }
-                    map_vec_field_1_constrained = Some(__map_35);
+                        Some(__map_63)
+                    };
+                    __rpf_storage_map_vec_field_1_constrained = Some(__option_61);
                 }
                 30 => {
-                    let __count_39 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_2_constrained", 0, 4)?;
-                    let mut __map_40: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
-                    for _ in 0..__count_39 {
-                        let __key_41 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.key", 1, 8)?;
-                        let __count_42 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.value", 0, 4)?;
-                        let mut __values_43: Vec<Vec<u8>> = Vec::with_capacity(__count_42 as usize);
-                        for _ in 0..__count_42 {
-                            __values_43.push(decoder.read_bytes_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.value[]", 1, 8)?);
+                    let __option_67 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        let __count_68 = decoder.read_map_bounded("PrimitiveShowcase2.map_vec_field_2_constrained", 0, 4)?;
+                        let mut __map_69: std::collections::BTreeMap<String, Vec<Vec<u8>>> = std::collections::BTreeMap::new();
+                        for _ in 0..__count_68 {
+                            let __key_70 = decoder.read_string_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.key", 1, 8)?;
+                            let __count_71 = decoder.read_array_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.value", 0, 4)?;
+                            let mut __values_72: Vec<Vec<u8>> = Vec::new();
+                            for _ in 0..__count_71 {
+                                __values_72.push(decoder.read_bytes_bounded("PrimitiveShowcase2.map_vec_field_2_constrained.value[]", 1, 8)?);
+                            }
+                            __map_69.insert(__key_70, __values_72);
                         }
-                        __map_40.insert(__key_41, __values_43);
-                    }
-                    map_vec_field_2_constrained = Some(__map_40);
+                        Some(__map_69)
+                    };
+                    __rpf_storage_map_vec_field_2_constrained = Some(__option_67);
                 }
                 31 => {
-                    timestamp_64 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                    let __option_73 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?)
+                    };
+                    __rpf_storage_timestamp_64 = Some(__option_73);
                 }
                 32 => {
-                    timestamp_96 = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp96>()?);
+                    let __option_74 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp96>()?)
+                    };
+                    __rpf_storage_timestamp_96 = Some(__option_74);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            bool_field: bool_field,
-            u8_field: u8_field,
-            i16_field: i16_field,
-            i32_field: i32_field,
-            i64_field: i64_field,
-            u16_field: u16_field,
-            u32_field: u32_field,
-            u64_field: u64_field,
-            f32_field: f32_field,
-            f64_field: f64_field,
-            string_field: string_field,
-            bytes_field: bytes_field,
-            vec_field_1: vec_field_1,
-            vec_field_2: vec_field_2,
-            vec_field_3: vec_field_3,
-            map_field_1: map_field_1,
-            map_field_2: map_field_2,
-            map_vec_field_1: map_vec_field_1,
-            map_vec_field_2: map_vec_field_2,
-            struct_field: struct_field,
-            string_field_constrained: string_field_constrained,
-            bytes_field_constrained: bytes_field_constrained,
-            vec_field_1_constrained: vec_field_1_constrained,
-            vec_field_2_constrained: vec_field_2_constrained,
-            vec_field_3_constrained: vec_field_3_constrained,
-            map_field_1_constrained: map_field_1_constrained,
-            map_field_2_constrained: map_field_2_constrained,
-            map_vec_field_1_constrained: map_vec_field_1_constrained,
-            map_vec_field_2_constrained: map_vec_field_2_constrained,
-            timestamp_64: timestamp_64,
-            timestamp_96: timestamp_96,
+            bool_field: __rpf_storage_bool_field.unwrap_or(None),
+            u8_field: __rpf_storage_u8_field.unwrap_or(None),
+            i16_field: __rpf_storage_i16_field.unwrap_or(None),
+            i32_field: __rpf_storage_i32_field.unwrap_or(None),
+            i64_field: __rpf_storage_i64_field.unwrap_or(None),
+            u16_field: __rpf_storage_u16_field.unwrap_or(None),
+            u32_field: __rpf_storage_u32_field.unwrap_or(None),
+            u64_field: __rpf_storage_u64_field.unwrap_or(None),
+            f32_field: __rpf_storage_f32_field.unwrap_or(None),
+            f64_field: __rpf_storage_f64_field.unwrap_or(None),
+            string_field: __rpf_storage_string_field.unwrap_or(None),
+            bytes_field: __rpf_storage_bytes_field.unwrap_or(None),
+            vec_field_1: __rpf_storage_vec_field_1.unwrap_or(None),
+            vec_field_2: __rpf_storage_vec_field_2.unwrap_or(None),
+            vec_field_3: __rpf_storage_vec_field_3.unwrap_or(None),
+            map_field_1: __rpf_storage_map_field_1.unwrap_or(None),
+            map_field_2: __rpf_storage_map_field_2.unwrap_or(None),
+            map_vec_field_1: __rpf_storage_map_vec_field_1.unwrap_or(None),
+            map_vec_field_2: __rpf_storage_map_vec_field_2.unwrap_or(None),
+            struct_field: __rpf_storage_struct_field.unwrap_or(None),
+            string_field_constrained: __rpf_storage_string_field_constrained.unwrap_or(None),
+            bytes_field_constrained: __rpf_storage_bytes_field_constrained.unwrap_or(None),
+            vec_field_1_constrained: __rpf_storage_vec_field_1_constrained.unwrap_or(None),
+            vec_field_2_constrained: __rpf_storage_vec_field_2_constrained.unwrap_or(None),
+            vec_field_3_constrained: __rpf_storage_vec_field_3_constrained.unwrap_or(None),
+            map_field_1_constrained: __rpf_storage_map_field_1_constrained.unwrap_or(None),
+            map_field_2_constrained: __rpf_storage_map_field_2_constrained.unwrap_or(None),
+            map_vec_field_1_constrained: __rpf_storage_map_vec_field_1_constrained.unwrap_or(None),
+            map_vec_field_2_constrained: __rpf_storage_map_vec_field_2_constrained.unwrap_or(None),
+            timestamp_64: __rpf_storage_timestamp_64.unwrap_or(None),
+            timestamp_96: __rpf_storage_timestamp_96.unwrap_or(None),
         })
     }
 }
@@ -1176,37 +1402,29 @@ pub enum PrimitiveShowcase3 {
 impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase3 {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::First => {}
-            Self::Second {
-                entity: _,
-                entity_constrained,
-                payload,
-            } => {
+            Self::First => {},
+            Self::Second { entity: _, entity_constrained, payload } => {
                 omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.1", 1, 32, (entity_constrained).len())?;
                 omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.2", 1, 4, (payload).len())?;
                 for item in (payload).iter() {
                     omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.2[]", 1, 8, (item).len())?;
                 }
-            }
-            Self::Third {
-                entity: _,
-                entity_constrained,
-                status,
-                retries: _,
-                struct_field,
-            } => {
+            },
+            Self::Third { entity: _, entity_constrained, status, retries: _, struct_field } => {
                 omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Third.entity_constrained", 1, 32, (entity_constrained).len())?;
                 <crate::rocketpack::omnius::demo::v1::Status as omnius_core_rocketpack::RocketPackStruct>::validate(status)?;
                 if let Some(struct_field) = struct_field.as_ref() {
                     <crate::rocketpack::omnius::demo::v1::SimpleMessage as omnius_core_rocketpack::RocketPackStruct>::validate(struct_field)?;
                 }
-            }
+            },
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -1214,30 +1432,23 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase3 {
                 encoder.write_u64(1)?;
                 encoder.write_map(0)?;
             }
-            Self::Second {
-                entity,
-                entity_constrained,
-                payload,
-            } => {
+            Self::Second { entity, entity_constrained, payload } => {
                 encoder.write_u64(2)?;
                 encoder.write_map(3)?;
                 encoder.write_u64(0)?;
                 encoder.write_string((entity).as_str())?;
                 encoder.write_u64(1)?;
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.1", 1, 32, (entity_constrained).len())?;
                 encoder.write_string((entity_constrained).as_str())?;
                 encoder.write_u64(2)?;
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.2", 1, 4, (payload).len())?;
                 encoder.write_array((payload).len())?;
                 for item in (payload).iter() {
+                    omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Second.2[]", 1, 8, (item).len())?;
                     encoder.write_bytes((item).as_slice())?;
                 }
             }
-            Self::Third {
-                entity,
-                entity_constrained,
-                status,
-                retries,
-                struct_field,
-            } => {
+            Self::Third { entity, entity_constrained, status, retries, struct_field } => {
                 encoder.write_u64(3)?;
                 let mut count = 4;
                 if struct_field.is_some() {
@@ -1247,6 +1458,7 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase3 {
                 encoder.write_u64(1)?;
                 encoder.write_string((entity).as_str())?;
                 encoder.write_u64(2)?;
+                omnius_core_rocketpack::validate_length("PrimitiveShowcase3.Third.entity_constrained", 1, 32, (entity_constrained).len())?;
                 encoder.write_string((entity_constrained).as_str())?;
                 encoder.write_u64(3)?;
                 encoder.write_struct(status)?;
@@ -1262,14 +1474,16 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase3 {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -1277,78 +1491,74 @@ impl omnius_core_rocketpack::RocketPackStruct for PrimitiveShowcase3 {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::First);
+                    __rpf_result = Some(Self::First);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
-                    let mut entity: Option<String> = None;
-                    let mut entity_constrained: Option<String> = None;
-                    let mut payload: Option<crate::rocketpack::omnius::demo::v1::ByteList> = None;
+                    let mut __rpf_storage_entity: Option<String> = None;
+                    let mut __rpf_storage_entity_constrained: Option<String> = None;
+                    let mut __rpf_storage_payload: Option<crate::rocketpack::omnius::demo::v1::ByteList> = None;
                     for _ in 0..__inner_count_1 {
                         match decoder.read_u64()? {
                             0 => {
-                                entity = Some(decoder.read_string()?);
+                                __rpf_storage_entity = Some(decoder.read_string()?);
                             }
                             1 => {
-                                entity_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase3.Second.1", 1, 32)?);
+                                __rpf_storage_entity_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase3.Second.1", 1, 32)?);
                             }
                             2 => {
                                 let __count_2 = decoder.read_array_bounded("PrimitiveShowcase3.Second.2", 1, 4)?;
-                                let mut __values_3: Vec<Vec<u8>> = Vec::with_capacity(__count_2 as usize);
+                                let mut __values_3: Vec<Vec<u8>> = Vec::new();
                                 for _ in 0..__count_2 {
                                     __values_3.push(decoder.read_bytes_bounded("PrimitiveShowcase3.Second.2[]", 1, 8)?);
                                 }
-                                payload = Some(__values_3);
+                                __rpf_storage_payload = Some(__values_3);
                             }
                             _ => decoder.skip_field()?,
                         }
                     }
-                    result = Some(Self::Second {
-                        entity: entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?,
-                        entity_constrained: entity_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity_constrained"))?,
-                        payload: payload.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: payload"))?,
-                    });
+                    __rpf_result = Some(Self::Second { entity: __rpf_storage_entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?, entity_constrained: __rpf_storage_entity_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity_constrained"))?, payload: __rpf_storage_payload.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: payload"))? });
                 }
                 3 => {
                     let __inner_count_4 = decoder.read_map()?;
-                    let mut entity: Option<String> = None;
-                    let mut entity_constrained: Option<String> = None;
-                    let mut status: Option<crate::rocketpack::omnius::demo::v1::Status> = None;
-                    let mut retries: Option<u32> = None;
-                    let mut struct_field: Option<crate::rocketpack::omnius::demo::v1::SimpleMessage> = None;
+                    let mut __rpf_storage_entity: Option<String> = None;
+                    let mut __rpf_storage_entity_constrained: Option<String> = None;
+                    let mut __rpf_storage_status: Option<crate::rocketpack::omnius::demo::v1::Status> = None;
+                    let mut __rpf_storage_retries: Option<u32> = None;
+                    let mut __rpf_storage_struct_field: Option<Option<crate::rocketpack::omnius::demo::v1::SimpleMessage>> = None;
                     for _ in 0..__inner_count_4 {
                         match decoder.read_u64()? {
                             1 => {
-                                entity = Some(decoder.read_string()?);
+                                __rpf_storage_entity = Some(decoder.read_string()?);
                             }
                             2 => {
-                                entity_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase3.Third.entity_constrained", 1, 32)?);
+                                __rpf_storage_entity_constrained = Some(decoder.read_string_bounded("PrimitiveShowcase3.Third.entity_constrained", 1, 32)?);
                             }
                             3 => {
-                                status = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::Status>()?);
+                                __rpf_storage_status = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::Status>()?);
                             }
                             4 => {
-                                retries = Some(decoder.read_u32()?);
+                                __rpf_storage_retries = Some(decoder.read_u32()?);
                             }
                             5 => {
-                                struct_field = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::SimpleMessage>()?);
+                                let __option_5 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                                    decoder.read_null()?;
+                                    None
+                                } else {
+                                    Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::SimpleMessage>()?)
+                                };
+                                __rpf_storage_struct_field = Some(__option_5);
                             }
                             _ => decoder.skip_field()?,
                         }
                     }
-                    result = Some(Self::Third {
-                        entity: entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?,
-                        entity_constrained: entity_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity_constrained"))?,
-                        status: status.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: status"))?,
-                        retries: retries.unwrap_or(0),
-                        struct_field: struct_field,
-                    });
+                    __rpf_result = Some(Self::Third { entity: __rpf_storage_entity.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity"))?, entity_constrained: __rpf_storage_entity_constrained.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: entity_constrained"))?, status: __rpf_storage_status.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: status"))?, retries: __rpf_storage_retries.unwrap_or(0), struct_field: __rpf_storage_struct_field.unwrap_or(None) });
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -1363,32 +1573,37 @@ impl omnius_core_rocketpack::RocketPackStruct for NestedChild {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
         encoder.write_u64(1)?;
+        omnius_core_rocketpack::validate_length("NestedChild.label", 1, 4, (&value.label).len())?;
         encoder.write_string((&value.label).as_str())?;
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut label: Option<String> = None;
+        let mut __rpf_storage_label: Option<String> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    label = Some(decoder.read_string_bounded("NestedChild.label", 1, 4)?);
+                    __rpf_storage_label = Some(decoder.read_string_bounded("NestedChild.label", 1, 4)?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            label: label.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: label"))?,
+            label: __rpf_storage_label.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: label"))?,
         })
     }
 }
@@ -1404,32 +1619,36 @@ impl omnius_core_rocketpack::RocketPackStruct for NestedParent {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.child)?;
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut child: Option<crate::rocketpack::omnius::demo::v1::NestedChild> = None;
+        let mut __rpf_storage_child: Option<crate::rocketpack::omnius::demo::v1::NestedChild> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    child = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::NestedChild>()?);
+                    __rpf_storage_child = Some(decoder.read_struct::<crate::rocketpack::omnius::demo::v1::NestedChild>()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            child: child.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: child"))?,
+            child: __rpf_storage_child.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: child"))?,
         })
     }
 }

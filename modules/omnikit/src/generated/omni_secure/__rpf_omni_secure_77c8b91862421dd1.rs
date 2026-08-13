@@ -11,13 +11,16 @@ pub enum AuthType {
 impl omnius_core_rocketpack::RocketPackStruct for AuthType {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::None => {}
-            Self::Sign => {}
+            Self::None => {},
+            Self::Sign => {},
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -34,7 +37,9 @@ impl omnius_core_rocketpack::RocketPackStruct for AuthType {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -75,12 +80,15 @@ pub enum CipherAlgorithmType {
 impl omnius_core_rocketpack::RocketPackStruct for CipherAlgorithmType {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::Aes256Gcm => {}
+            Self::Aes256Gcm => {},
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -93,7 +101,9 @@ impl omnius_core_rocketpack::RocketPackStruct for CipherAlgorithmType {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -135,7 +145,10 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(6)?;
         encoder.write_u64(1)?;
         omnius_core_rocketpack::validate_length("ProfileMessage.session_id", 32, 32, (&value.session_id).len())?;
@@ -153,7 +166,9 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -192,14 +207,10 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         Ok(Self {
             session_id: __rpf_storage_session_id.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: session_id"))?,
             auth_type: __rpf_storage_auth_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: auth_type"))?,
-            key_exchange_algorithm_type_flags: __rpf_storage_key_exchange_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_exchange_algorithm_type_flags"))?,
-            key_derivation_algorithm_type_flags: __rpf_storage_key_derivation_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
-            cipher_algorithm_type_flags: __rpf_storage_cipher_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
-            hash_algorithm_type_flags: __rpf_storage_hash_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
+            key_exchange_algorithm_type_flags: __rpf_storage_key_exchange_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_exchange_algorithm_type_flags"))?,
+            key_derivation_algorithm_type_flags: __rpf_storage_key_derivation_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
+            cipher_algorithm_type_flags: __rpf_storage_cipher_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
+            hash_algorithm_type_flags: __rpf_storage_hash_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
         })
     }
 }

@@ -11,14 +11,16 @@ pub enum Status {
 impl omnius_core_rocketpack::RocketPackStruct for Status {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::Success => {}
-            Self::Failed => {}
+            Self::Success => {},
+            Self::Failed => {},
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -35,14 +37,16 @@ impl omnius_core_rocketpack::RocketPackStruct for Status {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -50,7 +54,7 @@ impl omnius_core_rocketpack::RocketPackStruct for Status {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Success);
+                    __rpf_result = Some(Self::Success);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
@@ -58,13 +62,13 @@ impl omnius_core_rocketpack::RocketPackStruct for Status {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Failed);
+                    __rpf_result = Some(Self::Failed);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -78,8 +82,10 @@ impl omnius_core_rocketpack::RocketPackStruct for SimpleMessage {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         let mut count = 0;
         if value.bool_field.is_some() {
             count += 1;
@@ -92,23 +98,33 @@ impl omnius_core_rocketpack::RocketPackStruct for SimpleMessage {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
-        let mut bool_field: Option<bool> = None;
+        let mut __rpf_storage_bool_field: Option<Option<bool>> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    bool_field = Some(decoder.read_bool()?);
+                    let __option_0 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_bool()?)
+                    };
+                    __rpf_storage_bool_field = Some(__option_0);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        Ok(Self { bool_field: bool_field })
+        Ok(Self {
+            bool_field: __rpf_storage_bool_field.unwrap_or(None),
+        })
     }
 }
 

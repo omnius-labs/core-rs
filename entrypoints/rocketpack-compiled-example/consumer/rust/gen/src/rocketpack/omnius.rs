@@ -2,5 +2,4 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[path = "omnius/consumer.rs"]
 pub mod consumer;
