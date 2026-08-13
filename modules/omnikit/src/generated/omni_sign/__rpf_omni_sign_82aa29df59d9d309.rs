@@ -18,7 +18,6 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSignType {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
 
         match value {
@@ -39,10 +38,10 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSignType {
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -50,7 +49,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSignType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::None);
+                    __rpf_result = Some(Self::None);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
@@ -58,13 +57,13 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSignType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Ed25519_Sha3_256_Base64Url);
+                    __rpf_result = Some(Self::Ed25519_Sha3_256_Base64Url);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -84,13 +83,14 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSigner {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(3)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.typ)?;
         encoder.write_u64(2)?;
+        omnius_core_rocketpack::validate_length("OmniSigner.name", 0, 256, (&value.name).len())?;
         encoder.write_string((&value.name).as_str())?;
         encoder.write_u64(3)?;
+        omnius_core_rocketpack::validate_length("OmniSigner.key", 0, 4096, (&value.key).len())?;
         encoder.write_bytes((&value.key).as_slice())?;
         Ok(())
     }
@@ -99,30 +99,30 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSigner {
     where
         Self: Sized,
     {
-        let mut typ: Option<crate::generated::omni_sign::OmniSignType> = None;
-        let mut name: Option<String> = None;
-        let mut key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_typ: Option<crate::generated::omni_sign::OmniSignType> = None;
+        let mut __rpf_storage_name: Option<String> = None;
+        let mut __rpf_storage_key: Option<Vec<u8>> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    typ = Some(decoder.read_struct::<crate::generated::omni_sign::OmniSignType>()?);
+                    __rpf_storage_typ = Some(decoder.read_struct::<crate::generated::omni_sign::OmniSignType>()?);
                 }
                 2 => {
-                    name = Some(decoder.read_string_bounded("OmniSigner.name", 0, 256)?);
+                    __rpf_storage_name = Some(decoder.read_string_bounded("OmniSigner.name", 0, 256)?);
                 }
                 3 => {
-                    key = Some(decoder.read_bytes_bounded("OmniSigner.key", 0, 4096)?);
+                    __rpf_storage_key = Some(decoder.read_bytes_bounded("OmniSigner.key", 0, 4096)?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            typ: typ.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: typ"))?,
-            name: name.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: name"))?,
-            key: key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key"))?,
+            typ: __rpf_storage_typ.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: typ"))?,
+            name: __rpf_storage_name.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: name"))?,
+            key: __rpf_storage_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key"))?,
         })
     }
 }
@@ -145,15 +145,17 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniCert {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(4)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.typ)?;
         encoder.write_u64(2)?;
+        omnius_core_rocketpack::validate_length("OmniCert.name", 0, 256, (&value.name).len())?;
         encoder.write_string((&value.name).as_str())?;
         encoder.write_u64(3)?;
+        omnius_core_rocketpack::validate_length("OmniCert.public_key", 0, 4096, (&value.public_key).len())?;
         encoder.write_bytes((&value.public_key).as_slice())?;
         encoder.write_u64(4)?;
+        omnius_core_rocketpack::validate_length("OmniCert.value", 0, 128, (&value.value).len())?;
         encoder.write_bytes((&value.value).as_slice())?;
         Ok(())
     }
@@ -162,35 +164,35 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniCert {
     where
         Self: Sized,
     {
-        let mut typ: Option<crate::generated::omni_sign::OmniSignType> = None;
-        let mut name: Option<String> = None;
-        let mut public_key: Option<Vec<u8>> = None;
-        let mut value: Option<Vec<u8>> = None;
+        let mut __rpf_storage_typ: Option<crate::generated::omni_sign::OmniSignType> = None;
+        let mut __rpf_storage_name: Option<String> = None;
+        let mut __rpf_storage_public_key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_value: Option<Vec<u8>> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    typ = Some(decoder.read_struct::<crate::generated::omni_sign::OmniSignType>()?);
+                    __rpf_storage_typ = Some(decoder.read_struct::<crate::generated::omni_sign::OmniSignType>()?);
                 }
                 2 => {
-                    name = Some(decoder.read_string_bounded("OmniCert.name", 0, 256)?);
+                    __rpf_storage_name = Some(decoder.read_string_bounded("OmniCert.name", 0, 256)?);
                 }
                 3 => {
-                    public_key = Some(decoder.read_bytes_bounded("OmniCert.public_key", 0, 4096)?);
+                    __rpf_storage_public_key = Some(decoder.read_bytes_bounded("OmniCert.public_key", 0, 4096)?);
                 }
                 4 => {
-                    value = Some(decoder.read_bytes_bounded("OmniCert.value", 0, 128)?);
+                    __rpf_storage_value = Some(decoder.read_bytes_bounded("OmniCert.value", 0, 128)?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            typ: typ.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: typ"))?,
-            name: name.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: name"))?,
-            public_key: public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
-            value: value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
+            typ: __rpf_storage_typ.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: typ"))?,
+            name: __rpf_storage_name.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: name"))?,
+            public_key: __rpf_storage_public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
+            value: __rpf_storage_value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
         })
     }
 }

@@ -515,6 +515,17 @@ impl Parser {
 
     fn expect_literal(&mut self) -> Spanned<Literal> {
         let (start, val, end) = match self.peek().cloned() {
+            Some(SpannedToken { token: Token::Ident(s), span }) if s == "Some" => {
+                self.bump();
+                self.expect(Token::LParen, "(");
+                let value = self.expect_literal();
+                let end = self.expect(Token::RParen, ")").expect("synthetic token is always present").span.end;
+                (span.start, Literal::Some(Box::new(value.value)), end)
+            }
+            Some(SpannedToken { token: Token::Ident(s), span }) if s == "None" => {
+                self.bump();
+                (span.start, Literal::None, span.end)
+            }
             Some(SpannedToken { token: Token::Ident(s), span }) if s == "true" || s == "false" => {
                 self.bump();
                 (span.start, Literal::Bool(s == "true"), span.end)
@@ -601,7 +612,14 @@ impl Parser {
     fn expect_int_u32(&mut self) -> u32 {
         match self.bump() {
             Some(t) => match t.token {
-                Token::Int(n) | Token::Hex(n) => n as u32,
+                Token::Int(n) | Token::Hex(n) => match u32::try_from(n) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        self.errors
+                            .push(ParseError::new(ParseErrorKind::Unexpected("integer exceeds u32 range"), t.span.start, t.span.end));
+                        0
+                    }
+                },
                 _ => {
                     self.error_here(ParseErrorKind::Expected {
                         expected: "integer",
@@ -622,7 +640,14 @@ impl Parser {
     fn expect_int_u32_spanned(&mut self) -> Spanned<u32> {
         match self.bump() {
             Some(t) => match t.token {
-                Token::Int(n) | Token::Hex(n) => Spanned::new(n as u32, t.span.start, t.span.end),
+                Token::Int(n) | Token::Hex(n) => match u32::try_from(n) {
+                    Ok(value) => Spanned::new(value, t.span.start, t.span.end),
+                    Err(_) => {
+                        self.errors
+                            .push(ParseError::new(ParseErrorKind::Unexpected("integer exceeds u32 range"), t.span.start, t.span.end));
+                        Spanned::new(0, t.span.start, t.span.end)
+                    }
+                },
                 _ => {
                     let (s, e) = self.error_here(ParseErrorKind::Expected {
                         expected: "integer",
@@ -643,7 +668,14 @@ impl Parser {
     fn expect_int_u64(&mut self) -> u64 {
         match self.bump() {
             Some(t) => match t.token {
-                Token::Int(n) | Token::Hex(n) => n as u64,
+                Token::Int(n) | Token::Hex(n) => match u64::try_from(n) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        self.errors
+                            .push(ParseError::new(ParseErrorKind::Unexpected("integer exceeds u64 range"), t.span.start, t.span.end));
+                        0
+                    }
+                },
                 _ => {
                     self.error_here(ParseErrorKind::Expected {
                         expected: "integer",

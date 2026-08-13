@@ -328,6 +328,12 @@ impl SemanticGraph {
         match ty {
             Type::Path(path) => {
                 if let Some(builtin) = builtin_type(path) {
+                    if matches!(builtin, BuiltinType::U128 | BuiltinType::I128) {
+                        return Err(semantic_error(
+                            &self.files[file_index].absolute_path,
+                            "u128 and i128 are not supported by the RocketPack wire format",
+                        ));
+                    }
                     return Ok(ResolvedType::Builtin(builtin));
                 }
 
@@ -616,21 +622,54 @@ fn validate_default(path: &Path, parent: &str, field: &str, resolved: &ResolvedT
     if contains_timestamp_type(resolved) {
         return Err(semantic_error(path, &format!("timestamp types do not support default literals at {parent}.{field}")));
     }
-    let Some((builtin, constraint)) = direct_literal_constraint(resolved) else {
-        return Ok(());
-    };
-    let actual = match (builtin, default) {
-        (BuiltinType::String, Literal::String(value)) => value.len() as u64,
-        (BuiltinType::Bytes, Literal::Bytes(value)) => value.len() as u64,
-        _ => return Ok(()),
-    };
-    if actual < constraint.min || actual > constraint.max {
-        return Err(semantic_error(
-            path,
-            &format!("default literal length {actual} is outside {}..={} at {parent}.{field}", constraint.min, constraint.max),
-        ));
+    validate_default_literal(path, parent, field, resolved, default)
+}
+
+fn validate_default_literal(path: &Path, parent: &str, field: &str, resolved: &ResolvedType, default: &Literal) -> Result<(), CodegenError> {
+    match (resolved, default) {
+        (ResolvedType::Option(inner), Literal::Some(value)) => validate_default_literal(path, parent, field, inner, value),
+        (ResolvedType::Option(_), Literal::None) => Ok(()),
+        (ResolvedType::Option(_), _) => Err(semantic_error(path, &format!("Option default at {parent}.{field} must be Some(...) or None"))),
+        (_, Literal::Some(_) | Literal::None) => Err(semantic_error(path, &format!("non-Option default at {parent}.{field} must be a literal"))),
+        (ResolvedType::Constrained(inner, constraint), value) => {
+            validate_default_literal(path, parent, field, inner, value)?;
+            let actual = match value {
+                Literal::String(value) => value.len() as u64,
+                Literal::Bytes(value) => value.len() as u64,
+                _ => return Ok(()),
+            };
+            if actual < constraint.min || actual > constraint.max {
+                return Err(semantic_error(
+                    path,
+                    &format!("default literal length {actual} is outside {}..={} at {parent}.{field}", constraint.min, constraint.max),
+                ));
+            }
+            Ok(())
+        }
+        (ResolvedType::Builtin(builtin), value) if literal_matches_builtin(value, builtin) => Ok(()),
+        (ResolvedType::Builtin(_), _) => Err(semantic_error(path, &format!("default literal type does not match {parent}.{field}"))),
+        (ResolvedType::Named(_) | ResolvedType::Vec(_) | ResolvedType::Map(_, _) | ResolvedType::Array(_, _), _) => {
+            Err(semantic_error(path, &format!("default literal is not supported for {parent}.{field}")))
+        }
     }
-    Ok(())
+}
+
+fn literal_matches_builtin(value: &Literal, builtin: &BuiltinType) -> bool {
+    match (value, builtin) {
+        (Literal::Bool(_), BuiltinType::Bool) => true,
+        (Literal::Int(value), BuiltinType::U8) => *value <= u8::MAX as u128,
+        (Literal::Int(value), BuiltinType::U16) => *value <= u16::MAX as u128,
+        (Literal::Int(value), BuiltinType::U32) => *value <= u32::MAX as u128,
+        (Literal::Int(value), BuiltinType::U64) => *value <= u64::MAX as u128,
+        (Literal::Int(value), BuiltinType::I8) => *value <= i8::MAX as u128,
+        (Literal::Int(value), BuiltinType::I16) => *value <= i16::MAX as u128,
+        (Literal::Int(value), BuiltinType::I32) => *value <= i32::MAX as u128,
+        (Literal::Int(value), BuiltinType::I64) => *value <= i64::MAX as u128,
+        (Literal::Float(_), BuiltinType::F32 | BuiltinType::F64) => true,
+        (Literal::String(_), BuiltinType::String) => true,
+        (Literal::Bytes(_), BuiltinType::Bytes) => true,
+        _ => false,
+    }
 }
 
 fn contains_timestamp_type(resolved: &ResolvedType) -> bool {
@@ -639,18 +678,6 @@ fn contains_timestamp_type(resolved: &ResolvedType) -> bool {
         ResolvedType::Option(inner) | ResolvedType::Vec(inner) | ResolvedType::Array(inner, _) | ResolvedType::Constrained(inner, _) => contains_timestamp_type(inner),
         ResolvedType::Map(key, value) => contains_timestamp_type(key) || contains_timestamp_type(value),
         ResolvedType::Builtin(_) | ResolvedType::Named(_) => false,
-    }
-}
-
-fn direct_literal_constraint(resolved: &ResolvedType) -> Option<(BuiltinType, LengthConstraint)> {
-    match resolved {
-        ResolvedType::Constrained(inner, constraint) => match inner.as_ref() {
-            ResolvedType::Builtin(BuiltinType::String) => Some((BuiltinType::String, *constraint)),
-            ResolvedType::Builtin(BuiltinType::Bytes) => Some((BuiltinType::Bytes, *constraint)),
-            _ => None,
-        },
-        ResolvedType::Option(inner) => direct_literal_constraint(inner),
-        _ => None,
     }
 }
 

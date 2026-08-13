@@ -486,8 +486,6 @@ fn write_struct_pack_fn(out: &mut String, index: &RustFileContext, item: &Struct
     writeln!(out, "{}encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,", indent(depth + 1)).ok();
     writeln!(out, "{}value: &Self,", indent(depth + 1)).ok();
     writeln!(out, "{}) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {{", indent(depth)).ok();
-    writeln!(out, "{}Self::validate(value)?;", indent(depth + 1)).ok();
-
     let required_count = fields.iter().filter(|(_, resolved)| !matches!(resolved, ResolvedType::Option(_))).count();
     let has_optional = fields.iter().any(|(_, resolved)| matches!(resolved, ResolvedType::Option(_)));
 
@@ -669,7 +667,24 @@ fn write_encode_value(out: &mut String, resolved: &ResolvedType, expr: &str, dep
         ResolvedType::Named(_) => {
             writeln!(out, "{}encoder.write_struct({})?;", indent(depth), expr).ok();
         }
-        ResolvedType::Option(inner) | ResolvedType::Constrained(inner, _) => {
+        ResolvedType::Option(inner) => {
+            writeln!(out, "{}match {} {{", indent(depth), expr).ok();
+            writeln!(out, "{}Some(value) => {{", indent(depth + 1)).ok();
+            write_encode_value(out, inner, "value", depth + 2, context)?;
+            writeln!(out, "{}}}", indent(depth + 1)).ok();
+            writeln!(out, "{}None => encoder.write_null()?,", indent(depth + 1)).ok();
+            writeln!(out, "{}}}", indent(depth)).ok();
+        }
+        ResolvedType::Constrained(inner, constraint) => {
+            writeln!(
+                out,
+                "{}omnius_core_rocketpack::validate_length({context:?}, {}, {}, ({}).len())?;",
+                indent(depth),
+                constraint.min,
+                constraint.max,
+                expr
+            )
+            .ok();
             write_encode_value(out, inner, expr, depth, context)?;
         }
         ResolvedType::Vec(inner) => {
@@ -709,7 +724,7 @@ fn write_struct_unpack_fn(out: &mut String, index: &RustFileContext, item: &Stru
             out,
             "{}let mut {}: Option<{}> = None;",
             indent(depth + 1),
-            sanitize_ident(&field.name.value),
+            storage_ident(&field.name.value),
             render_field_storage_type(index, field, resolved)
         )
         .ok();
@@ -722,16 +737,11 @@ fn write_struct_unpack_fn(out: &mut String, index: &RustFileContext, item: &Stru
 
     let mut temp_counter = 0usize;
     for (field, resolved) in fields {
-        let field_ident = sanitize_ident(&field.name.value);
-        let decode_target = match resolved {
-            ResolvedType::Option(inner) => inner,
-            _ => resolved,
-        };
-
+        let storage_ident = storage_ident(&field.name.value);
         writeln!(out, "{}{} => {{", indent(depth + 3), field.tag.value).ok();
         let context = format!("{}.{}", item.name.value, field.name.value);
-        let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &context, &mut temp_counter)?;
-        writeln!(out, "{}{} = Some({});", indent(depth + 4), field_ident, value_expr).ok();
+        let value_expr = write_decode_value(out, resolved, "decoder", depth + 4, &context, &mut temp_counter)?;
+        writeln!(out, "{}{} = Some({});", indent(depth + 4), storage_ident, value_expr).ok();
         writeln!(out, "{}}}", indent(depth + 3)).ok();
     }
 
@@ -747,7 +757,12 @@ fn write_struct_unpack_fn(out: &mut String, index: &RustFileContext, item: &Stru
             "{}{}: {},",
             indent(depth + 2),
             sanitize_ident(&field.name.value),
-            render_struct_field_init(index, field, resolved)?
+            render_value_init(
+                &storage_ident(&field.name.value),
+                &field.name.value,
+                field.default.as_ref().map(|default| &default.value),
+                resolved
+            )?
         )
         .ok();
     }
@@ -758,21 +773,24 @@ fn write_struct_unpack_fn(out: &mut String, index: &RustFileContext, item: &Stru
     Ok(())
 }
 
+fn render_field_storage_type(index: &RustFileContext, field: &Field, resolved: &ResolvedType) -> String {
+    match resolved {
+        ResolvedType::Option(_) => render_resolved_type(resolved),
+        _ => render_declaration_type(index, &field.ty.value),
+    }
+}
+
 fn render_storage_type(index: &RustFileContext, original_type: &Type, resolved: &ResolvedType) -> String {
-    match (original_type, resolved) {
-        (Type::Option(inner), _) => render_declaration_type(index, inner),
-        (_, ResolvedType::Option(inner)) => render_resolved_type(inner),
+    match resolved {
+        ResolvedType::Option(_) => render_resolved_type(resolved),
         _ => render_declaration_type(index, original_type),
     }
 }
 
-fn render_field_storage_type(index: &RustFileContext, field: &Field, resolved: &ResolvedType) -> String {
-    render_storage_type(index, &field.ty.value, resolved)
-}
-
 fn render_value_init(value_ident: &str, field_name: &str, default: Option<&Literal>, resolved: &ResolvedType) -> Result<String, CodegenError> {
     if matches!(resolved, ResolvedType::Option(_)) {
-        return Ok(value_ident.to_string());
+        let default = default.map(render_literal).transpose()?.unwrap_or_else(|| "None".to_string());
+        return Ok(format!("{value_ident}.unwrap_or({default})"));
     }
 
     if let Some(default) = default {
@@ -784,9 +802,8 @@ fn render_value_init(value_ident: &str, field_name: &str, default: Option<&Liter
     ))
 }
 
-fn render_struct_field_init(_index: &RustFileContext, field: &Field, resolved: &ResolvedType) -> Result<String, CodegenError> {
-    let field_ident = sanitize_ident(&field.name.value);
-    render_value_init(&field_ident, &field.name.value, field.default.as_ref().map(|default| &default.value), resolved)
+fn storage_ident(value: &str) -> String {
+    format!("__rpf_storage_{}", sanitize_ident(value).replace("r#", ""))
 }
 
 fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: &str, depth: usize, context_name: &str, temp_counter: &mut usize) -> Result<String, CodegenError> {
@@ -812,7 +829,24 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             BuiltinType::I128 => "return Err(omnius_core_rocketpack::RocketPackDecoderError::Other(\"i128 decode is not supported\"))".to_string(),
         }),
         ResolvedType::Named(named) => Ok(format!("{decoder_ident}.read_struct::<{}>()?", render_named_type(named))),
-        ResolvedType::Option(inner) => write_decode_value(out, inner, decoder_ident, depth, context_name, temp_counter),
+        ResolvedType::Option(inner) => {
+            let value_name = next_temp_name(temp_counter, "option");
+            writeln!(
+                out,
+                "{}let {} = if matches!({}.current_type()?, omnius_core_rocketpack::FieldType::Unknown {{ major: 7, info: 22 }}) {{",
+                indent(depth),
+                value_name,
+                decoder_ident
+            )
+            .ok();
+            writeln!(out, "{}{}.read_null()?;", indent(depth + 1), decoder_ident).ok();
+            writeln!(out, "{}None", indent(depth + 1)).ok();
+            writeln!(out, "{}}} else {{", indent(depth)).ok();
+            let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, context_name, temp_counter)?;
+            writeln!(out, "{}Some({})", indent(depth + 1), inner_expr).ok();
+            writeln!(out, "{}}};", indent(depth)).ok();
+            Ok(value_name)
+        }
         ResolvedType::Constrained(inner, constraint) => match inner.as_ref() {
             ResolvedType::Builtin(BuiltinType::String) => Ok(format!("{decoder_ident}.read_string_bounded({context_name:?}, {}, {})?", constraint.min, constraint.max)),
             ResolvedType::Builtin(BuiltinType::Bytes) => Ok(format!("{decoder_ident}.read_bytes_bounded({context_name:?}, {}, {})?", constraint.min, constraint.max)),
@@ -829,15 +863,7 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
                     constraint.max
                 )
                 .ok();
-                writeln!(
-                    out,
-                    "{}let mut {}: Vec<{}> = Vec::with_capacity({} as usize);",
-                    indent(depth),
-                    value_name,
-                    render_resolved_type(inner),
-                    count_name
-                )
-                .ok();
+                writeln!(out, "{}let mut {}: Vec<{}> = Vec::new();", indent(depth), value_name, render_resolved_type(inner)).ok();
                 writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
                 let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, &format!("{context_name}[]"), temp_counter)?;
                 writeln!(out, "{}{}.push({});", indent(depth + 1), value_name, inner_expr).ok();
@@ -881,15 +907,7 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             let count_name = next_temp_name(temp_counter, "count");
             let value_name = next_temp_name(temp_counter, "values");
             writeln!(out, "{}let {} = {}.read_array()?;", indent(depth), count_name, decoder_ident).ok();
-            writeln!(
-                out,
-                "{}let mut {}: Vec<{}> = Vec::with_capacity({} as usize);",
-                indent(depth),
-                value_name,
-                render_resolved_type(inner),
-                count_name
-            )
-            .ok();
+            writeln!(out, "{}let mut {}: Vec<{}> = Vec::new();", indent(depth), value_name, render_resolved_type(inner)).ok();
             writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
             let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, &format!("{context_name}[]"), temp_counter)?;
             writeln!(out, "{}{}.push({});", indent(depth + 1), value_name, inner_expr).ok();
@@ -932,15 +950,7 @@ fn write_decode_value(out: &mut String, resolved: &ResolvedType, decoder_ident: 
             )
             .ok();
             writeln!(out, "{}}}", indent(depth)).ok();
-            writeln!(
-                out,
-                "{}let mut {}: Vec<{}> = Vec::with_capacity({} as usize);",
-                indent(depth),
-                values_name,
-                render_resolved_type(inner),
-                count_name
-            )
-            .ok();
+            writeln!(out, "{}let mut {}: Vec<{}> = Vec::new();", indent(depth), values_name, render_resolved_type(inner)).ok();
             writeln!(out, "{}for _ in 0..{} {{", indent(depth), count_name).ok();
             let inner_expr = write_decode_value(out, inner, decoder_ident, depth + 1, &format!("{context_name}[]"), temp_counter)?;
             writeln!(out, "{}{}.push({});", indent(depth + 1), values_name, inner_expr).ok();
@@ -1037,7 +1047,6 @@ fn write_enum_pack_fn(out: &mut String, index: &RustFileContext, item: &Enum, de
     writeln!(out, "{}encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,", indent(depth + 1)).ok();
     writeln!(out, "{}value: &Self,", indent(depth + 1)).ok();
     writeln!(out, "{}) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {{", indent(depth)).ok();
-    writeln!(out, "{}Self::validate(value)?;", indent(depth + 1)).ok();
     writeln!(out, "{}encoder.write_map(1)?;", indent(depth + 1)).ok();
     writeln!(out).ok();
     writeln!(out, "{}match value {{", indent(depth + 1)).ok();
@@ -1256,10 +1265,10 @@ fn write_enum_unpack_fn(out: &mut String, index: &RustFileContext, item: &Enum, 
     writeln!(out, "{}where", indent(depth)).ok();
     writeln!(out, "{}Self: Sized,", indent(depth + 1)).ok();
     writeln!(out, "{}{{", indent(depth)).ok();
-    writeln!(out, "{}let mut result: Option<Self> = None;", indent(depth + 1)).ok();
-    writeln!(out, "{}let count = decoder.read_map()?;", indent(depth + 1)).ok();
+    writeln!(out, "{}let mut __rpf_result: Option<Self> = None;", indent(depth + 1)).ok();
+    writeln!(out, "{}let __rpf_count = decoder.read_map()?;", indent(depth + 1)).ok();
     writeln!(out).ok();
-    writeln!(out, "{}for _ in 0..count {{", indent(depth + 1)).ok();
+    writeln!(out, "{}for _ in 0..__rpf_count {{", indent(depth + 1)).ok();
     writeln!(out, "{}match decoder.read_u64()? {{", indent(depth + 2)).ok();
 
     let mut temp_counter = 0usize;
@@ -1273,7 +1282,7 @@ fn write_enum_unpack_fn(out: &mut String, index: &RustFileContext, item: &Enum, 
     writeln!(out).ok();
     writeln!(
         out,
-        "{}result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other(\"missing enum variant\"))",
+        "{}__rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other(\"missing enum variant\"))",
         indent(depth + 1)
     )
     .ok();
@@ -1301,7 +1310,7 @@ fn write_enum_unpack_variant_arm(
             writeln!(out, "{}let _ = decoder.read_u64()?;", indent(depth + 2)).ok();
             writeln!(out, "{}decoder.skip_field()?;", indent(depth + 2)).ok();
             writeln!(out, "{}}}", indent(depth + 1)).ok();
-            writeln!(out, "{}result = Some(Self::{});", indent(depth + 1), variant_name).ok();
+            writeln!(out, "{}__rpf_result = Some(Self::{});", indent(depth + 1), variant_name).ok();
         }
         VariantKind::Tuple(fields) => {
             let resolved_fields = resolve_tuple_fields(index, fields)?;
@@ -1310,13 +1319,9 @@ fn write_enum_unpack_variant_arm(
             writeln!(out, "{}match decoder.read_u64()? {{", indent(depth + 2)).ok();
 
             for ((_, (tuple_index, resolved)), binding_name) in fields.iter().zip(resolved_fields.iter()).zip(tuple_bindings.iter()) {
-                let decode_target = match resolved {
-                    ResolvedType::Option(inner) => inner.as_ref(),
-                    _ => resolved,
-                };
                 writeln!(out, "{}{} => {{", indent(depth + 3), tuple_index).ok();
                 let context = format!("{enum_name}.{}.{}", variant.name.value, tuple_index);
-                let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &context, temp_counter)?;
+                let value_expr = write_decode_value(out, resolved, "decoder", depth + 4, &context, temp_counter)?;
                 writeln!(out, "{}{} = Some({});", indent(depth + 4), binding_name, value_expr).ok();
                 writeln!(out, "{}}}", indent(depth + 3)).ok();
             }
@@ -1337,7 +1342,7 @@ fn write_enum_unpack_variant_arm(
                     ))
                 })
                 .collect::<Result<Vec<_>, CodegenError>>()?;
-            writeln!(out, "{}result = Some(Self::{} {{ {} }});", indent(depth + 1), variant_name, init_fields.join(", ")).ok();
+            writeln!(out, "{}__rpf_result = Some(Self::{} {{ {} }});", indent(depth + 1), variant_name, init_fields.join(", ")).ok();
         }
         VariantKind::Record(fields) => {
             let resolved_fields = resolve_sorted_record_fields(index, fields)?;
@@ -1346,14 +1351,10 @@ fn write_enum_unpack_variant_arm(
             writeln!(out, "{}match decoder.read_u64()? {{", indent(depth + 2)).ok();
 
             for (field, resolved) in &resolved_fields {
-                let binding_name = sanitize_ident(&field.name.value);
-                let decode_target = match resolved {
-                    ResolvedType::Option(inner) => inner.as_ref(),
-                    _ => resolved,
-                };
+                let binding_name = storage_ident(&field.name.value);
                 writeln!(out, "{}{} => {{", indent(depth + 3), field.tag.value).ok();
                 let context = format!("{enum_name}.{}.{}", variant.name.value, field.name.value);
-                let value_expr = write_decode_value(out, decode_target, "decoder", depth + 4, &context, temp_counter)?;
+                let value_expr = write_decode_value(out, resolved, "decoder", depth + 4, &context, temp_counter)?;
                 writeln!(out, "{}{} = Some({});", indent(depth + 4), binding_name, value_expr).ok();
                 writeln!(out, "{}}}", indent(depth + 3)).ok();
             }
@@ -1365,15 +1366,15 @@ fn write_enum_unpack_variant_arm(
             let init_fields = resolved_fields
                 .iter()
                 .map(|(field, resolved)| {
-                    let binding_name = sanitize_ident(&field.name.value);
+                    let binding_name = storage_ident(&field.name.value);
                     Ok(format!(
                         "{}: {}",
-                        binding_name,
+                        sanitize_ident(&field.name.value),
                         render_value_init(&binding_name, &field.name.value, field.default.as_ref().map(|default| &default.value), resolved)?
                     ))
                 })
                 .collect::<Result<Vec<_>, CodegenError>>()?;
-            writeln!(out, "{}result = Some(Self::{} {{ {} }});", indent(depth + 1), variant_name, init_fields.join(", ")).ok();
+            writeln!(out, "{}__rpf_result = Some(Self::{} {{ {} }});", indent(depth + 1), variant_name, init_fields.join(", ")).ok();
         }
     }
 
@@ -1410,7 +1411,7 @@ fn declare_tuple_variant_storage(
 ) -> Vec<String> {
     let mut bindings = Vec::with_capacity(fields.len());
     for ((name, ty), (_, resolved)) in fields.iter().zip(resolved_fields.iter()) {
-        let binding_name = sanitize_ident(&name.value);
+        let binding_name = storage_ident(&name.value);
         writeln!(
             out,
             "{}let mut {}: Option<{}> = None;",
@@ -1430,7 +1431,7 @@ fn declare_record_variant_storage(out: &mut String, index: &RustFileContext, fie
             out,
             "{}let mut {}: Option<{}> = None;",
             indent(depth),
-            sanitize_ident(&field.name.value),
+            storage_ident(&field.name.value),
             render_storage_type(index, &field.ty.value, resolved)
         )
         .ok();
@@ -1633,6 +1634,8 @@ fn render_literal(literal: &Literal) -> Result<String, CodegenError> {
             let rendered = bytes.iter().map(|byte| byte.to_string()).collect::<Vec<_>>().join(", ");
             format!("vec![{rendered}]")
         }
+        Literal::Some(value) => format!("Some({})", render_literal(value)?),
+        Literal::None => "None".to_string(),
     })
 }
 
@@ -1901,11 +1904,17 @@ fn indent(level: usize) -> String {
 }
 
 fn sanitize_ident(value: &str) -> String {
-    if is_rust_keyword(value) { format!("{value}_") } else { value.to_string() }
+    if is_rust_keyword(value) && !matches!(value, "self" | "Self" | "super" | "crate") {
+        format!("r#{value}")
+    } else if matches!(value, "self" | "Self" | "super" | "crate") {
+        format!("{value}_")
+    } else {
+        value.to_string()
+    }
 }
 
 #[cfg(test)]
-mod tests {
+mod integration_tests {
     use std::{fs, path::Path};
 
     use testresult::TestResult;
@@ -2040,8 +2049,10 @@ mod tests {
                 ("escaped.rpf", "version 1;\npackage type_::v1;\nstruct Escaped {}\n"),
             ],
         )?;
-        let error = generate_manifest(&collision).await.expect_err("sanitized package collision must fail");
-        assert!(error.to_string().contains("Rust package path collision"));
+        generate_manifest(&collision).await?;
+        let output = collision.parent().expect("manifest parent").join("gen/src/rocketpack");
+        assert!(output.join("r#type.rs").is_file());
+        assert!(output.join("type_.rs").is_file());
         Ok(())
     }
 
@@ -2119,7 +2130,7 @@ mod tests {
 }
 
 #[cfg(test)]
-mod wip_tests {
+mod tests {
     use std::fs;
 
     use super::*;
@@ -2153,15 +2164,16 @@ mod wip_tests {
         let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(CodegenError::Io)?;
         let manifests = runtime.block_on(ManifestGraph::load(&manifest))?;
         let graph = SemanticGraph::build(manifests)?;
-        let options = RustOptions {
-            output_dir: "gen/src".to_string(),
-            module_name: "rocketpack".to_string(),
-            dependencies: BTreeMap::new(),
-        };
-        graph
-            .root_file_indices()
-            .map(|file_index| render_rust_file(&graph, file_index, &options).map(|contents| GeneratedRustFile { contents }))
-            .collect()
+        let conf = &graph.root_manifest().config.generators[0];
+        runtime.block_on(generate(&graph, conf))?;
+        let package_dir = temp.path().join("gen/src/rocketpack/test");
+        let mut generated = fs::read_dir(package_dir)?
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with("__rpf_"))
+            .map(|entry| fs::read_to_string(entry.path()).map(|contents| GeneratedRustFile { contents }))
+            .collect::<Result<Vec<_>, _>>()?;
+        generated.sort_by(|left, right| left.contents.cmp(&right.contents));
+        Ok(generated)
     }
 
     #[test]
@@ -2349,14 +2361,9 @@ mod wip_tests {
         assert!(rendered.find("validate_length(\"Sample.values\", 1, 3").unwrap() < rendered.find("encoder.write_array((&value.values).len())").unwrap());
         assert!(rendered.contains("Sample.attributes.key"));
         assert!(rendered.contains("Sample.attributes.value"));
-        assert!(rendered.find("read_array_bounded(\"Sample.values\", 1, 3").unwrap() < rendered.find("Vec::with_capacity(__count_0 as usize)").unwrap());
+        assert!(rendered.find("read_array_bounded(\"Sample.values\", 1, 3").unwrap() < rendered.find("Vec::new()").unwrap());
         let parent_impl = &rendered[rendered.find("impl omnius_core_rocketpack::RocketPackStruct for Sample").unwrap()..];
-        assert!(
-            parent_impl
-                .find("<crate::rocketpack::test::Child as omnius_core_rocketpack::RocketPackStruct>::validate(&value.child)?;")
-                .unwrap()
-                < parent_impl.find("encoder.write_map(3)?;").unwrap()
-        );
+        assert!(!parent_impl.contains("Self::validate(value)?;"));
     }
 
     #[test]
@@ -2364,6 +2371,32 @@ mod wip_tests {
         for (ty, value) in [("u8", "256"), ("u16", "65536"), ("u32", "4294967296"), ("u64", "18446744073709551616")] {
             let source = parsed_source(&format!("version 1; package test; const LIMIT: {ty} = {value};"));
             assert!(render_sources(&[source]).is_err(), "{ty} = {value}");
+        }
+    }
+
+    #[test]
+    fn supports_null_options_and_option_defaults() {
+        let source = parsed_source(
+            "version 1; package test; struct Sample { @1 direct: Option<u32> = Some(3); @2 nested: Vec<Option<u32>>; @3 pairs: Map<Option<u32>, Option<string>>; @4 array: [Option<u32>; 2]; }",
+        );
+        let rendered = render_sources(&[source]).expect("Option schema must render")[0].contents.clone();
+
+        assert!(rendered.contains("None => encoder.write_null()?"));
+        assert!(rendered.contains("current_type()?"));
+        assert!(rendered.contains("__rpf_storage_direct.unwrap_or(Some(3))"));
+        assert!(!rendered.contains("Vec::with_capacity"));
+    }
+
+    #[test]
+    fn rejects_unsupported_integer_types_and_invalid_defaults() {
+        for schema in [
+            "version 1; package test; struct Sample { @1 value: u128; }",
+            "version 1; package test; type Wide = i128; struct Sample { @1 value: Wide; }",
+            "version 1; package test; struct Sample { @1 value: Option<u32> = 3; }",
+            "version 1; package test; struct Sample { @1 value: u8 = 256; }",
+            "version 1; package test; struct Sample { @1 value: string = b\"bad\"; }",
+        ] {
+            assert!(render_sources(&[parsed_source(schema)]).is_err(), "{schema}");
         }
     }
 

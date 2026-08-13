@@ -18,7 +18,6 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniRemotingVersion {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
 
         match value {
@@ -39,10 +38,10 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniRemotingVersion {
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -50,7 +49,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniRemotingVersion {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Unknown);
+                    __rpf_result = Some(Self::Unknown);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
@@ -58,13 +57,13 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniRemotingVersion {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::V1);
+                    __rpf_result = Some(Self::V1);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -81,7 +80,6 @@ impl omnius_core_rocketpack::RocketPackStruct for HelloMessage {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(2)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.version)?;
@@ -94,25 +92,25 @@ impl omnius_core_rocketpack::RocketPackStruct for HelloMessage {
     where
         Self: Sized,
     {
-        let mut version: Option<crate::generated::omni_remoting::OmniRemotingVersion> = None;
-        let mut function_id: Option<u32> = None;
+        let mut __rpf_storage_version: Option<crate::generated::omni_remoting::OmniRemotingVersion> = None;
+        let mut __rpf_storage_function_id: Option<u32> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    version = Some(decoder.read_struct::<crate::generated::omni_remoting::OmniRemotingVersion>()?);
+                    __rpf_storage_version = Some(decoder.read_struct::<crate::generated::omni_remoting::OmniRemotingVersion>()?);
                 }
                 2 => {
-                    function_id = Some(decoder.read_u32()?);
+                    __rpf_storage_function_id = Some(decoder.read_u32()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            version: version.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: version"))?,
-            function_id: function_id.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: function_id"))?,
+            version: __rpf_storage_version.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: version"))?,
+            function_id: __rpf_storage_function_id.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: function_id"))?,
         })
     }
 }
@@ -128,7 +126,6 @@ impl omnius_core_rocketpack::RocketPackStruct for TestMessage {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
         encoder.write_u64(1)?;
         encoder.write_i32(*(&value.value))?;
@@ -139,20 +136,20 @@ impl omnius_core_rocketpack::RocketPackStruct for TestMessage {
     where
         Self: Sized,
     {
-        let mut value: Option<i32> = None;
+        let mut __rpf_storage_value: Option<i32> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    value = Some(decoder.read_i32()?);
+                    __rpf_storage_value = Some(decoder.read_i32()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            value: value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
+            value: __rpf_storage_value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
         })
     }
 }

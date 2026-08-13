@@ -194,7 +194,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
 
         match (major, info) {
             (0, 0..=23) => return Ok(info as i8),
-            (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i8),
+            (0, 24) => return i8::try_from(u8::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i8)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -222,7 +222,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         match (major, info) {
             (0, 0..=23) => return Ok(info as i16),
             (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i16),
-            (0, 25) => return Ok(u16::from_be_bytes(self.read_raw_fixed_bytes()?) as i16),
+            (0, 25) => return i16::try_from(u16::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i16)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -256,7 +256,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (0, 0..=23) => return Ok(info as i32),
             (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i32),
             (0, 25) => return Ok(u16::from_be_bytes(self.read_raw_fixed_bytes()?) as i32),
-            (0, 26) => return Ok(u32::from_be_bytes(self.read_raw_fixed_bytes()?) as i32),
+            (0, 26) => return i32::try_from(u32::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i32)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -292,7 +292,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
             (0, 25) => return Ok(u16::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
             (0, 26) => return Ok(u32::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
-            (0, 27) => return Ok(u64::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
+            (0, 27) => return i64::try_from(u64::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i64)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -487,7 +487,6 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
                     25 => Some(2),
                     26 => Some(4),
                     27 => Some(8),
-                    28 => Some(16),
                     _ => None,
                 },
                 2 | 3 => self.read_raw_len(info)?,

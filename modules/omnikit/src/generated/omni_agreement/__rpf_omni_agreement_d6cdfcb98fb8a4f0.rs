@@ -18,7 +18,6 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementAlgorithmType {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
 
         match value {
@@ -39,10 +38,10 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementAlgorithmType {
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -50,7 +49,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementAlgorithmType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::None);
+                    __rpf_result = Some(Self::None);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
@@ -58,13 +57,13 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementAlgorithmType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::X25519);
+                    __rpf_result = Some(Self::X25519);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -86,13 +85,14 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreement {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(4)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.algorithm_type)?;
         encoder.write_u64(2)?;
+        omnius_core_rocketpack::validate_length("OmniAgreement.secret_key", 32, 32, (&value.secret_key).len())?;
         encoder.write_bytes((&value.secret_key).as_slice())?;
         encoder.write_u64(3)?;
+        omnius_core_rocketpack::validate_length("OmniAgreement.public_key", 32, 32, (&value.public_key).len())?;
         encoder.write_bytes((&value.public_key).as_slice())?;
         encoder.write_u64(4)?;
         encoder.write_struct(&value.created_time)?;
@@ -103,35 +103,35 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreement {
     where
         Self: Sized,
     {
-        let mut algorithm_type: Option<crate::generated::omni_agreement::OmniAgreementAlgorithmType> = None;
-        let mut secret_key: Option<Vec<u8>> = None;
-        let mut public_key: Option<Vec<u8>> = None;
-        let mut created_time: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
+        let mut __rpf_storage_algorithm_type: Option<crate::generated::omni_agreement::OmniAgreementAlgorithmType> = None;
+        let mut __rpf_storage_secret_key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_public_key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_created_time: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    algorithm_type = Some(decoder.read_struct::<crate::generated::omni_agreement::OmniAgreementAlgorithmType>()?);
+                    __rpf_storage_algorithm_type = Some(decoder.read_struct::<crate::generated::omni_agreement::OmniAgreementAlgorithmType>()?);
                 }
                 2 => {
-                    secret_key = Some(decoder.read_bytes_bounded("OmniAgreement.secret_key", 32, 32)?);
+                    __rpf_storage_secret_key = Some(decoder.read_bytes_bounded("OmniAgreement.secret_key", 32, 32)?);
                 }
                 3 => {
-                    public_key = Some(decoder.read_bytes_bounded("OmniAgreement.public_key", 32, 32)?);
+                    __rpf_storage_public_key = Some(decoder.read_bytes_bounded("OmniAgreement.public_key", 32, 32)?);
                 }
                 4 => {
-                    created_time = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                    __rpf_storage_created_time = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            algorithm_type: algorithm_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: algorithm_type"))?,
-            secret_key: secret_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: secret_key"))?,
-            public_key: public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
-            created_time: created_time.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: created_time"))?,
+            algorithm_type: __rpf_storage_algorithm_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: algorithm_type"))?,
+            secret_key: __rpf_storage_secret_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: secret_key"))?,
+            public_key: __rpf_storage_public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
+            created_time: __rpf_storage_created_time.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: created_time"))?,
         })
     }
 }
@@ -152,11 +152,11 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementPublicKey {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(3)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.algorithm_type)?;
         encoder.write_u64(2)?;
+        omnius_core_rocketpack::validate_length("OmniAgreementPublicKey.public_key", 32, 32, (&value.public_key).len())?;
         encoder.write_bytes((&value.public_key).as_slice())?;
         encoder.write_u64(3)?;
         encoder.write_struct(&value.created_time)?;
@@ -167,30 +167,30 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementPublicKey {
     where
         Self: Sized,
     {
-        let mut algorithm_type: Option<crate::generated::omni_agreement::OmniAgreementAlgorithmType> = None;
-        let mut public_key: Option<Vec<u8>> = None;
-        let mut created_time: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
+        let mut __rpf_storage_algorithm_type: Option<crate::generated::omni_agreement::OmniAgreementAlgorithmType> = None;
+        let mut __rpf_storage_public_key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_created_time: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    algorithm_type = Some(decoder.read_struct::<crate::generated::omni_agreement::OmniAgreementAlgorithmType>()?);
+                    __rpf_storage_algorithm_type = Some(decoder.read_struct::<crate::generated::omni_agreement::OmniAgreementAlgorithmType>()?);
                 }
                 2 => {
-                    public_key = Some(decoder.read_bytes_bounded("OmniAgreementPublicKey.public_key", 32, 32)?);
+                    __rpf_storage_public_key = Some(decoder.read_bytes_bounded("OmniAgreementPublicKey.public_key", 32, 32)?);
                 }
                 3 => {
-                    created_time = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                    __rpf_storage_created_time = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            algorithm_type: algorithm_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: algorithm_type"))?,
-            public_key: public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
-            created_time: created_time.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: created_time"))?,
+            algorithm_type: __rpf_storage_algorithm_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: algorithm_type"))?,
+            public_key: __rpf_storage_public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
+            created_time: __rpf_storage_created_time.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: created_time"))?,
         })
     }
 }
@@ -211,11 +211,11 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementPrivateKey {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(3)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.algorithm_type)?;
         encoder.write_u64(2)?;
+        omnius_core_rocketpack::validate_length("OmniAgreementPrivateKey.secret_key", 32, 32, (&value.secret_key).len())?;
         encoder.write_bytes((&value.secret_key).as_slice())?;
         encoder.write_u64(3)?;
         encoder.write_struct(&value.created_time)?;
@@ -226,30 +226,30 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniAgreementPrivateKey {
     where
         Self: Sized,
     {
-        let mut algorithm_type: Option<crate::generated::omni_agreement::OmniAgreementAlgorithmType> = None;
-        let mut secret_key: Option<Vec<u8>> = None;
-        let mut created_time: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
+        let mut __rpf_storage_algorithm_type: Option<crate::generated::omni_agreement::OmniAgreementAlgorithmType> = None;
+        let mut __rpf_storage_secret_key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_created_time: Option<omnius_core_rocketpack::primitive::Timestamp64> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    algorithm_type = Some(decoder.read_struct::<crate::generated::omni_agreement::OmniAgreementAlgorithmType>()?);
+                    __rpf_storage_algorithm_type = Some(decoder.read_struct::<crate::generated::omni_agreement::OmniAgreementAlgorithmType>()?);
                 }
                 2 => {
-                    secret_key = Some(decoder.read_bytes_bounded("OmniAgreementPrivateKey.secret_key", 32, 32)?);
+                    __rpf_storage_secret_key = Some(decoder.read_bytes_bounded("OmniAgreementPrivateKey.secret_key", 32, 32)?);
                 }
                 3 => {
-                    created_time = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
+                    __rpf_storage_created_time = Some(decoder.read_struct::<omnius_core_rocketpack::primitive::Timestamp64>()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            algorithm_type: algorithm_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: algorithm_type"))?,
-            secret_key: secret_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: secret_key"))?,
-            created_time: created_time.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: created_time"))?,
+            algorithm_type: __rpf_storage_algorithm_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: algorithm_type"))?,
+            secret_key: __rpf_storage_secret_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: secret_key"))?,
+            created_time: __rpf_storage_created_time.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: created_time"))?,
         })
     }
 }

@@ -338,6 +338,31 @@ SQLite（`sqlite.rs`、`SqliteMigrator`）は PostgreSQL と実行 engine から
 
 ### 11.1 決定済み
 
+#### omnikit wire 形式は flag-day で移行する
+
+**決定**
+RocketPack 生成コードの 1 始まり tag と enum-as-map を唯一の omnikit wire 形式とする。
+旧ハンドコード形式の decode、旧署名の検証、旧形式で保存された値の読取は提供しない。
+
+**理由**
+workspace 内に旧形式を読む利用経路はなく、二重 decoder と version negotiation を維持するより、現行 schema を単一の正本に保つことを優先する。
+
+**却下案**
+旧形式の互換 decoder は rolling deployment や保存済み値の移行を可能にするが、tag と enum 表現の二重管理を恒久化するため採用しない。
+
+#### 署名 preimage を意味的フィールドへ固定する
+
+**決定**
+secure auth の署名 preimage は `session_id`、AuthType tag、4 つの flags、created time、Agreement type tag、public key を固定順で連結する。
+AuthType と Agreement type の tag、および flags は little-endian `u32`、created time は big-endian `i64` とする。
+enum tag は現行 RPF の `None=1`、`Sign` と `X25519=2` を用い、wire `export()` 全体を署名しない。
+
+**理由**
+wire の tag 順や将来のフィールド追加を署名互換性から切り離し、意味的に必要な値だけを protocol contract にするためである。
+
+**却下案**
+wire export 全体を hash する方式は実装が短いが、serialization の変更だけで署名が無効になるため採用しない。
+
 <a id="d-rpf-length-syntax"></a>
 #### 有限な包含レンジを可変長型へ任意で後置する
 
@@ -477,33 +502,6 @@ remoting 層を実際に使う呼び出し側の実装が workspace 内に存在
 
 **決める条件**
 omnikit の remoting を使う具体的な client または server の実装が必要になり、1 つの secure connection 上で複数呼び出しを扱う要否が定まったとき。
-
-#### omnikit ワイヤ形式の後方互換性
-
-**現状**
-omnikit の全ワイヤメッセージが、旧ハンドコードの 0 始まりタグと u32・文字列エンコードの enum から、RocketPack 生成コードの 1 始まりタグと enum-as-map に全面的に置き換わった。
-`session_id` は `bytes[32..=32]` に厳格化された。
-互換デコード経路やバージョン交渉がなく、旧ノードと旧形式の永続化データは復号不能になる。
-
-**なぜ今決めないか**
-この repo 内では自己整合であり、テストは通る。
-旧形式との共存が必要かは、実際のローリングデプロイや既存データの移行要否が確定していないため判断できない。
-
-**決める条件**
-旧ビルドのノードと通信する経路、または旧形式で保存されたデータを読む経路が必要になったとき。
-
-#### 署名ハッシュの preimage の安定性
-
-**現状**
-`gen_hash` の署名対象が、旧「フィールド単位の明示ハッシュ」から「ProfileMessage と OmniAgreementPublicKey のワイヤ `export()` 全バイト」に変わった。
-署名検証が CBOR シリアライズのビット完全一致に依存するようになり、将来のフィールド追加時も無言で署名不整合になる。
-
-**なぜ今決めないか**
-同一ビルド内では自己整合である。
-preimage を安定させるか、フィールド追加時に署名不整合を許すかは、将来のプロトコル拡張方針が確定していないため判断できない。
-
-**決める条件**
-ワイヤ形式へフィールドを追加するとき、または旧ビルドの署名を検証する経路が必要になったとき。
 
 ## 12. 現状と残作業
 

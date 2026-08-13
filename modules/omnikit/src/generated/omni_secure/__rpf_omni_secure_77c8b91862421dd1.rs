@@ -18,7 +18,6 @@ impl omnius_core_rocketpack::RocketPackStruct for AuthType {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
 
         match value {
@@ -39,10 +38,10 @@ impl omnius_core_rocketpack::RocketPackStruct for AuthType {
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -50,7 +49,7 @@ impl omnius_core_rocketpack::RocketPackStruct for AuthType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::None);
+                    __rpf_result = Some(Self::None);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
@@ -58,13 +57,13 @@ impl omnius_core_rocketpack::RocketPackStruct for AuthType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Sign);
+                    __rpf_result = Some(Self::Sign);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -82,7 +81,6 @@ impl omnius_core_rocketpack::RocketPackStruct for CipherAlgorithmType {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
 
         match value {
@@ -99,10 +97,10 @@ impl omnius_core_rocketpack::RocketPackStruct for CipherAlgorithmType {
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -110,13 +108,13 @@ impl omnius_core_rocketpack::RocketPackStruct for CipherAlgorithmType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Aes256Gcm);
+                    __rpf_result = Some(Self::Aes256Gcm);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -138,9 +136,9 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(6)?;
         encoder.write_u64(1)?;
+        omnius_core_rocketpack::validate_length("ProfileMessage.session_id", 32, 32, (&value.session_id).len())?;
         encoder.write_bytes((&value.session_id).as_slice())?;
         encoder.write_u64(2)?;
         encoder.write_struct(&value.auth_type)?;
@@ -159,47 +157,49 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
     where
         Self: Sized,
     {
-        let mut session_id: Option<Vec<u8>> = None;
-        let mut auth_type: Option<crate::generated::omni_secure::AuthType> = None;
-        let mut key_exchange_algorithm_type_flags: Option<u32> = None;
-        let mut key_derivation_algorithm_type_flags: Option<u32> = None;
-        let mut cipher_algorithm_type_flags: Option<u32> = None;
-        let mut hash_algorithm_type_flags: Option<u32> = None;
+        let mut __rpf_storage_session_id: Option<Vec<u8>> = None;
+        let mut __rpf_storage_auth_type: Option<crate::generated::omni_secure::AuthType> = None;
+        let mut __rpf_storage_key_exchange_algorithm_type_flags: Option<u32> = None;
+        let mut __rpf_storage_key_derivation_algorithm_type_flags: Option<u32> = None;
+        let mut __rpf_storage_cipher_algorithm_type_flags: Option<u32> = None;
+        let mut __rpf_storage_hash_algorithm_type_flags: Option<u32> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    session_id = Some(decoder.read_bytes_bounded("ProfileMessage.session_id", 32, 32)?);
+                    __rpf_storage_session_id = Some(decoder.read_bytes_bounded("ProfileMessage.session_id", 32, 32)?);
                 }
                 2 => {
-                    auth_type = Some(decoder.read_struct::<crate::generated::omni_secure::AuthType>()?);
+                    __rpf_storage_auth_type = Some(decoder.read_struct::<crate::generated::omni_secure::AuthType>()?);
                 }
                 3 => {
-                    key_exchange_algorithm_type_flags = Some(decoder.read_u32()?);
+                    __rpf_storage_key_exchange_algorithm_type_flags = Some(decoder.read_u32()?);
                 }
                 4 => {
-                    key_derivation_algorithm_type_flags = Some(decoder.read_u32()?);
+                    __rpf_storage_key_derivation_algorithm_type_flags = Some(decoder.read_u32()?);
                 }
                 5 => {
-                    cipher_algorithm_type_flags = Some(decoder.read_u32()?);
+                    __rpf_storage_cipher_algorithm_type_flags = Some(decoder.read_u32()?);
                 }
                 6 => {
-                    hash_algorithm_type_flags = Some(decoder.read_u32()?);
+                    __rpf_storage_hash_algorithm_type_flags = Some(decoder.read_u32()?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            session_id: session_id.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: session_id"))?,
-            auth_type: auth_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: auth_type"))?,
-            key_exchange_algorithm_type_flags: key_exchange_algorithm_type_flags
+            session_id: __rpf_storage_session_id.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: session_id"))?,
+            auth_type: __rpf_storage_auth_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: auth_type"))?,
+            key_exchange_algorithm_type_flags: __rpf_storage_key_exchange_algorithm_type_flags
                 .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_exchange_algorithm_type_flags"))?,
-            key_derivation_algorithm_type_flags: key_derivation_algorithm_type_flags
+            key_derivation_algorithm_type_flags: __rpf_storage_key_derivation_algorithm_type_flags
                 .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
-            cipher_algorithm_type_flags: cipher_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
-            hash_algorithm_type_flags: hash_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
+            cipher_algorithm_type_flags: __rpf_storage_cipher_algorithm_type_flags
+                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
+            hash_algorithm_type_flags: __rpf_storage_hash_algorithm_type_flags
+                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
         })
     }
 }

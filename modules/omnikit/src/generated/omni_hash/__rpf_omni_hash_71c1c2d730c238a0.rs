@@ -18,7 +18,6 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(1)?;
 
         match value {
@@ -39,10 +38,10 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
     where
         Self: Sized,
     {
-        let mut result: Option<Self> = None;
-        let count = decoder.read_map()?;
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
 
-        for _ in 0..count {
+        for _ in 0..__rpf_count {
             match decoder.read_u64()? {
                 1 => {
                     let __inner_count_0 = decoder.read_map()?;
@@ -50,7 +49,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::None);
+                    __rpf_result = Some(Self::None);
                 }
                 2 => {
                     let __inner_count_1 = decoder.read_map()?;
@@ -58,13 +57,13 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
                         let _ = decoder.read_u64()?;
                         decoder.skip_field()?;
                     }
-                    result = Some(Self::Sha3_256);
+                    __rpf_result = Some(Self::Sha3_256);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
-        result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
     }
 }
 
@@ -82,11 +81,11 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHash {
     }
 
     fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        Self::validate(value)?;
         encoder.write_map(2)?;
         encoder.write_u64(1)?;
         encoder.write_struct(&value.typ)?;
         encoder.write_u64(2)?;
+        omnius_core_rocketpack::validate_length("OmniHash.value", 0, 64, (&value.value).len())?;
         encoder.write_bytes((&value.value).as_slice())?;
         Ok(())
     }
@@ -95,25 +94,25 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHash {
     where
         Self: Sized,
     {
-        let mut typ: Option<crate::generated::omni_hash::OmniHashAlgorithmType> = None;
-        let mut value: Option<Vec<u8>> = None;
+        let mut __rpf_storage_typ: Option<crate::generated::omni_hash::OmniHashAlgorithmType> = None;
+        let mut __rpf_storage_value: Option<Vec<u8>> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
             match decoder.read_u64()? {
                 1 => {
-                    typ = Some(decoder.read_struct::<crate::generated::omni_hash::OmniHashAlgorithmType>()?);
+                    __rpf_storage_typ = Some(decoder.read_struct::<crate::generated::omni_hash::OmniHashAlgorithmType>()?);
                 }
                 2 => {
-                    value = Some(decoder.read_bytes_bounded("OmniHash.value", 0, 64)?);
+                    __rpf_storage_value = Some(decoder.read_bytes_bounded("OmniHash.value", 0, 64)?);
                 }
                 _ => decoder.skip_field()?,
             }
         }
 
         Ok(Self {
-            typ: typ.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: typ"))?,
-            value: value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
+            typ: __rpf_storage_typ.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: typ"))?,
+            value: __rpf_storage_value.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: value"))?,
         })
     }
 }
