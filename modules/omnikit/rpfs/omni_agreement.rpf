@@ -1,0 +1,28 @@
+version 1;
+package omni_agreement;
+
+enum OmniAgreementAlgorithmType {
+  @1 None;
+  @2 X25519;
+}
+
+struct OmniAgreement {
+  @1 algorithm_type: OmniAgreementAlgorithmType;
+  @2 secret_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @3 public_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @4 created_time: Timestamp64;
+}
+
+struct OmniAgreementPublicKey {
+  @1 algorithm_type: OmniAgreementAlgorithmType;
+  @2 public_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @3 created_time: Timestamp64;
+}
+
+struct OmniAgreementPrivateKey {
+  @1 algorithm_type: OmniAgreementAlgorithmType;
+  @2 secret_key: bytes[X25519_KEY_LENGTH..=X25519_KEY_LENGTH];
+  @3 created_time: Timestamp64;
+}
+
+const X25519_KEY_LENGTH: u32 = 32;

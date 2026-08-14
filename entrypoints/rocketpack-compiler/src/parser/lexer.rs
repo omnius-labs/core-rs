@@ -13,6 +13,8 @@ pub enum Token {
     // Separators / punctuation
     #[token("@")]
     At,
+    #[token("#")]
+    Hash,
     #[token(";")]
     Semi,
     #[token(":")]

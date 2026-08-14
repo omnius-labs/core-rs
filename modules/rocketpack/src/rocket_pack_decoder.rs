@@ -14,6 +14,14 @@ pub enum RocketPackDecoderError {
     MismatchFieldType { position: usize, field_type: FieldType },
     #[error("length overflow (position: {position})")]
     LengthOverflow { position: usize },
+    #[error("length out of range for {context} at position {position}: expected {min}..={max}, got {actual}")]
+    LengthOutOfRange {
+        context: &'static str,
+        min: u64,
+        max: u64,
+        actual: u64,
+        position: usize,
+    },
     #[error("string is not valid UTF-8 (position: {position}, error: {error})")]
     Utf8 { position: usize, error: std::str::Utf8Error },
     #[error("other decode error: {0}")]
@@ -38,11 +46,38 @@ pub trait RocketPackDecoder {
     fn read_bytes(&mut self) -> Result<&[u8]>;
     fn read_bytes_vec(&mut self) -> Result<Vec<u8>>;
     fn read_string(&mut self) -> Result<String>;
+    fn read_bytes_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<Vec<u8>>;
+    fn read_string_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<String>;
     fn read_array(&mut self) -> Result<u64>;
     fn read_map(&mut self) -> Result<u64>;
+    fn read_array_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<u64> {
+        let position = self.position();
+        let actual = self.read_array()?;
+        self.validate_length(context, min, max, actual, position)?;
+        Ok(actual)
+    }
+    fn read_map_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<u64> {
+        let position = self.position();
+        let actual = self.read_map()?;
+        self.validate_length(context, min, max, actual, position)?;
+        Ok(actual)
+    }
     fn read_null(&mut self) -> Result<()>;
     fn read_struct<T: RocketPackStruct>(&mut self) -> Result<T>;
     fn skip_field(&mut self) -> Result<()>;
+
+    fn validate_length(&self, context: &'static str, min: u64, max: u64, actual: u64, position: usize) -> Result<()> {
+        if actual < min || actual > max {
+            return Err(RocketPackDecoderError::LengthOutOfRange {
+                context,
+                min,
+                max,
+                actual,
+                position,
+            });
+        }
+        Ok(())
+    }
 }
 
 pub struct RocketPackBytesDecoder<'a> {
@@ -159,7 +194,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
 
         match (major, info) {
             (0, 0..=23) => return Ok(info as i8),
-            (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i8),
+            (0, 24) => return i8::try_from(u8::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i8)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -187,7 +222,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         match (major, info) {
             (0, 0..=23) => return Ok(info as i16),
             (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i16),
-            (0, 25) => return Ok(u16::from_be_bytes(self.read_raw_fixed_bytes()?) as i16),
+            (0, 25) => return i16::try_from(u16::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i16)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -221,7 +256,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (0, 0..=23) => return Ok(info as i32),
             (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i32),
             (0, 25) => return Ok(u16::from_be_bytes(self.read_raw_fixed_bytes()?) as i32),
-            (0, 26) => return Ok(u32::from_be_bytes(self.read_raw_fixed_bytes()?) as i32),
+            (0, 26) => return i32::try_from(u32::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i32)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -257,7 +292,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             (0, 24) => return Ok(u8::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
             (0, 25) => return Ok(u16::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
             (0, 26) => return Ok(u32::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
-            (0, 27) => return Ok(u64::from_be_bytes(self.read_raw_fixed_bytes()?) as i64),
+            (0, 27) => return i64::try_from(u64::from_be_bytes(self.read_raw_fixed_bytes()?)).map_err(|_| RocketPackDecoderError::MismatchFieldType { position, field_type }),
             (1, 0..=23) => return Ok(-1 - (info as i64)),
             (1, 24..=28) => {
                 // Determine the smallest signed integer type the value fits in.
@@ -332,6 +367,13 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         Ok(self.read_bytes()?.to_vec())
     }
 
+    fn read_bytes_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<Vec<u8>> {
+        let position = self.position();
+        let len = self.read_sized_length(2)?;
+        self.validate_length(context, min, max, len, position)?;
+        Ok(self.read_sized_payload(len)?.to_vec())
+    }
+
     fn read_string(&mut self) -> Result<String> {
         let position = self.pos;
         let (major, info) = self.decompose(self.current_raw_byte()?);
@@ -354,6 +396,18 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             .map_err(|e| RocketPackDecoderError::Utf8 { position, error: e })
     }
 
+    fn read_string_bounded(&mut self, context: &'static str, min: u64, max: u64) -> Result<String> {
+        let position = self.position();
+        let len = self.read_sized_length(3)?;
+        self.validate_length(context, min, max, len, position)?;
+        let payload_position = self.position();
+        let bytes = self.read_sized_payload(len)?;
+        std::str::from_utf8(bytes).map(str::to_owned).map_err(|error| RocketPackDecoderError::Utf8 {
+            position: payload_position,
+            error,
+        })
+    }
+
     fn read_array(&mut self) -> Result<u64> {
         let position = self.pos;
         let (major, info) = self.decompose(self.current_raw_byte()?);
@@ -367,6 +421,11 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         let Some(len) = self.read_raw_len(info)? else {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
+
+        // 要素は最低 1 byte を占めるため、残りより多い要素数は表現できない
+        if (self.remaining() as u64) < len {
+            return Err(RocketPackDecoderError::UnexpectedEof);
+        }
 
         Ok(len)
     }
@@ -384,6 +443,11 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
         let Some(len) = self.read_raw_len(info)? else {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
+
+        // entry は key と value で最低 2 byte を占めるため、残り / 2 より多い entry 数は表現できない
+        if ((self.remaining() as u64) / 2) < len {
+            return Err(RocketPackDecoderError::UnexpectedEof);
+        }
 
         Ok(len)
     }
@@ -423,7 +487,6 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
                     25 => Some(2),
                     26 => Some(4),
                     27 => Some(8),
-                    28 => Some(16),
                     _ => None,
                 },
                 2 | 3 => self.read_raw_len(info)?,
@@ -466,6 +529,25 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
 }
 
 impl<'a> RocketPackBytesDecoder<'a> {
+    fn read_sized_length(&mut self, expected_major: u8) -> Result<u64> {
+        let position = self.pos;
+        let (major, info) = self.decompose(self.current_raw_byte()?);
+        let field_type = self.type_of(major, info)?;
+        self.skip_raw_bytes(1)?;
+
+        if major != expected_major {
+            return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
+        }
+
+        self.read_raw_len(info)?.ok_or(RocketPackDecoderError::MismatchFieldType { position, field_type })
+    }
+
+    fn read_sized_payload(&mut self, len: u64) -> Result<&'a [u8]> {
+        let position = self.pos;
+        let len: usize = len.try_into().map_err(|_| RocketPackDecoderError::LengthOverflow { position })?;
+        self.read_raw_bytes(len)
+    }
+
     fn is_eof(&self) -> bool {
         self.pos >= self.buf.len()
     }
