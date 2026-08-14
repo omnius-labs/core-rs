@@ -32,7 +32,7 @@ impl PostgresMigrator {
         })
     }
 
-    pub async fn migrate(&self) -> Result<()> {
+    pub async fn migrate(&mut self) -> Result<()> {
         self.init().await?;
 
         let histories: Vec<MigrationHistory> = self.get_migration_histories().await?;
@@ -115,21 +115,23 @@ SELECT file_name, executed_at FROM _migrations
         Ok(results)
     }
 
-    async fn execute_migration_queries(&self, files: Vec<MigrationFile>) -> Result<()> {
+    async fn execute_migration_queries(&mut self, files: Vec<MigrationFile>) -> Result<()> {
         for f in files {
-            self.client.batch_execute(&f.queries).await?;
-            self.insert_migration_history(&f.file_name, &f.queries).await?;
+            let tx = self.client.transaction().await?;
+            tx.batch_execute(&f.queries).await?;
+            Self::insert_migration_history(&tx, &f.file_name, &f.queries).await?;
+            tx.commit().await?;
             info!(file_name = f.file_name, "processed migration file")
         }
 
         Ok(())
     }
 
-    async fn insert_migration_history(&self, file_name: &str, queries: &str) -> Result<()> {
+    async fn insert_migration_history(tx: &tokio_postgres::Transaction<'_>, file_name: &str, queries: &str) -> Result<()> {
         let statement = "\
 INSERT INTO _migrations (file_name, queries) VALUES ($1, $2)
 ";
-        self.client.execute(statement, &[&file_name, &queries]).await?;
+        tx.execute(statement, &[&file_name, &queries]).await?;
 
         Ok(())
     }
