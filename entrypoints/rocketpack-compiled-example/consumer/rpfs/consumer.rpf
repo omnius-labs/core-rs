@@ -1,0 +1,9 @@
+version 1;
+package omnius::consumer::v1;
+
+use omnius::provider::v1::UserId;
+
+struct UserEnvelope {
+  @1 user_id: UserId;
+  @2 history: Vec<UserId>;
+}

@@ -1,0 +1,16 @@
+version 1;
+package omni_remoting;
+
+enum OmniRemotingVersion {
+  @1 Unknown;
+  @2 V1;
+}
+
+struct HelloMessage {
+  @1 version: OmniRemotingVersion;
+  @2 function_id: u32;
+}
+
+struct TestMessage {
+  @1 value: i32;
+}
