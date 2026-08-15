@@ -195,6 +195,9 @@ package module は内部 source module を非公開で宣言し、型を package
 schema の `use` 文字列を Rust の `use` としてそのまま出力してはならない。
 generator は解決済み symbol owner から local path または external path を選ぶ。
 
+root module `<module_name>.rs` は `include!` で `<module_name>/.root.rs` を取り込み、root package の `pub mod` 宣言は `.root.rs` に置く。
+利用 crate は `<module_name>.rs` を `#[path]` で crate root へ組み込むため、`include!` が取り込んだ先の `pub mod` 宣言のサブモジュール解決基準を `<module_name>/` へ切り替える役割を持つ（§10.1）。
+
 ## 8. 生成物の所有と公開
 
 Rust generator が永続生成物として所有するのは `<output_dir>/<module_name>.rs` と `<output_dir>/<module_name>/` だけである。
@@ -290,6 +293,22 @@ schema symbol と Rust path を一対一にし、同じ package を複数 RPF �
 **却下案**
 RPF ごとの `targets[].dir` と inline `pub mod` は、利用 crate 内で実際に組み込まれる module root を generator が保証できないため採用しない。
 `mod.rs` 形式は有効だが、同名ファイルが増え、Rust 公式が新しい命名規則を推奨しているため採用しない。
+
+<a id="decision-include-root-resolution"></a>
+#### `include!` で root module のサブモジュール解決基準を固定する
+
+**決定**
+root module `<module_name>.rs` は `include!("<module_name>/.root.rs")` だけを持ち、root package の `pub mod` 宣言を `<module_name>/.root.rs` へ置く。
+
+**理由**
+利用 crate は `<module_name>.rs` を `#[path]` で crate root へ組み込む。
+`#[path]` で組み込んだ module が直接 `pub mod <package>;` を宣言すると、rustc はサブモジュールを `#[path]` ファイルの親 directory 基準で解決し、`<output_dir>/<package>.rs` を探して E0583 になる。
+`include!` で `<module_name>/.root.rs` を取り込むと、その中の `pub mod` 宣言の解決基準が `<module_name>/` に切り替わり、`<module_name>/<package>.rs` へ正しく解決する。
+同名ファイル規則（§7）を維持したまま、この解決基準のずれを `include!` で吸収する。
+
+**却下案**
+`<module_name>.rs` に直接 `pub mod` を書く単一 file 化は、`#[path]` でのサブモジュール解決基準が `<output_dir>/` にずれてビルドが壊れるため採用しない。
+`<module_name>/mod.rs` 形式への移行は解決基準問題を解くが、同名ファイル規則を捨てて利用 crate 側の `#[path]` を `mod.rs` へ変える必要があり、代償が大きいため採用しない。
 
 <a id="decision-language-mapping"></a>
 #### 外部名前空間を generator option で割り当てる
