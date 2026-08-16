@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OmniHashAlgorithmType {
     None,
     Sha3_256,
@@ -72,7 +72,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OmniHash {
     pub typ: crate::generated::omni_hash::OmniHashAlgorithmType,
     pub value: Vec<u8>,

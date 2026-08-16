@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OmniSignType {
     None,
     Ed25519_Sha3_256_Base64Url,
@@ -137,7 +137,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSigner {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OmniCert {
     pub typ: crate::generated::omni_sign::OmniSignType,
     pub name: String,
