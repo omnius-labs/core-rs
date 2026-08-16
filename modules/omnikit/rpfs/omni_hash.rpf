@@ -1,11 +1,13 @@
 version 1;
 package omni_hash;
 
+#[rust::derive(Eq, Hash)]
 enum OmniHashAlgorithmType {
   @1 None;
   @2 Sha3_256;
 }
 
+#[rust::derive(Eq, Hash)]
 struct OmniHash {
   @1 typ: OmniHashAlgorithmType;
   @2 value: bytes[..=MAX_HASH_LENGTH];

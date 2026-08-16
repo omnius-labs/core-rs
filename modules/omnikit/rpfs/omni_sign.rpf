@@ -1,6 +1,7 @@
 version 1;
 package omni_sign;
 
+#[rust::derive(Eq)]
 enum OmniSignType {
   @1 None;
   @2 Ed25519_Sha3_256_Base64Url;
@@ -12,6 +13,7 @@ struct OmniSigner {
   @3 key: bytes[..=MAX_KEY_LENGTH];
 }
 
+#[rust::derive(Eq)]
 struct OmniCert {
   @1 typ: OmniSignType;
   @2 name: string[..=MAX_NAME_LENGTH];
