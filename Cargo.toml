@@ -12,6 +12,7 @@ members = [
   "modules/testkit",
   "modules/yamux",
   "entrypoints/rocketpack-compiler",
+  "entrypoints/lint-style",
 ]
 exclude = ["entrypoints/rocketpack-compiled-example"]
 resolver = "3"
