@@ -21,9 +21,14 @@ dependencies = ["install-cargo-audit"]
 command = "cargo"
 args = ["audit", "fix"]
 
+[tasks.lint-style]
+workspace = false
+command = "cargo"
+args = ["run", "--quiet", "--package", "omnius-core-lint-style"]
+
 [tasks.lint]
 workspace = false
-dependencies = ["fmt-check", "clippy"]
+dependencies = ["fmt-check", "clippy", "lint-style"]
 
 [tasks.test]
 command = "cargo"
