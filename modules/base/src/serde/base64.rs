@@ -1,11 +1,13 @@
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+// omnius-lint:allow(free-fn) serde の with attribute が module 直下の serialize を要求する
 pub fn serialize<S: Serializer>(v: &Vec<u8>, s: S) -> Result<S::Ok, S::Error> {
     let base64 = BASE64.encode(v);
     String::serialize(&base64, s)
 }
 
+// omnius-lint:allow(free-fn) serde の with attribute が module 直下の deserialize を要求する
 pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
     let base64 = String::deserialize(d)?;
     BASE64.decode(base64.as_bytes()).map_err(serde::de::Error::custom)
