@@ -193,6 +193,7 @@ where
     }
 }
 
+// omnius-lint:debt(free-fn) Authenticator の署名 preimage を組み立てる関連関数へ移す変更を、署名の検証と分ける
 fn auth_type_tag(value: &AuthType) -> u32 {
     match value {
         AuthType::None => 1,
@@ -200,6 +201,7 @@ fn auth_type_tag(value: &AuthType) -> u32 {
     }
 }
 
+// omnius-lint:debt(free-fn) Authenticator の署名 preimage を組み立てる関連関数へ移す変更を、署名の検証と分ける
 fn agreement_type_tag(value: &OmniAgreementAlgorithmType) -> u32 {
     match value {
         OmniAgreementAlgorithmType::None => 1,
@@ -207,6 +209,7 @@ fn agreement_type_tag(value: &OmniAgreementAlgorithmType) -> u32 {
     }
 }
 
+// omnius-lint:debt(free-fn) algorithm type flags を表す型が欠けており、型の新設を暗号処理の変更と分ける
 const fn has_flag(flags: u32, flag: u32) -> bool {
     flags & flag != 0
 }
