@@ -1,0 +1,22 @@
+[package]
+name = "omnius-core-lint-style"
+version = "0.1.0"
+edition = "2024"
+authors = ["Lyrise <lyrise1984@gmail.com>"]
+publish = false
+
+[[bin]]
+name = "lint-style"
+path = "src/main.rs"
+
+# 依存は workspace から解決しない。
+# 本 crate は pxna と axus の workspace にも member として取り込まれるため、
+# workspace ごとに version や feature がずれると検査結果が静かに変わる。
+# 特に proc-macro2 の span-locations は、欠けると行番号が 0 になる。
+[dependencies]
+anyhow = "1.0.101"
+proc-macro2 = { version = "1.0.106", features = ["span-locations"] }
+serde = { version = "1.0.228", features = ["derive"] }
+syn = { version = "2.0.117", features = ["full"] }
+toml = "1.0.6"
+walkdir = "2.5.0"
