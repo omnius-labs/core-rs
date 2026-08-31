@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use enumflags2::{BitFlags, make_bitflags};
 use hkdf::SimpleHkdf;
 use parking_lot::Mutex;
 use rand::RngExt;
@@ -14,6 +15,7 @@ use crate::{
         omni_agreement::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey},
         omni_sign::{OmniCert, OmniSigner},
     },
+    model::omni_secure::{CipherAlgorithmType, HashAlgorithmType, KeyDerivationAlgorithmType, KeyExchangeAlgorithmType},
     prelude::*,
     service::connection::codec::{FramedReceiver, FramedRecv, FramedSend, FramedSender},
 };
@@ -72,28 +74,31 @@ where
     }
 
     pub async fn auth(&mut self) -> Result<AuthResult> {
-        let my_profile = ProfileMessage {
-            session_id: self.rng.lock().random::<[u8; 32]>().to_vec(),
-            auth_type: match self.signer {
-                Some(_) => AuthType::Sign,
-                None => AuthType::None,
-            },
-            key_exchange_algorithm_type_flags: KEY_EXCHANGE_X25519,
-            key_derivation_algorithm_type_flags: KEY_DERIVATION_HKDF,
-            cipher_algorithm_type_flags: CIPHER_AES_256_GCM,
-            hash_algorithm_type_flags: HASH_SHA3_256,
+        let session_id = self.rng.lock().random::<[u8; 32]>().to_vec();
+        let auth_type = match self.signer {
+            Some(_) => AuthType::Sign,
+            None => AuthType::None,
         };
+        let mut my_profile = ProfileMessage::new(
+            session_id,
+            auth_type,
+            make_bitflags!(KeyExchangeAlgorithmType::X25519),
+            make_bitflags!(KeyDerivationAlgorithmType::HKDF),
+            make_bitflags!(CipherAlgorithmType::AES_256_GCM),
+            make_bitflags!(HashAlgorithmType::SHA3_256),
+        );
+
         let other_profile = {
             self.sender.send(my_profile.export()?.into()).await?;
             ProfileMessage::import(&self.receiver.recv().await?)?
         };
 
-        let key_exchange_algorithm_type_flags = my_profile.key_exchange_algorithm_type_flags & other_profile.key_exchange_algorithm_type_flags;
-        let key_derivation_algorithm_type_flags = my_profile.key_derivation_algorithm_type_flags & other_profile.key_derivation_algorithm_type_flags;
-        let cipher_algorithm_type_flags = my_profile.cipher_algorithm_type_flags & other_profile.cipher_algorithm_type_flags;
-        let hash_algorithm_type_flags = my_profile.hash_algorithm_type_flags & other_profile.hash_algorithm_type_flags;
+        let key_exchange_algorithm_type = my_profile.get_key_exchange_algorithm_type() & other_profile.get_key_exchange_algorithm_type();
+        let key_derivation_algorithm_type = my_profile.get_key_derivation_algorithm_type() & other_profile.get_key_derivation_algorithm_type();
+        let cipher_algorithm_type = my_profile.get_cipher_algorithm_type() & other_profile.get_cipher_algorithm_type();
+        let hash_algorithm_type = my_profile.get_hash_algorithm_type() & other_profile.get_hash_algorithm_type();
 
-        let (other_sign, secret) = if has_flag(key_exchange_algorithm_type_flags, KEY_EXCHANGE_X25519) {
+        let (other_sign, secret) = if key_exchange_algorithm_type.contains(KeyExchangeAlgorithmType::X25519) {
             let now = self.clock.now();
             let my_agreement = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, now)?;
             let other_agreement_public_key = {
@@ -102,14 +107,14 @@ where
             };
 
             if let Some(my_signer) = self.signer.as_ref() {
-                let my_hash = Self::gen_hash(&my_profile, &my_agreement.gen_agreement_public_key(), &hash_algorithm_type_flags)?;
+                let my_hash = Self::gen_hash(&my_profile, &my_agreement.gen_agreement_public_key(), &hash_algorithm_type)?;
                 let my_sign = my_signer.sign(&my_hash)?;
                 self.sender.send(my_sign.export()?.into()).await?;
             }
 
             let other_sign = if other_profile.auth_type == AuthType::Sign {
                 let other_cert = OmniCert::import(&self.receiver.recv().await?)?;
-                let other_hash = Self::gen_hash(&other_profile, &other_agreement_public_key, &hash_algorithm_type_flags)?;
+                let other_hash = Self::gen_hash(&other_profile, &other_agreement_public_key, &hash_algorithm_type)?;
                 other_cert.verify(&other_hash)?;
 
                 Some(other_cert.to_string())
@@ -124,25 +129,24 @@ where
             return Err(Error::new(ErrorKind::UnsupportedType).with_message("key exchange algorithm"));
         };
 
-        let cipher_algorithm_type = if has_flag(cipher_algorithm_type_flags, CIPHER_AES_256_GCM) {
-            CipherAlgorithmType::Aes256Gcm
+        let cipher_algorithm_type = if cipher_algorithm_type.contains(CipherAlgorithmType::AES_256_GCM) {
+            CipherAlgorithmType::AES_256_GCM
         } else {
             return Err(Error::new(ErrorKind::UnsupportedType).with_message("cipher algorithm"));
         };
 
-        let (enc_key, enc_nonce, dec_key, dec_nonce) = if has_flag(key_derivation_algorithm_type_flags, KEY_DERIVATION_HKDF) {
+        let (enc_key, enc_nonce, dec_key, dec_nonce) = if key_derivation_algorithm_type.contains(KeyDerivationAlgorithmType::HKDF) {
             let salt = my_profile.session_id.iter().zip(other_profile.session_id.iter()).map(|(a, b)| a ^ b).collect::<Vec<u8>>();
 
             let (key_len, nonce_len) = match &cipher_algorithm_type {
-                CipherAlgorithmType::Aes256Gcm => (32, 12),
+                CipherAlgorithmType::AES_256_GCM => (32, 12),
             };
 
-            let okm = if has_flag(hash_algorithm_type_flags, HASH_SHA3_256) {
+            let okm = if hash_algorithm_type.contains(HashAlgorithmType::SHA3_256) {
                 let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
                 let kdf = SimpleHkdf::<Sha3_256>::new(Some(&salt), &secret);
                 kdf.expand(&[], &mut okm)
                     .map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("Failed to expand key"))?;
-
                 okm
             } else {
                 return Err(Error::new(ErrorKind::UnsupportedType).with_message("hash algorithm"));
@@ -173,17 +177,17 @@ where
         })
     }
 
-    fn gen_hash(profile_message: &ProfileMessage, agreement_public_key: &OmniAgreementPublicKey, hash_algorithm: &u32) -> Result<Vec<u8>> {
-        if has_flag(*hash_algorithm, HASH_SHA3_256) {
+    fn gen_hash(profile_message: &ProfileMessage, agreement_public_key: &OmniAgreementPublicKey, hash_algorithm: &BitFlags<HashAlgorithmType>) -> Result<Vec<u8>> {
+        if hash_algorithm.contains(HashAlgorithmType::SHA3_256) {
             let mut hasher = Sha3_256::new();
             hasher.update(&profile_message.session_id);
-            hasher.update(auth_type_tag(&profile_message.auth_type).to_le_bytes());
+            hasher.update(profile_message.auth_type.to_u32().to_le_bytes());
             hasher.update(profile_message.key_exchange_algorithm_type_flags.to_le_bytes());
             hasher.update(profile_message.key_derivation_algorithm_type_flags.to_le_bytes());
             hasher.update(profile_message.cipher_algorithm_type_flags.to_le_bytes());
             hasher.update(profile_message.hash_algorithm_type_flags.to_le_bytes());
             hasher.update(agreement_public_key.created_time.seconds.to_be_bytes());
-            hasher.update(agreement_type_tag(&agreement_public_key.algorithm_type).to_le_bytes());
+            hasher.update(agreement_public_key.algorithm_type.to_u32().to_le_bytes());
             hasher.update(&agreement_public_key.public_key);
 
             Ok(hasher.finalize().to_vec())
@@ -191,27 +195,6 @@ where
             Err(Error::new(ErrorKind::UnsupportedType).with_message("hash algorithm"))
         }
     }
-}
-
-// omnius-lint:debt(free-fn) Authenticator の署名 preimage を組み立てる関連関数へ移す変更を、署名の検証と分ける
-fn auth_type_tag(value: &AuthType) -> u32 {
-    match value {
-        AuthType::None => 1,
-        AuthType::Sign => 2,
-    }
-}
-
-// omnius-lint:debt(free-fn) Authenticator の署名 preimage を組み立てる関連関数へ移す変更を、署名の検証と分ける
-fn agreement_type_tag(value: &OmniAgreementAlgorithmType) -> u32 {
-    match value {
-        OmniAgreementAlgorithmType::None => 1,
-        OmniAgreementAlgorithmType::X25519 => 2,
-    }
-}
-
-// omnius-lint:debt(free-fn) algorithm type flags を表す型が欠けており、型の新設を暗号処理の変更と分ける
-const fn has_flag(flags: u32, flag: u32) -> bool {
-    flags & flag != 0
 }
 
 #[cfg(test)]
@@ -222,13 +205,14 @@ mod tests {
 
     #[test]
     fn signature_preimage_uses_explicit_rpf_tags_not_wire_export() {
+        let hash_algorithm = make_bitflags!(HashAlgorithmType::SHA3_256);
         let profile = ProfileMessage {
             session_id: vec![7; 32],
             auth_type: AuthType::Sign,
             key_exchange_algorithm_type_flags: 3,
             key_derivation_algorithm_type_flags: 5,
             cipher_algorithm_type_flags: 7,
-            hash_algorithm_type_flags: HASH_SHA3_256,
+            hash_algorithm_type_flags: hash_algorithm.bits(),
         };
         let agreement = OmniAgreementPublicKey {
             algorithm_type: OmniAgreementAlgorithmType::X25519,
@@ -236,14 +220,14 @@ mod tests {
             created_time: Timestamp64::new(11),
         };
 
-        let actual = Authenticator::<tokio::io::DuplexStream>::gen_hash(&profile, &agreement, &HASH_SHA3_256).unwrap();
+        let actual = Authenticator::<tokio::io::DuplexStream>::gen_hash(&profile, &agreement, &hash_algorithm).unwrap();
         let mut expected = Sha3_256::new();
         expected.update([7; 32]);
         expected.update(2_u32.to_le_bytes());
         expected.update(3_u32.to_le_bytes());
         expected.update(5_u32.to_le_bytes());
         expected.update(7_u32.to_le_bytes());
-        expected.update(HASH_SHA3_256.to_le_bytes());
+        expected.update(hash_algorithm.bits().to_le_bytes());
         expected.update(11_i64.to_be_bytes());
         expected.update(2_u32.to_le_bytes());
         expected.update([9; 32]);
