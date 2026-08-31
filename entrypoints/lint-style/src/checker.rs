@@ -4,24 +4,16 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result;
 use proc_macro2::TokenTree;
 use syn::{Attribute, Item, Meta, spanned::Spanned as _};
 use walkdir::WalkDir;
 
 use crate::{
     config::Config,
-    finding::Finding,
     marker::{Marker, MarkerKind},
+    report::{CheckReport, Finding},
     source_file::SourceFile,
 };
-
-#[derive(Default)]
-pub struct CheckReport {
-    pub errors: Vec<Finding>,
-    pub debts: Vec<Finding>,
-    pub allow_count: usize,
-}
 
 pub struct Checker {
     base: PathBuf,
@@ -29,11 +21,14 @@ pub struct Checker {
 }
 
 impl Checker {
-    pub fn new(base: &Path, config: Config) -> Self {
-        Self { base: base.to_path_buf(), config }
+    pub fn new(base: impl AsRef<Path>, config: Config) -> Self {
+        Self {
+            base: base.as_ref().to_path_buf(),
+            config,
+        }
     }
 
-    pub fn run(self) -> Result<CheckReport> {
+    pub fn run(self) -> anyhow::Result<CheckReport> {
         let mut report = CheckReport::default();
         let mut walker = WalkDir::new(&self.base).sort_by_file_name().into_iter();
 
@@ -81,7 +76,7 @@ impl Checker {
         for item in items {
             match item {
                 Item::Fn(function) => {
-                    if in_test_scope || attributes_are_test(&function.attrs) || function.sig.ident == "main" {
+                    if in_test_scope || Self::attributes_are_test(&function.attrs) || function.sig.ident == "main" {
                         continue;
                     }
                     let line = function.sig.fn_token.span().start().line;
@@ -103,7 +98,7 @@ impl Checker {
                     }
                 }
                 Item::Mod(module) => {
-                    let nested_test_scope = in_test_scope || attributes_are_test(&module.attrs);
+                    let nested_test_scope = in_test_scope || Self::attributes_are_test(&module.attrs);
                     if let Some((_, nested_items)) = &module.content {
                         Self::check_items(source, nested_items, nested_test_scope, consumed_markers, report);
                     }
@@ -121,22 +116,22 @@ impl Checker {
                 .push(Finding::debt(source.display_path().to_path_buf(), line, format!("{subject} -- {}", marker.reason()))),
         }
     }
-}
 
-fn attributes_are_test(attrs: &[Attribute]) -> bool {
-    attrs.iter().any(|attr| {
-        if attr.path().segments.last().is_some_and(|segment| segment.ident == "test") {
-            return true;
-        }
-        let Meta::List(list) = &attr.meta else {
-            return false;
-        };
-        attr.path().is_ident("cfg") && cfg_is_test(list.tokens.clone().into_iter())
-    })
-}
+    fn attributes_are_test(attrs: &[Attribute]) -> bool {
+        attrs.iter().any(|attr| {
+            if attr.path().segments.last().is_some_and(|segment| segment.ident == "test") {
+                return true;
+            }
+            let Meta::List(list) = &attr.meta else {
+                return false;
+            };
+            attr.path().is_ident("cfg") && Self::cfg_is_test(list.tokens.clone().into_iter())
+        })
+    }
 
-fn cfg_is_test(mut tokens: impl Iterator<Item = TokenTree>) -> bool {
-    matches!(tokens.next(), Some(TokenTree::Ident(ident)) if ident == "test") && tokens.next().is_none()
+    fn cfg_is_test(mut tokens: impl Iterator<Item = TokenTree>) -> bool {
+        matches!(tokens.next(), Some(TokenTree::Ident(ident)) if ident == "test") && tokens.next().is_none()
+    }
 }
 
 #[cfg(test)]

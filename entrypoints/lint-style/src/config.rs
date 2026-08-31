@@ -3,20 +3,15 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context as _, Result};
+use anyhow::Context as _;
 use serde::Deserialize;
 
-/// 走査の起点に置く設定ファイルの名前。
-const FILE_NAME: &str = "lint-style.toml";
-
-/// 名前だけで走査から外すディレクトリ。
-/// build 生成物と version 管理の内部は、どの repository でも検査対象にならない。
+const CONFIG_FILE_NAME: &str = "lint-style.toml";
 const IGNORED_DIR_NAMES: [&str; 2] = ["target", ".git"];
 
-/// `lint-style.toml` の外部形式。
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct ConfigFile {
+struct ConfigToml {
     #[serde(default)]
     exclude: Vec<PathBuf>,
 }
@@ -26,13 +21,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load(base: &Path) -> Result<Self> {
-        let path = base.join(FILE_NAME);
+    pub fn load<P: AsRef<Path>>(dir: P) -> anyhow::Result<Self> {
+        let dir = dir.as_ref();
+        let path = dir.join(CONFIG_FILE_NAME);
         let text = fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
-        let file: ConfigFile = toml::from_str(&text).with_context(|| format!("failed to parse {}", path.display()))?;
+        let file: ConfigToml = toml::from_str(&text).with_context(|| format!("failed to parse {}", path.display()))?;
 
         Ok(Self {
-            excludes: file.exclude.iter().map(|relative| base.join(relative)).collect(),
+            excludes: file.exclude.iter().map(|relative| dir.join(relative)).collect(),
         })
     }
 
@@ -50,15 +46,9 @@ mod tests {
 
     use super::Config;
 
-    fn config(excludes: &[&str]) -> Config {
-        Config {
-            excludes: excludes.iter().map(|excluded| Path::new("/repo").join(excluded)).collect(),
-        }
-    }
-
     #[test]
     fn excludes_configured_paths_and_their_contents() {
-        let config = config(&["refs", "entrypoints/interface"]);
+        let config = gen_config("/repo", &["refs", "entrypoints/interface"]);
 
         assert!(config.is_excluded(&PathBuf::from("/repo/refs")));
         assert!(config.is_excluded(&PathBuf::from("/repo/refs/core-rs/modules/base/src/lib.rs")));
@@ -68,7 +58,7 @@ mod tests {
 
     #[test]
     fn excludes_ignored_directory_names_anywhere() {
-        let config = config(&[]);
+        let config = gen_config("/repo", &[]);
 
         assert!(config.is_excluded(&PathBuf::from("/repo/target")));
         assert!(config.is_excluded(&PathBuf::from("/repo/modules/engine/target")));
@@ -78,8 +68,15 @@ mod tests {
 
     #[test]
     fn does_not_exclude_paths_that_only_share_a_name_prefix() {
-        let config = config(&["refs"]);
+        let config = gen_config("/repo", &["refs"]);
 
         assert!(!config.is_excluded(&PathBuf::from("/repo/refs-extra/src/lib.rs")));
+    }
+
+    fn gen_config<P: AsRef<Path>>(dir: P, excludes: &[&str]) -> Config {
+        let dir = dir.as_ref();
+        Config {
+            excludes: excludes.iter().map(|excluded| dir.join(excluded)).collect(),
+        }
     }
 }

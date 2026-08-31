@@ -1,13 +1,7 @@
-//! `docs/coding/rust.md` の自由関数 marker を検査する。
-//!
-//! 走査の起点は process の current directory であり、そこに置かれた
-//! `lint-style.toml` が検査対象から外す path を決める。
-//! omnius-labs の Rust repository は、この bin を共有して同じ規約を検査する。
-
 mod checker;
 mod config;
-mod finding;
 mod marker;
+mod report;
 mod source_file;
 
 use std::{env, process::ExitCode};
