@@ -1,5 +1,12 @@
 use std::{fmt, path::PathBuf};
 
+#[derive(Default)]
+pub struct CheckReport {
+    pub errors: Vec<Finding>,
+    pub debts: Vec<Finding>,
+    pub allow_count: usize,
+}
+
 pub struct Finding {
     path: PathBuf,
     line: usize,

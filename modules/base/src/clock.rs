@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, TimeZone, Utc};
 use parking_lot::Mutex;
+use tokio::time::Duration;
 
 pub trait Clock<Tz: TimeZone> {
     fn now(&self) -> DateTime<Tz>;
@@ -14,8 +15,6 @@ impl Clock<Utc> for ClockUtc {
         Utc::now()
     }
 }
-
-use tokio::time::Duration;
 
 pub struct FakeClockUtc {
     current_time: Arc<Mutex<DateTime<Utc>>>,
