@@ -1,13 +1,11 @@
 use std::path::Path;
 
 use async_trait::async_trait;
-use aws_sdk_s3::presigning::PresigningConfig;
-use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::{presigning::PresigningConfig, primitives::ByteStream};
 use chrono::{DateTime, Duration, Utc};
-use tokio::fs::File;
-use tokio::io::AsyncWriteExt;
+use tokio::{fs::File, io::AsyncWriteExt};
 
-use crate::Result;
+use crate::prelude::*;
 
 #[async_trait]
 pub trait S3Client {
