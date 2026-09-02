@@ -5,6 +5,7 @@ package omni_hash;
 enum OmniHashAlgorithmType {
   @1 None;
   @2 Sha3_256;
+  @3 Blake3_256;
 }
 
 #[rust::derive(Eq, Hash)]

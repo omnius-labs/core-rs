@@ -6,6 +6,7 @@
 pub enum OmniHashAlgorithmType {
     None,
     Sha3_256,
+    Blake3_256,
 }
 
 impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
@@ -13,6 +14,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
         match value {
             Self::None => {},
             Self::Sha3_256 => {},
+            Self::Blake3_256 => {},
         }
         Ok(())
     }
@@ -30,6 +32,10 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
             }
             Self::Sha3_256 => {
                 encoder.write_u64(2)?;
+                encoder.write_map(0)?;
+            }
+            Self::Blake3_256 => {
+                encoder.write_u64(3)?;
                 encoder.write_map(0)?;
             }
         }
@@ -63,6 +69,14 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniHashAlgorithmType {
                         decoder.skip_field()?;
                     }
                     __rpf_result = Some(Self::Sha3_256);
+                }
+                3 => {
+                    let __inner_count_2 = decoder.read_map()?;
+                    for _ in 0..__inner_count_2 {
+                        let _ = decoder.read_u64()?;
+                        decoder.skip_field()?;
+                    }
+                    __rpf_result = Some(Self::Blake3_256);
                 }
                 _ => decoder.skip_field()?,
             }

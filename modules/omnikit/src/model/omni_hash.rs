@@ -11,9 +11,15 @@ impl OmniHash {
     where
         V: AsRef<[u8]>,
     {
-        let mut hasher = Sha3_256::new();
-        hasher.update(bytes);
-        let value = hasher.finalize().to_vec();
+        let value = match typ {
+            OmniHashAlgorithmType::None => Vec::new(),
+            OmniHashAlgorithmType::Sha3_256 => {
+                let mut hasher = Sha3_256::new();
+                hasher.update(bytes);
+                hasher.finalize().to_vec()
+            }
+            OmniHashAlgorithmType::Blake3_256 => blake3::hash(bytes.as_ref()).as_bytes().to_vec(),
+        };
         Self { typ, value }
     }
 }
@@ -23,6 +29,7 @@ impl std::fmt::Display for OmniHash {
         let typ = match &self.typ {
             OmniHashAlgorithmType::None => "none",
             OmniHashAlgorithmType::Sha3_256 => "sha3_256",
+            OmniHashAlgorithmType::Blake3_256 => "blake3_256",
         };
         write!(f, "{}:{}", typ, OmniBase::encode_by_base64_url(&self.value))
     }
@@ -48,6 +55,7 @@ impl FromStr for OmniHash {
 
         let typ = match typ {
             "sha3_256" => OmniHashAlgorithmType::Sha3_256,
+            "blake3_256" => OmniHashAlgorithmType::Blake3_256,
             _ => OmniHashAlgorithmType::None,
         };
         let value = OmniBase::decode(value)?;
@@ -66,6 +74,32 @@ mod tests {
         let decoded = OmniHash::import(&value.export()?)?;
 
         assert_eq!(value, decoded);
+        Ok(())
+    }
+
+    #[test]
+    fn blake3_roundtrip_test() -> Result<()> {
+        let value = OmniHash::compute_hash(OmniHashAlgorithmType::Blake3_256, b"test");
+        let decoded = OmniHash::import(&value.export()?)?;
+
+        assert_eq!(value, decoded);
+        Ok(())
+    }
+
+    #[test]
+    fn blake3_differs_from_sha3_256() {
+        let sha3 = OmniHash::compute_hash(OmniHashAlgorithmType::Sha3_256, b"test");
+        let blake3 = OmniHash::compute_hash(OmniHashAlgorithmType::Blake3_256, b"test");
+
+        assert_ne!(sha3.value, blake3.value);
+    }
+
+    #[test]
+    fn display_from_str_roundtrip_test() -> Result<()> {
+        let value = OmniHash::compute_hash(OmniHashAlgorithmType::Blake3_256, b"test");
+        let parsed: OmniHash = value.to_string().parse()?;
+
+        assert_eq!(value, parsed);
         Ok(())
     }
 }
