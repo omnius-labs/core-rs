@@ -106,6 +106,7 @@ impl From<tokio_postgres::Error> for Error {
     }
 }
 
+#[cfg(feature = "sqlite")]
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
         Error::from_error(e, ErrorKind::DatabaseError).with_message("database operation failed")
