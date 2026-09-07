@@ -45,8 +45,12 @@ pub struct YamuxConfig {
 
 impl Default for YamuxConfig {
     fn default() -> Self {
+        // 対向が ACK を待たずに開ける stream 数（yamux の MAX_ACK_BACKLOG）と同じ値にする。
+        // 対向はこれを超えて stream を開かないため、accept が遅れても backlog は溢れない。
+        const ACCEPT_BACKLOG: usize = 256;
+
         Self {
-            accept_backlog: 100,
+            accept_backlog: ACCEPT_BACKLOG,
             max_stream_window: 1024 * 1024,
             max_num_streams: 256,
             read_after_close: true,
@@ -292,7 +296,12 @@ where
 
         match sender.try_send(yamux_stream) {
             Ok(()) => true,
-            Err(mpsc::error::TrySendError::Full(_)) => true,
+            // yamux では、受け入れられない stream は RST で拒否する。
+            // drop すると外部 crate が RST を送り、対向の open が失敗する。
+            Err(mpsc::error::TrySendError::Full(_)) => {
+                warn!("accept backlog exceeded, inbound stream was reset");
+                true
+            }
             Err(mpsc::error::TrySendError::Closed(_)) => false,
         }
     }
@@ -328,4 +337,51 @@ enum ConnectionDriverEvent {
     Outbound(std::result::Result<yamux::Stream, yamux::ConnectionError>, oneshot::Sender<Result<YamuxStream>>),
     Closing(std::result::Result<(), yamux::ConnectionError>),
     Closed,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    use super::*;
+
+    /// `accept_backlog` が対向の ACK backlog より小さいと、対向が開けるだけ stream を
+    /// 開いた時点で backlog が溢れ、超過分が accept へ届かないまま RST で拒否される。
+    #[tokio::test]
+    async fn inbound_streams_are_not_reset_up_to_the_peer_ack_backlog() {
+        const STREAM_COUNT: u32 = 128;
+
+        let (client_io, server_io) = tokio::io::duplex(64 * 1024);
+        let client = YamuxConnection::new(YamuxConnectionType::Client, client_io, YamuxConfig::default()).unwrap();
+        let server = YamuxConnection::new(YamuxConnectionType::Server, server_io, YamuxConfig::default()).unwrap();
+
+        // yamux は SYN を最初の書き込みへ載せるため、開いたうえで 1 度書き込む。
+        // stream は accept 側が読み終えるまで保持する。
+        let mut client_streams = Vec::new();
+        for i in 0..STREAM_COUNT {
+            let mut stream = client.connect_stream().await.unwrap();
+            stream.write_all(&i.to_be_bytes()).await.unwrap();
+            client_streams.push(stream);
+        }
+
+        let mut received = tokio::time::timeout(Duration::from_secs(10), async {
+            let mut received = Vec::new();
+            for _ in 0..STREAM_COUNT {
+                let mut stream = server.accept_stream().await.unwrap();
+                let mut buf = [0u8; 4];
+                stream.read_exact(&mut buf).await.unwrap();
+                received.push(u32::from_be_bytes(buf));
+            }
+            received
+        })
+        .await
+        .expect("inbound streams were dropped by the accept backlog");
+
+        received.sort_unstable();
+        assert_eq!(received, (0..STREAM_COUNT).collect::<Vec<_>>());
+
+        drop(client_streams);
+    }
 }

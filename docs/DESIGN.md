@@ -281,6 +281,11 @@ frame や window、stream 状態の管理はすべて外部 crate 側が持ち�
 `close()` は shutdown 信号を送って driver task の終了を待つ、graceful な close である。
 `Drop` は非 blocking な fallback であり、driver task を待たずに abort するため、graceful な close が必要な場合は `close().await` を明示的に呼ぶ必要がある。
 
+`accept_backlog` は accept 待ち stream の上限であり、既定値は外部 crate `yamux` が ACK を待たずに開く stream 数の上限（`MAX_ACK_BACKLOG` = 256）と同じ 256 である。
+対向が同じ実装であれば未 ACK の stream はこの数を超えないため、accept が遅れても backlog は溢れない。
+backlog が溢れた場合、その stream は配送されずに drop され、外部 crate が対向へ RST を送る。
+これは「受け入れられない stream は RST で拒否する」という yamux の規定に沿った拒否であり、対向は open の失敗として観測する。
+
 ## 8. cloud
 
 `omnius-core-cloud` は、AWS（S3、Secrets Manager、SES、SQS）と GCP（Secret Manager）の SDK client を、小さな trait と `*Impl` 構造体の組として包む wrapper である。
