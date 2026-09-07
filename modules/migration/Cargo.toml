@@ -6,7 +6,7 @@ authors = { workspace = true }
 
 [features]
 stable-test = []
-postgres = ["tokio", "tokio-postgres"]
+postgres = ["dep:tokio", "dep:tokio-postgres"]
 sqlite = ["dep:sqlx"]
 
 [dependencies]
