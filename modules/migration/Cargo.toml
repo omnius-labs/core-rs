@@ -21,7 +21,7 @@ sqlx = { version = "0.9.0", default-features = false, features = [
   "macros",
   "runtime-tokio",
 ], optional = true }
-tokio-postgres = { workspace = true, optional = true }
+tokio-postgres = { version = "0.7.17", features = ["with-chrono-0_4"], optional = true }
 
 [dev-dependencies]
 omnius-core-testkit = { workspace = true }

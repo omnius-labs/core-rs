@@ -2864,7 +2864,6 @@ dependencies = [
  "testcontainers",
  "testresult",
  "tokio",
- "tokio-postgres",
  "tokio-stream",
  "tokio-util",
  "tracing",
@@ -2881,7 +2880,6 @@ dependencies = [
  "omnius-core-base",
  "testcontainers",
  "tokio",
- "tokio-postgres",
  "tracing",
  "tracing-subscriber",
 ]
@@ -4193,7 +4191,6 @@ dependencies = [
  "log",
  "memchr",
  "percent-encoding",
- "rustls",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -4203,7 +4200,6 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
- "webpki-roots",
 ]
 
 [[package]]
