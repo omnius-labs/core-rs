@@ -2889,7 +2889,6 @@ dependencies = [
  "testcontainers",
  "testresult",
  "tokio",
- "tokio-postgres",
  "tokio-stream",
  "tokio-util",
  "tracing",
@@ -2906,7 +2905,6 @@ dependencies = [
  "omnius-core-base",
  "testcontainers",
  "tokio",
- "tokio-postgres",
  "tracing",
  "tracing-subscriber",
 ]

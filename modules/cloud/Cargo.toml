@@ -22,7 +22,6 @@ omnius-core-base = { workspace = true }
 async-trait = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
-tokio-postgres = { workspace = true }
 tokio-util = { workspace = true }
 tokio-stream = { workspace = true }
 tracing = { workspace = true }
