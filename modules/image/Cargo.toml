@@ -13,7 +13,6 @@ omnius-core-base = { workspace = true }
 chrono = { workspace = true }
 kamadak-exif = { workspace = true }
 tokio = { workspace = true }
-tokio-postgres = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
