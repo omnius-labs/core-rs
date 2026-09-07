@@ -20,6 +20,7 @@ base64 = { workspace = true }
 futures-util = { workspace = true }
 nom = { workspace = true }
 sha3 = { workspace = true }
+blake3 = { workspace = true }
 chrono = { workspace = true }
 hkdf = { workspace = true }
 aes-gcm = { workspace = true }
