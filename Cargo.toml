@@ -57,7 +57,7 @@ aws-sdk-sesv2 = { version = "1.121.0", default-features = false, features = [
   "sigv4a",
 ] }
 
-gcloud-sdk = { version = "0.30.0", features = [
+gcloud-sdk = { version = "0.31.0", features = [
   "google-cloud-secretmanager-v1",
 ] }
 
