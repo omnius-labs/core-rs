@@ -6,13 +6,12 @@ authors = { workspace = true }
 
 [features]
 aws = [
-  "aws-smithy-runtime-api",
   "aws-config",
-  "aws-sdk-secretsmanager",
   "aws-sdk-s3",
-  "aws-sdk-sqs",
+  "aws-sdk-secretsmanager",
   "aws-sdk-sesv2",
-  "aws-config",
+  "aws-sdk-sqs",
+  "aws-smithy-runtime-api",
 ]
 gcp = ["gcloud-sdk"]
 
