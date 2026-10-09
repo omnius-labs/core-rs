@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuthType {
     None,
     Sign,
@@ -11,13 +11,16 @@ pub enum AuthType {
 impl omnius_core_rocketpack::RocketPackStruct for AuthType {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         match value {
-            Self::None => {}
-            Self::Sign => {}
+            Self::None => {},
+            Self::Sign => {},
         }
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(1)?;
 
         match value {
@@ -34,7 +37,9 @@ impl omnius_core_rocketpack::RocketPackStruct for AuthType {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -84,7 +89,10 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         Ok(())
     }
 
-    fn pack(encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder, value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         encoder.write_map(6)?;
         encoder.write_u64(1)?;
         omnius_core_rocketpack::validate_length("ProfileMessage.session_id", 32, 32, (&value.session_id).len())?;
@@ -102,7 +110,9 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         Ok(())
     }
 
-    fn unpack(decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
     where
         Self: Sized,
     {
@@ -141,14 +151,10 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         Ok(Self {
             session_id: __rpf_storage_session_id.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: session_id"))?,
             auth_type: __rpf_storage_auth_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: auth_type"))?,
-            key_exchange_algorithm_type_flags: __rpf_storage_key_exchange_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_exchange_algorithm_type_flags"))?,
-            key_derivation_algorithm_type_flags: __rpf_storage_key_derivation_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
-            cipher_algorithm_type_flags: __rpf_storage_cipher_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
-            hash_algorithm_type_flags: __rpf_storage_hash_algorithm_type_flags
-                .ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
+            key_exchange_algorithm_type_flags: __rpf_storage_key_exchange_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_exchange_algorithm_type_flags"))?,
+            key_derivation_algorithm_type_flags: __rpf_storage_key_derivation_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
+            cipher_algorithm_type_flags: __rpf_storage_cipher_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
+            hash_algorithm_type_flags: __rpf_storage_hash_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
         })
     }
 }
@@ -162,3 +168,324 @@ pub const KEY_DERIVATION_ALGORITHM_HKDF: u32 = 1;
 pub const CIPHER_ALGORITHM_AES_256_GCM: u32 = 1;
 
 pub const HASH_ALGORITHM_SHA3_256: u32 = 1;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum V2Role {
+    Connected,
+    Accepted,
+}
+
+impl omnius_core_rocketpack::RocketPackStruct for V2Role {
+    fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        match value {
+            Self::Connected => {},
+            Self::Accepted => {},
+        }
+        Ok(())
+    }
+
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        encoder.write_map(1)?;
+
+        match value {
+            Self::Connected => {
+                encoder.write_u64(1)?;
+                encoder.write_map(0)?;
+            }
+            Self::Accepted => {
+                encoder.write_u64(2)?;
+                encoder.write_map(0)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    where
+        Self: Sized,
+    {
+        let mut __rpf_result: Option<Self> = None;
+        let __rpf_count = decoder.read_map()?;
+
+        for _ in 0..__rpf_count {
+            match decoder.read_u64()? {
+                1 => {
+                    let __inner_count_0 = decoder.read_map()?;
+                    for _ in 0..__inner_count_0 {
+                        let _ = decoder.read_u64()?;
+                        decoder.skip_field()?;
+                    }
+                    __rpf_result = Some(Self::Connected);
+                }
+                2 => {
+                    let __inner_count_1 = decoder.read_map()?;
+                    for _ in 0..__inner_count_1 {
+                        let _ = decoder.read_u64()?;
+                        decoder.skip_field()?;
+                    }
+                    __rpf_result = Some(Self::Accepted);
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
+
+        __rpf_result.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing enum variant"))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct V2ProfileMessage {
+    pub version: u32,
+    pub role: crate::generated::omni_secure::V2Role,
+    pub auth_type: crate::generated::omni_secure::AuthType,
+    pub context: Vec<u8>,
+    pub nonce: Vec<u8>,
+    pub ephemeral_public_key: Vec<u8>,
+    pub name: String,
+    pub public_key: Vec<u8>,
+}
+
+impl omnius_core_rocketpack::RocketPackStruct for V2ProfileMessage {
+    fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        <crate::generated::omni_secure::V2Role as omnius_core_rocketpack::RocketPackStruct>::validate(&value.role)?;
+        <crate::generated::omni_secure::AuthType as omnius_core_rocketpack::RocketPackStruct>::validate(&value.auth_type)?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.context", 1, 256, (&value.context).len())?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.nonce", 32, 32, (&value.nonce).len())?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.ephemeral_public_key", 32, 32, (&value.ephemeral_public_key).len())?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.name", 0, 256, (&value.name).len())?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.public_key", 0, 44, (&value.public_key).len())?;
+        Ok(())
+    }
+
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        encoder.write_map(8)?;
+        encoder.write_u64(1)?;
+        encoder.write_u32(*(&value.version))?;
+        encoder.write_u64(2)?;
+        encoder.write_struct(&value.role)?;
+        encoder.write_u64(3)?;
+        encoder.write_struct(&value.auth_type)?;
+        encoder.write_u64(4)?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.context", 1, 256, (&value.context).len())?;
+        encoder.write_bytes((&value.context).as_slice())?;
+        encoder.write_u64(5)?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.nonce", 32, 32, (&value.nonce).len())?;
+        encoder.write_bytes((&value.nonce).as_slice())?;
+        encoder.write_u64(6)?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.ephemeral_public_key", 32, 32, (&value.ephemeral_public_key).len())?;
+        encoder.write_bytes((&value.ephemeral_public_key).as_slice())?;
+        encoder.write_u64(7)?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.name", 0, 256, (&value.name).len())?;
+        encoder.write_string((&value.name).as_str())?;
+        encoder.write_u64(8)?;
+        omnius_core_rocketpack::validate_length("V2ProfileMessage.public_key", 0, 44, (&value.public_key).len())?;
+        encoder.write_bytes((&value.public_key).as_slice())?;
+        Ok(())
+    }
+
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    where
+        Self: Sized,
+    {
+        let mut __rpf_storage_version: Option<u32> = None;
+        let mut __rpf_storage_role: Option<crate::generated::omni_secure::V2Role> = None;
+        let mut __rpf_storage_auth_type: Option<crate::generated::omni_secure::AuthType> = None;
+        let mut __rpf_storage_context: Option<Vec<u8>> = None;
+        let mut __rpf_storage_nonce: Option<Vec<u8>> = None;
+        let mut __rpf_storage_ephemeral_public_key: Option<Vec<u8>> = None;
+        let mut __rpf_storage_name: Option<String> = None;
+        let mut __rpf_storage_public_key: Option<Vec<u8>> = None;
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                1 => {
+                    __rpf_storage_version = Some(decoder.read_u32()?);
+                }
+                2 => {
+                    __rpf_storage_role = Some(decoder.read_struct::<crate::generated::omni_secure::V2Role>()?);
+                }
+                3 => {
+                    __rpf_storage_auth_type = Some(decoder.read_struct::<crate::generated::omni_secure::AuthType>()?);
+                }
+                4 => {
+                    __rpf_storage_context = Some(decoder.read_bytes_bounded("V2ProfileMessage.context", 1, 256)?);
+                }
+                5 => {
+                    __rpf_storage_nonce = Some(decoder.read_bytes_bounded("V2ProfileMessage.nonce", 32, 32)?);
+                }
+                6 => {
+                    __rpf_storage_ephemeral_public_key = Some(decoder.read_bytes_bounded("V2ProfileMessage.ephemeral_public_key", 32, 32)?);
+                }
+                7 => {
+                    __rpf_storage_name = Some(decoder.read_string_bounded("V2ProfileMessage.name", 0, 256)?);
+                }
+                8 => {
+                    __rpf_storage_public_key = Some(decoder.read_bytes_bounded("V2ProfileMessage.public_key", 0, 44)?);
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
+
+        Ok(Self {
+            version: __rpf_storage_version.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: version"))?,
+            role: __rpf_storage_role.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: role"))?,
+            auth_type: __rpf_storage_auth_type.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: auth_type"))?,
+            context: __rpf_storage_context.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: context"))?,
+            nonce: __rpf_storage_nonce.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: nonce"))?,
+            ephemeral_public_key: __rpf_storage_ephemeral_public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: ephemeral_public_key"))?,
+            name: __rpf_storage_name.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: name"))?,
+            public_key: __rpf_storage_public_key.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: public_key"))?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct V2AuthMessage {
+    pub cert: Option<crate::generated::omni_sign::OmniCert>,
+}
+
+impl omnius_core_rocketpack::RocketPackStruct for V2AuthMessage {
+    fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        if let Some(cert) = &value.cert {
+            <crate::generated::omni_sign::OmniCert as omnius_core_rocketpack::RocketPackStruct>::validate(cert)?;
+        }
+        Ok(())
+    }
+
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        let mut count = 0;
+        if value.cert.is_some() {
+            count += 1;
+        }
+        encoder.write_map(count)?;
+        if let Some(cert) = &value.cert {
+            encoder.write_u64(1)?;
+            encoder.write_struct(cert)?;
+        }
+        Ok(())
+    }
+
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    where
+        Self: Sized,
+    {
+        let mut __rpf_storage_cert: Option<Option<crate::generated::omni_sign::OmniCert>> = None;
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                1 => {
+                    let __option_0 = if matches!(decoder.current_type()?, omnius_core_rocketpack::FieldType::Unknown { major: 7, info: 22 }) {
+                        decoder.read_null()?;
+                        None
+                    } else {
+                        Some(decoder.read_struct::<crate::generated::omni_sign::OmniCert>()?)
+                    };
+                    __rpf_storage_cert = Some(__option_0);
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
+
+        Ok(Self {
+            cert: __rpf_storage_cert.unwrap_or(None),
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct V2FinishedMessage {
+    pub verify_data: Vec<u8>,
+}
+
+impl omnius_core_rocketpack::RocketPackStruct for V2FinishedMessage {
+    fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        omnius_core_rocketpack::validate_length("V2FinishedMessage.verify_data", 32, 32, (&value.verify_data).len())?;
+        Ok(())
+    }
+
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        encoder.write_map(1)?;
+        encoder.write_u64(1)?;
+        omnius_core_rocketpack::validate_length("V2FinishedMessage.verify_data", 32, 32, (&value.verify_data).len())?;
+        encoder.write_bytes((&value.verify_data).as_slice())?;
+        Ok(())
+    }
+
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    where
+        Self: Sized,
+    {
+        let mut __rpf_storage_verify_data: Option<Vec<u8>> = None;
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                1 => {
+                    __rpf_storage_verify_data = Some(decoder.read_bytes_bounded("V2FinishedMessage.verify_data", 32, 32)?);
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
+
+        Ok(Self {
+            verify_data: __rpf_storage_verify_data.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: verify_data"))?,
+        })
+    }
+}
+
+pub const V2_VERSION: u32 = 2;
+
+pub const V2_MAX_CONTEXT_LENGTH: u32 = 256;
+
+pub const V2_MAX_NAME_LENGTH: u32 = 256;
+
+pub const V2_DH_PUBLIC_KEY_LENGTH: u32 = 32;
+
+pub const V2_IDENTITY_PUBLIC_KEY_LENGTH: u32 = 44;
+
+pub const V2_HASH_LENGTH: u32 = 32;
+
+pub const V2_SIGNATURE_LENGTH: u32 = 64;
+
+pub const V2_HANDSHAKE_MAX_FRAME_LENGTH: u32 = 16384;
+
+pub const V2_RECORD_HEADER_LENGTH: u32 = 21;
+
+pub const V2_RECORD_MAX_PLAINTEXT_LENGTH: u32 = 65536;
+
+pub const V2_RECORD_TAG_LENGTH: u32 = 16;
+
+pub const V2_KEY_UPDATE_LENGTH: u32 = 8;
+
+pub const V2_EPOCH_MAX_PLAINTEXT_LENGTH: u64 = 1073741824;
+
+pub const V2_EPOCH_MAX_RECORD_COUNT: u64 = 1048576;
+
+pub const V2_RECORD_DATA: u32 = 1;
+
+pub const V2_RECORD_KEY_UPDATE: u32 = 2;
+
+pub const V2_RECORD_CLOSE: u32 = 3;

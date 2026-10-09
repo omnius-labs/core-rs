@@ -17,13 +17,19 @@ tokio-stream = { workspace = true }
 tracing = { workspace = true }
 hex = { workspace = true }
 base64 = { workspace = true }
-futures-util = { workspace = true }
+futures-util = { workspace = true, features = ["sink"] }
 nom = { workspace = true }
-sha3 = { workspace = true }
+sha3 = { workspace = true, features = ["zeroize"] }
 blake3 = { workspace = true }
 chrono = { workspace = true }
 hkdf = { workspace = true }
-aes-gcm = { workspace = true }
+aes-gcm = { workspace = true, features = ["zeroize"] }
+# AEAD 内部の AES schedule と GHASH/POLYVAL state も Drop で消去する。
+aes = { workspace = true, features = ["zeroize"] }
+ghash = { workspace = true, features = ["zeroize"] }
+polyval = { workspace = true, features = ["zeroize"] }
+zeroize = { workspace = true }
+subtle = { workspace = true }
 parking_lot = { workspace = true }
 x25519-dalek = { workspace = true }
 ed25519-dalek = { workspace = true }
@@ -31,3 +37,4 @@ enumflags2 = { workspace = true }
 
 [dev-dependencies]
 testresult = { workspace = true }
+serde_json = { workspace = true }

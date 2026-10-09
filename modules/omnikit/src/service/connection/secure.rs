@@ -1,14 +1,17 @@
 mod auth;
-mod decoder;
-mod encoder;
+mod handshake_payload;
+mod kdf;
+mod record;
+mod settings;
 mod stream;
-mod util;
+mod transcript;
 
-use crate::generated::omni_secure::{AuthType, ProfileMessage};
+#[cfg(test)]
+mod crypto_tests;
+#[cfg(test)]
+mod runtime_tests;
 
-use auth::*;
-use decoder::*;
-use encoder::*;
+pub use settings::*;
 pub use stream::*;
 
 #[cfg(test)]
@@ -16,7 +19,6 @@ mod tests {
     use core::str;
     use std::sync::Arc;
 
-    use chrono::DateTime;
     use futures_util::SinkExt as _;
     use parking_lot::Mutex;
     use rand::{
@@ -28,7 +30,6 @@ mod tests {
     use tokio::{net::TcpListener, time::sleep};
     use tokio_stream::StreamExt as _;
 
-    use omnius_core_base::clock::FakeClockUtc;
     use tokio_util::bytes::Bytes;
 
     use crate::{
@@ -40,12 +41,23 @@ mod tests {
 
     #[tokio::test]
     async fn communication_test() -> TestResult {
-        let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
         let rng = Arc::new(Mutex::new(ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng))));
 
         let (client_stream, server_stream) = tokio::io::duplex(4096);
-        let secure_client = OmniSecureStream::new(client_stream, OmniSecureStreamType::Connected, 1024, None, clock.clone(), rng.clone());
-        let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, clock.clone(), rng.clone());
+        let secure_client = OmniSecureStream::new(
+            client_stream,
+            OmniSecureStreamType::Connected,
+            OmniSecureStreamOption::new(b"test-v2")?,
+            OmniSecureAuth::Anonymous,
+            rng.clone(),
+        );
+        let secure_server = OmniSecureStream::new(
+            server_stream,
+            OmniSecureStreamType::Accepted,
+            OmniSecureStreamOption::new(b"test-v2")?,
+            OmniSecureAuth::Anonymous,
+            rng.clone(),
+        );
 
         let (secure_client, secure_server) = tokio::try_join!(secure_client, secure_server)?;
 
@@ -72,13 +84,19 @@ mod tests {
     #[tokio::test]
     async fn server_echo_test() -> TestResult {
         loop {
-            let clock = Arc::new(FakeClockUtc::new(DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")?.into()));
             let rng = Arc::new(Mutex::new(ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng))));
 
             let addr = "0.0.0.0:50000";
             let listener = TcpListener::bind(addr).await?;
             let (server_stream, _) = listener.accept().await?;
-            let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, clock.clone(), rng.clone()).await?;
+            let secure_server = OmniSecureStream::new(
+                server_stream,
+                OmniSecureStreamType::Accepted,
+                OmniSecureStreamOption::new(b"test-v2")?,
+                OmniSecureAuth::Anonymous,
+                rng.clone(),
+            )
+            .await?;
 
             let codec = tokio_util::codec::LengthDelimitedCodec::builder().max_frame_length(1024).little_endian().new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);

@@ -4,6 +4,7 @@
 
 本書は、core-rs workspace を構成する各 crate（`omnius-core-*`）と entrypoint の責務境界、不変条件、設計判断、実装状況を扱う。
 対象読者は、いずれかの crate や entrypoint を変更する実装者と reviewer である。
+本書は [terms.md](./terms.md#2-用語一覧) の語彙を前提とし、語義を定義しない。
 
 ### 1.1 文書間の責務分担
 
@@ -11,6 +12,8 @@
 | --- | --- |
 | 本書 | workspace 全体の構成、crate 間の責務境界、不変条件、設計判断、実装状況 |
 | [ISSUES.md](./ISSUES.md) | コードで確認した明確な不具合と起票までの作業用一覧 |
+| [terms.md](./terms.md#2-用語一覧) | 語義と識別子の対応 |
+| [secure stream の設計](./design/secure-stream.md#1-このドキュメントについて) | V2 の認証、鍵導出、record と I/O の contract |
 | [RocketPack compiler の設計](./design/rocketpack-compiler.md) | compiler 固有の責務、不変条件、設計判断、実装状況 |
 | [entrypoints/rocketpack-compiler](../entrypoints/rocketpack-compiler) | `.rpf` の構文、意味検査、Rust code generation の実装 |
 | [modules/rocketpack](../modules/rocketpack) | wire codec と生成コードが利用する runtime API の実装 |
@@ -100,7 +103,7 @@ remoting 層をどう多重化するかは §11.2 で保留している。
 
 ### 4.1 OmniError
 
-**OmniError** は、crate が自分のエラー型に実装する共通のエラー contract である。
+OmniError の語義は [terms.md](./terms.md#2-用語一覧) にある。
 コード上は `omnius_core_base::error::OmniError` という、associated type `ErrorKind` を持つ trait であり、`new`、`from_error`、`with_message`、`kind`、`message`、`backtrace` という API と、既定の `Debug` 形式の `fmt` を持つ。
 `cloud`、`migration`、`omnikit`、`testkit`、`yamux` はそれぞれ独立した `crate::error::Error` と `crate::error::ErrorKind` の組を用意してこの trait を実装し、`crate::result::Result<T>` をその `Error` に対する alias として `crate::prelude` から re-export する。
 `rocketpack` と `rocketpack-compiler` はこの規約に従わず、`thiserror::Error` で定義した専用の error 型（`RocketPackEncoderError` など）を直接使う。
@@ -108,7 +111,7 @@ OmniError は trait であり具体的な型ではないため、workspace 全�
 
 ### 4.2 RocketPackStruct
 
-**RocketPackStruct** は、値を wire へ pack し、wire から unpack する構造体が実装する contract である。
+RocketPackStruct の語義は [terms.md](./terms.md#2-用語一覧) にある。
 コード上は `omnius_core_rocketpack::RocketPackStruct` という trait であり、`validate`、`pack`、`unpack`、`import`、`export` を持つ。
 `rocketpack-compiler` が生成する Rust 型はすべてこの trait を実装する。
 omnikit の remoting 層（`OmniRemotingStream::send` と `recv`）は、この trait を型境界に持つ generic 関数として、生成された任意のメッセージ型を送受信する。
@@ -116,18 +119,17 @@ Schema はこの trait の実装を生成させる入力であり、RocketPackSt
 
 ### 4.3 Schema
 
-**Schema** は `.rpf` に記述した package、型、field tag、定数、制約の集合である。
+Schema の語義は [terms.md](./terms.md#2-用語一覧) にある。
 `.rpf` が正本であり、生成された Rust code は schema から再生成できる派生成果物である。
 [modules/omnikit/rpfs](../modules/omnikit/rpfs) と [entrypoints/rocketpack-compiled-example/showcase/rpfs](../entrypoints/rocketpack-compiled-example/showcase/rpfs) は、それぞれ omnikit プロトコルと生成例が使う schema の正本である。
 
 ### 4.4 可変長型の制約
 
-**可変長型の制約** は、`string`、`bytes`、`Vec`、`Map` の各値が取り得る長さの包含範囲である。
-`string` と `bytes` は byte 数、`Vec` は要素数、`Map` は wire 上の entry 数を長さとする。
+可変長型の制約と制約なしの可変長型の語義・長さの単位は [terms.md](./terms.md#2-用語一覧) にある。
 `Option` は値の有無だけを表し、固定長 array は外側の長さが型で決まるため、それぞれ内包する可変長型だけが制約を持つ。
 制約は各出現箇所で任意である。
-制約を書かない可変長型を **制約なしの可変長型** と呼び、schema はその値の長さを制限しない。
-制約なしの可変長型に残る唯一の上限は、decoder が入力の残り byte 数に対して行う検査（§5.3）である。
+制約の省略は許容し、schema による長さ検査を生成しない。
+制約なしの可変長型にも、decoder が入力の残り byte 数に対して行う検査（§5.3）は働く。
 
 ## 5. RocketPack
 
@@ -185,14 +187,11 @@ omnikit は、RocketPack で定義した message（[modules/omnikit/rpfs](../mod
 呼び出し側が用意する raw な `T: AsyncRead + AsyncWrite`（TCP や `tokio::io::duplex` など）の上に、次の層を積む。
 
 ```
-layer 4: remoting (service/remoting)
-         HelloMessage handshake と RocketPackStruct message の送受信
+layer 4: remoting / application framed codec
+         HelloMessage と長さ区切りの message
 ----------------------------------------------------------------------
 layer 3: secure connection (service/connection/secure)
-         X25519 鍵交換 + HKDF + AES-256-GCM
-----------------------------------------------------------------------
-layer 2: framed codec (service/connection/codec)
-         length delimited framing
+         相互認証 / 鍵確認 / record / rekey
 ----------------------------------------------------------------------
 layer 1: raw AsyncRead + AsyncWrite（呼び出し側が用意）
 ```
@@ -201,44 +200,11 @@ layer 1: raw AsyncRead + AsyncWrite（呼び出し側が用意）
 
 ### 6.2 secure connection
 
-`service/connection/secure/auth.rs` の `Authenticator::auth` が handshake 全体を実装する。
-
-```mermaid
-sequenceDiagram
-    participant A as 自分
-    participant B as 相手
-    A->>B: ProfileMessage(session_id, auth_type, algorithm flags)
-    B->>A: ProfileMessage(session_id, auth_type, algorithm flags)
-    A->>B: OmniAgreementPublicKey
-    B->>A: OmniAgreementPublicKey
-    opt 自分が signer を持つ
-        A->>B: OmniCert
-    end
-    opt 相手の auth_type が Sign
-        B->>A: OmniCert
-    end
-    Note over A,B: 双方で X25519 shared secret を計算し、HKDF-SHA3-256 で鍵導出
-    Note over A,B: 以後は AES-256-GCM で暗号化された OmniSecureStream
-```
-
-相手の認証は、相手が申告した `auth_type` にのみ依存する。
-自分が signer を持っていても、相手が `AuthType::None` を送れば相手の証明書は要求されない。
-双方が相手に認証を強制するかどうかは各々の設定次第であり、mutual 認証を型として強制する仕組みはない。
-
-鍵交換と鍵導出は次のとおりである。
-
-- 鍵交換は X25519（`x25519_dalek`）のみを実装する。
-  `ProfileMessage` の algorithm flags は bitmask で複数候補を表現できるが、実装がある候補は各 category につき 1 つだけであり、一致しない場合は `ErrorKind::UnsupportedType` になる。
-- 鍵導出は「`自分の session_id` XOR `相手の session_id`」を salt に使う HKDF-SHA3-256 であり、AES-256-GCM の鍵と nonce を送受信それぞれ独立に 1 組ずつ導出する。
-- handshake（`ProfileMessage`、`OmniAgreementPublicKey`、`OmniCert`）は平文で送られ、`Authenticator::auth` 完了後にだけ `OmniSecureStream` が AES-256-GCM で読み書きを暗号化する。
-- handshake に失敗した場合、`auth()` は `Err` を返すだけであり、相手へ失敗を伝える message は送らない。
-  呼び出し側は下位 transport を close する前提になる。
-- `OmniSecureStream::new` に渡す `max_frame_length` は handshake 中の平文 frame にだけ働く。
-  handshake 後の暗号化 stream 自体の frame 分割は `secure/stream.rs` に定めた固定 64 KiB を使い、呼び出し側が指定した `max_frame_length` には従わない。
-
-**AEAD の nonce は wire に載らず、送受信ごとに独立した counter を 1 message ごとに決定的に増分することでのみ一意性を保つ。**
-この前提は、下位 stream が順序を保証する reliable な stream であることに依存する。
-順序が保証されない下位 stream の上で使うと、両端の counter が同期せず decrypt が破綻する。
+V2 は、呼び出し側が固定した context と Anonymous / Mutual の認証モードを使う。
+双方の profile と役割へ署名を束縛し、鍵確認の完了後に secure stream を公開する。
+方向別の認証した record で通信し、KeyUpdate と Close も同じ順序付き stream の内部で処理する。
+詳細と固定値は [secure-stream.md](./design/secure-stream.md#3-handshake) が正とする。
+application の長さ区切り message は secure stream の上に置くため、1 つの message が複数 record と鍵世代をまたいでも境界を維持する。
 
 ### 6.3 remoting
 
@@ -357,16 +323,8 @@ workspace 内に旧形式を読む利用経路はなく、二重 decoder と ver
 
 #### 署名 preimage を意味的フィールドへ固定する
 
-**決定**
-secure auth の署名 preimage は `session_id`、AuthType tag、4 つの flags、created time、Agreement type tag、public key を固定順で連結する。
-AuthType と Agreement type の tag、および flags は little-endian `u32`、created time は big-endian `i64` とする。
-enum tag は現行 RPF の `None=1`、`Sign` と `X25519=2` を用い、wire `export()` 全体を署名しない。
-
-**理由**
-wire の tag 順や将来のフィールド追加を署名互換性から切り離し、意味的に必要な値だけを protocol contract にするためである。
-
-**却下案**
-wire export 全体を hash する方式は実装が短いが、serialization の変更だけで署名が無効になるため採用しない。
+V2 の署名は意味的 field、domain と双方の役割に束縛する。
+決定、理由と却下案は [secure-stream.md](./design/secure-stream.md#意味的-field-と双方の役割へ署名を束縛する) が正とする。
 
 <a id="d-rpf-length-syntax"></a>
 #### 有限な包含レンジを可変長型へ任意で後置する
@@ -512,9 +470,11 @@ omnikit の remoting を使う具体的な client または server の実装が�
 
 RocketPack の可変長型制約は任意であり、制約ありなしのどちらも parser、意味検査、Rust generator、runtime の境界検査へ反映されている。
 `Timestamp64` と `Timestamp96` は Rust generator と生成例で利用できる。
-§11.1 の決定済み contract に残作業はない。
+RocketPack の長さ制約に関する §11.1 の決定は実装している。
 
 omnikit の secure connection 層と remoting 層はそれぞれ単体で動作するが、両者を結線して secure な経路上で remoting を行う実装は存在しない。
+secure connection は V2 の相互署名・鍵確認・record・rekey を実装し、明示した匿名モードも提供する。
+両 workspace で固定値、正常通信と攻撃・中断・鍵更新・終了の受け入れ試験を確認した。確認済みの範囲と利用側の責務は [secure-stream.md](./design/secure-stream.md#8-現状と残作業) が持つ。
 複数呼び出しを yamux で多重化する結線も存在しない（§11.2）。
 `omnius-core-yamux` 自体は crate として完成している。
 

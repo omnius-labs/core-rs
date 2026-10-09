@@ -27,6 +27,7 @@ dependencies = [
  "cipher",
  "cpubits",
  "cpufeatures 0.3.0",
+ "zeroize",
 ]
 
 [[package]]
@@ -41,6 +42,7 @@ dependencies = [
  "ctr",
  "ctutils",
  "ghash",
+ "zeroize",
 ]
 
 [[package]]
@@ -895,6 +897,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdd35008169921d80bc60d3d0ab416eecb028c4cd653352907921d95084790be"
 dependencies = [
  "hybrid-array",
+ "zeroize",
 ]
 
 [[package]]
@@ -1468,6 +1471,7 @@ dependencies = [
  "const-oid 0.10.1",
  "crypto-common 0.2.2",
  "ctutils",
+ "zeroize",
 ]
 
 [[package]]
@@ -1952,6 +1956,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2eecf2d5dc9b66b732b97707a0210906b1d30523eb773193ab777c0c84b3e8d5"
 dependencies = [
  "polyval",
+ "zeroize",
 ]
 
 [[package]]
@@ -3016,6 +3021,7 @@ dependencies = [
 name = "omnius-core-omnikit"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "aes-gcm",
  "async-trait",
  "base64 0.23.1",
@@ -3024,21 +3030,26 @@ dependencies = [
  "ed25519-dalek",
  "enumflags2",
  "futures-util",
+ "ghash",
  "hex",
  "hkdf",
  "nom",
  "omnius-core-base",
  "omnius-core-rocketpack",
  "parking_lot",
+ "polyval",
  "rand",
  "rand_core 0.10.1",
+ "serde_json",
  "sha3",
+ "subtle",
  "testresult",
  "tokio",
  "tokio-stream",
  "tokio-util",
  "tracing",
  "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
@@ -3334,6 +3345,7 @@ dependencies = [
  "cpubits",
  "cpufeatures 0.3.0",
  "universal-hash",
+ "zeroize",
 ]
 
 [[package]]
@@ -4263,6 +4275,9 @@ name = "sponge-cursor"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a0219bd7d979d58245a4f41f695e1ac9f8befdffadd7f61f1bae9e39abc6620"
+dependencies = [
+ "zeroize",
+]
 
 [[package]]
 name = "sqlx"

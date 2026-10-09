@@ -51,6 +51,10 @@ impl OmniAgreement {
         let public_key = x25519_dalek::PublicKey::from(public_key);
         let shared_secret = secret_key.diffie_hellman(&public_key);
 
+        if !shared_secret.was_contributory() {
+            return Err(Error::new(ErrorKind::InvalidFormat).with_message("non-contributory shared secret"));
+        }
+
         Ok(shared_secret.as_bytes().to_vec())
     }
 }

@@ -11,6 +11,15 @@ use crate::{prelude::*, service::converter::OmniBase};
 use crate::generated::omni_sign::*;
 
 impl OmniSigner {
+    pub fn public_key(&self) -> Result<Vec<u8>> {
+        match self.typ {
+            OmniSignType::Ed25519_Sha3_256_Base64Url => {
+                let key = ed25519_dalek::SigningKey::from_pkcs8_der(&self.key)?;
+                Ok(key.verifying_key().to_public_key_der()?.into_vec())
+            }
+            OmniSignType::None => Err(Error::new(ErrorKind::UnsupportedType).with_message("sign type")),
+        }
+    }
     pub fn new<S: AsRef<str> + ?Sized>(typ: OmniSignType, name: &S) -> Result<Self> {
         match &typ {
             OmniSignType::Ed25519_Sha3_256_Base64Url => {

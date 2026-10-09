@@ -110,6 +110,11 @@ local-ip-address = "0.6.13"
 pin-utils = "0.1.0"
 hkdf = "0.13.0"
 aes-gcm = "0.11.0"
+aes = "0.9"
+ghash = "0.6"
+polyval = "=0.7.3"
+zeroize = "1.9.0"
+subtle = "2.6.1"
 parking_lot = "0.12.5"
 x25519-dalek = { version = "=3.0.0", features = ["static_secrets"] }
 ed25519-dalek = { version = "=3.0.0", features = [

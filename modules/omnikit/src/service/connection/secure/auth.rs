@@ -1,236 +1,222 @@
 use std::sync::Arc;
 
-use chrono::Utc;
-use enumflags2::{BitFlags, make_bitflags};
-use hkdf::SimpleHkdf;
+use ed25519_dalek::{VerifyingKey, pkcs8::DecodePublicKey as _};
 use parking_lot::Mutex;
-use rand::RngExt;
-use sha3::{Digest, Sha3_256};
-
-use omnius_core_base::clock::Clock;
-use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
+use rand_core::CryptoRng;
+use subtle::ConstantTimeEq;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use zeroize::Zeroizing;
 
 use crate::{
-    generated::{
-        omni_agreement::{OmniAgreement, OmniAgreementAlgorithmType, OmniAgreementPublicKey},
-        omni_sign::{OmniCert, OmniSigner},
-    },
-    model::omni_secure::{CipherAlgorithmType, HashAlgorithmType, KeyDerivationAlgorithmType, KeyExchangeAlgorithmType},
+    generated::{omni_secure::*, omni_sign::OmniCert},
     prelude::*,
-    service::connection::codec::{FramedReceiver, FramedRecv, FramedSend, FramedSender},
 };
 
-use super::*;
+use super::{handshake_payload::HandshakePayload, kdf::V2Kdf, settings::*, transcript::HandshakeTranscript};
 
-#[allow(unused)]
-pub(crate) struct Authenticator<T>
-where
-    T: AsyncRead + AsyncWrite + Send + 'static,
-{
-    typ: OmniSecureStreamType,
-    receiver: FramedReceiver<ReadHalf<T>>,
-    sender: FramedSender<WriteHalf<T>>,
-    signer: Option<OmniSigner>,
-    clock: Arc<dyn Clock<Utc> + Send + Sync>,
-    rng: Arc<Mutex<dyn rand::Rng + Send + Sync>>,
+pub(super) struct Authenticator;
+
+pub(super) struct AuthResult {
+    pub peer_cert: Option<OmniCert>,
+    pub transcript: [u8; 32],
+    pub send_secret: Zeroizing<[u8; 32]>,
+    pub recv_secret: Zeroizing<[u8; 32]>,
 }
 
-#[allow(unused)]
-pub(crate) struct AuthResult {
-    pub sign_id: Option<String>,
-    pub cipher_algorithm_type: CipherAlgorithmType,
-    pub enc_key: Vec<u8>,
-    pub enc_nonce: Vec<u8>,
-    pub dec_key: Vec<u8>,
-    pub dec_nonce: Vec<u8>,
-}
-
-#[allow(unused)]
-impl<T> Authenticator<T>
-where
-    T: AsyncRead + AsyncWrite + Send + 'static,
-{
-    pub async fn new(
+impl Authenticator {
+    pub async fn authenticate<R, W>(
+        reader: &mut R,
+        writer: &mut W,
         typ: OmniSecureStreamType,
-        reader: ReadHalf<T>,
-        writer: WriteHalf<T>,
-        max_frame_length: usize,
-        signer: Option<OmniSigner>,
-        clock: Arc<dyn Clock<Utc> + Send + Sync>,
-        rng: Arc<Mutex<dyn rand::Rng + Send + Sync>>,
-    ) -> Result<Self> {
-        Ok(Self {
-            typ,
-            receiver: FramedReceiver::new(reader, max_frame_length),
-            sender: FramedSender::new(writer, max_frame_length),
-            signer,
-            clock,
-            rng,
-        })
-    }
-
-    pub fn into_inner(self) -> (ReadHalf<T>, WriteHalf<T>) {
-        (self.receiver.into_inner(), self.sender.into_inner())
-    }
-
-    pub async fn auth(&mut self) -> Result<AuthResult> {
-        let session_id = self.rng.lock().random::<[u8; 32]>().to_vec();
-        let auth_type = match self.signer {
-            Some(_) => AuthType::Sign,
-            None => AuthType::None,
+        auth: &OmniSecureAuth,
+        option: &OmniSecureStreamOption,
+        rng: Arc<Mutex<dyn CryptoRng + Send + Sync>>,
+    ) -> Result<AuthResult>
+    where
+        R: AsyncRead + Unpin,
+        W: AsyncWrite + Unpin,
+    {
+        let mut seed = Zeroizing::new([0u8; 32]);
+        let mut nonce = [0u8; 32];
+        {
+            let mut rng = rng.lock();
+            rng.fill_bytes(seed.as_mut());
+            rng.fill_bytes(&mut nonce);
+        }
+        let private_key = x25519_dalek::StaticSecret::from(*seed);
+        drop(seed);
+        let ephemeral_public_key = x25519_dalek::PublicKey::from(&private_key).as_bytes().to_vec();
+        let (name, public_key) = match auth {
+            OmniSecureAuth::Anonymous => (String::new(), Vec::new()),
+            OmniSecureAuth::Mutual { signer } => (signer.name.clone(), signer.public_key()?),
         };
-        let mut my_profile = ProfileMessage::new(
-            session_id,
-            auth_type,
-            make_bitflags!(KeyExchangeAlgorithmType::X25519),
-            make_bitflags!(KeyDerivationAlgorithmType::HKDF),
-            make_bitflags!(CipherAlgorithmType::AES_256_GCM),
-            make_bitflags!(HashAlgorithmType::SHA3_256),
-        );
-
-        let other_profile = {
-            self.sender.send(my_profile.export()?.into()).await?;
-            ProfileMessage::import(&self.receiver.recv().await?)?
+        let my_profile = V2ProfileMessage {
+            version: V2_VERSION,
+            role: typ.role(),
+            auth_type: auth.auth_type(),
+            context: option.context.clone(),
+            nonce: nonce.to_vec(),
+            ephemeral_public_key,
+            name,
+            public_key,
         };
-
-        let key_exchange_algorithm_type = my_profile.get_key_exchange_algorithm_type() & other_profile.get_key_exchange_algorithm_type();
-        let key_derivation_algorithm_type = my_profile.get_key_derivation_algorithm_type() & other_profile.get_key_derivation_algorithm_type();
-        let cipher_algorithm_type = my_profile.get_cipher_algorithm_type() & other_profile.get_cipher_algorithm_type();
-        let hash_algorithm_type = my_profile.get_hash_algorithm_type() & other_profile.get_hash_algorithm_type();
-
-        let (other_sign, secret) = if key_exchange_algorithm_type.contains(KeyExchangeAlgorithmType::X25519) {
-            let now = self.clock.now();
-            let my_agreement = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, now)?;
-            let other_agreement_public_key = {
-                self.sender.send(my_agreement.gen_agreement_public_key().export()?.into()).await?;
-                OmniAgreementPublicKey::import(&self.receiver.recv().await?)?
-            };
-
-            if let Some(my_signer) = self.signer.as_ref() {
-                let my_hash = Self::gen_hash(&my_profile, &my_agreement.gen_agreement_public_key(), &hash_algorithm_type)?;
-                let my_sign = my_signer.sign(&my_hash)?;
-                self.sender.send(my_sign.export()?.into()).await?;
+        Self::validate_profile(&my_profile, &typ.role(), auth, option)?;
+        let peer_profile = match typ {
+            OmniSecureStreamType::Connected => {
+                writer.write_all(b"OMNISC2\0").await?;
+                Self::send(writer, &my_profile, option.handshake_max_frame_length).await?;
+                Self::receive_magic(reader).await?;
+                let peer = Self::receive::<V2ProfileMessage>(reader, option.handshake_max_frame_length).await?;
+                Self::validate_profile(&peer, &V2Role::Accepted, auth, option)?;
+                peer
             }
-
-            let other_sign = if other_profile.auth_type == AuthType::Sign {
-                let other_cert = OmniCert::import(&self.receiver.recv().await?)?;
-                let other_hash = Self::gen_hash(&other_profile, &other_agreement_public_key, &hash_algorithm_type)?;
-                other_cert.verify(&other_hash)?;
-
-                Some(other_cert.to_string())
-            } else {
-                None
-            };
-
-            let secret = OmniAgreement::gen_secret(&my_agreement.gen_agreement_private_key(), &other_agreement_public_key)?;
-
-            (other_sign, secret)
-        } else {
-            return Err(Error::new(ErrorKind::UnsupportedType).with_message("key exchange algorithm"));
+            OmniSecureStreamType::Accepted => {
+                Self::receive_magic(reader).await?;
+                let peer = Self::receive::<V2ProfileMessage>(reader, option.handshake_max_frame_length).await?;
+                Self::validate_profile(&peer, &V2Role::Connected, auth, option)?;
+                writer.write_all(b"OMNISC2\0").await?;
+                Self::send(writer, &my_profile, option.handshake_max_frame_length).await?;
+                peer
+            }
         };
-
-        let cipher_algorithm_type = if cipher_algorithm_type.contains(CipherAlgorithmType::AES_256_GCM) {
-            CipherAlgorithmType::AES_256_GCM
-        } else {
-            return Err(Error::new(ErrorKind::UnsupportedType).with_message("cipher algorithm"));
+        let public: [u8; 32] = peer_profile.ephemeral_public_key.as_slice().try_into().map_err(|_| Self::invalid("DH public key length"))?;
+        let shared = private_key.diffie_hellman(&x25519_dalek::PublicKey::from(public));
+        drop(private_key);
+        if !shared.was_contributory() {
+            return Err(Self::invalid("non-contributory shared secret"));
+        }
+        let (i_profile, r_profile) = match typ {
+            OmniSecureStreamType::Connected => (&my_profile, &peer_profile),
+            OmniSecureStreamType::Accepted => (&peer_profile, &my_profile),
         };
-
-        let (enc_key, enc_nonce, dec_key, dec_nonce) = if key_derivation_algorithm_type.contains(KeyDerivationAlgorithmType::HKDF) {
-            let salt = my_profile.session_id.iter().zip(other_profile.session_id.iter()).map(|(a, b)| a ^ b).collect::<Vec<u8>>();
-
-            let (key_len, nonce_len) = match &cipher_algorithm_type {
-                CipherAlgorithmType::AES_256_GCM => (32, 12),
-            };
-
-            let okm = if hash_algorithm_type.contains(HashAlgorithmType::SHA3_256) {
-                let mut okm = vec![0_u8; (key_len + nonce_len) * 2];
-                let kdf = SimpleHkdf::<Sha3_256>::new(Some(&salt), &secret);
-                kdf.expand(&[], &mut okm)
-                    .map_err(|_| Error::new(ErrorKind::InvalidFormat).with_message("Failed to expand key"))?;
-                okm
-            } else {
-                return Err(Error::new(ErrorKind::UnsupportedType).with_message("hash algorithm"));
-            };
-
-            let (enc_offset, dec_offset) = match self.typ {
-                OmniSecureStreamType::Connected => (0, key_len + nonce_len),
-                OmniSecureStreamType::Accepted => (key_len + nonce_len, 0),
-            };
-
-            let enc_key = okm[enc_offset..(enc_offset + key_len)].to_vec();
-            let enc_nonce = okm[(enc_offset + key_len)..(enc_offset + key_len + nonce_len)].to_vec();
-            let dec_key = okm[dec_offset..(dec_offset + key_len)].to_vec();
-            let dec_nonce = okm[(dec_offset + key_len)..(dec_offset + key_len + nonce_len)].to_vec();
-
-            (enc_key, enc_nonce, dec_key, dec_nonce)
-        } else {
-            return Err(Error::new(ErrorKind::UnsupportedType).with_message("key derivation algorithm"));
+        let t0 = HandshakeTranscript::hello(i_profile, r_profile);
+        let prk = V2Kdf::hmac(&t0, &[shared.as_bytes()]);
+        drop(shared);
+        let (my_auth, peer_auth) = match typ {
+            OmniSecureStreamType::Connected => {
+                let mine = Self::sign(auth, &my_profile, &t0)?;
+                Self::send(writer, &mine, option.handshake_max_frame_length).await?;
+                let peer = Self::receive::<V2AuthMessage>(reader, option.handshake_max_frame_length).await?;
+                HandshakeTranscript::validate_auth(&peer_profile, &peer, &t0)?;
+                (mine, peer)
+            }
+            OmniSecureStreamType::Accepted => {
+                let peer = Self::receive::<V2AuthMessage>(reader, option.handshake_max_frame_length).await?;
+                HandshakeTranscript::validate_auth(&peer_profile, &peer, &t0)?;
+                let mine = Self::sign(auth, &my_profile, &t0)?;
+                Self::send(writer, &mine, option.handshake_max_frame_length).await?;
+                (mine, peer)
+            }
         };
-
+        let (i_auth, r_auth) = match typ {
+            OmniSecureStreamType::Connected => (&my_auth, &peer_auth),
+            OmniSecureStreamType::Accepted => (&peer_auth, &my_auth),
+        };
+        let t1 = HandshakeTranscript::authenticated(&t0, i_auth, r_auth);
+        let fi = V2Kdf::expand::<32>(prk.as_slice(), &[b"omnius.secure.v2/finished/initiator\0", &t1]);
+        let fr = V2Kdf::expand::<32>(prk.as_slice(), &[b"omnius.secure.v2/finished/responder\0", &t1]);
+        let vi = V2Kdf::hmac(fi.as_slice(), &[b"omnius.secure.v2/verify/initiator\0", &t1]);
+        let vr = V2Kdf::hmac(fr.as_slice(), &[b"omnius.secure.v2/verify/responder\0", &t1, vi.as_slice()]);
+        match typ {
+            OmniSecureStreamType::Connected => {
+                Self::send(writer, &V2FinishedMessage { verify_data: vi.to_vec() }, option.handshake_max_frame_length).await?;
+                Self::verify_finished(reader, vr.as_slice(), option.handshake_max_frame_length).await?;
+            }
+            OmniSecureStreamType::Accepted => {
+                Self::verify_finished(reader, vi.as_slice(), option.handshake_max_frame_length).await?;
+                Self::send(writer, &V2FinishedMessage { verify_data: vr.to_vec() }, option.handshake_max_frame_length).await?;
+            }
+        }
+        let transcript = HandshakeTranscript::session(&t1, vi.as_slice(), vr.as_slice());
+        let si = V2Kdf::expand::<32>(prk.as_slice(), &[b"omnius.secure.v2/traffic/initiator-to-responder\0", &transcript]);
+        let sr = V2Kdf::expand::<32>(prk.as_slice(), &[b"omnius.secure.v2/traffic/responder-to-initiator\0", &transcript]);
+        let (send_secret, recv_secret) = match typ {
+            OmniSecureStreamType::Connected => (si, sr),
+            OmniSecureStreamType::Accepted => (sr, si),
+        };
         Ok(AuthResult {
-            sign_id: other_sign,
-            cipher_algorithm_type,
-            enc_key,
-            enc_nonce,
-            dec_key,
-            dec_nonce,
+            peer_cert: peer_auth.cert,
+            transcript,
+            send_secret,
+            recv_secret,
         })
     }
 
-    fn gen_hash(profile_message: &ProfileMessage, agreement_public_key: &OmniAgreementPublicKey, hash_algorithm: &BitFlags<HashAlgorithmType>) -> Result<Vec<u8>> {
-        if hash_algorithm.contains(HashAlgorithmType::SHA3_256) {
-            let mut hasher = Sha3_256::new();
-            hasher.update(&profile_message.session_id);
-            hasher.update(profile_message.auth_type.to_u32().to_le_bytes());
-            hasher.update(profile_message.key_exchange_algorithm_type_flags.to_le_bytes());
-            hasher.update(profile_message.key_derivation_algorithm_type_flags.to_le_bytes());
-            hasher.update(profile_message.cipher_algorithm_type_flags.to_le_bytes());
-            hasher.update(profile_message.hash_algorithm_type_flags.to_le_bytes());
-            hasher.update(agreement_public_key.created_time.seconds.to_be_bytes());
-            hasher.update(agreement_public_key.algorithm_type.to_u32().to_le_bytes());
-            hasher.update(&agreement_public_key.public_key);
+    fn sign(auth: &OmniSecureAuth, profile: &V2ProfileMessage, t0: &[u8; 32]) -> Result<V2AuthMessage> {
+        let cert = match auth {
+            OmniSecureAuth::Anonymous => None,
+            OmniSecureAuth::Mutual { signer } => Some(signer.sign(&HandshakeTranscript::signature(HandshakeTranscript::role_tag(&profile.role), t0))?),
+        };
+        let message = V2AuthMessage { cert };
+        HandshakeTranscript::validate_auth(profile, &message, t0)?;
+        Ok(message)
+    }
 
-            Ok(hasher.finalize().to_vec())
-        } else {
-            Err(Error::new(ErrorKind::UnsupportedType).with_message("hash algorithm"))
+    fn validate_profile(profile: &V2ProfileMessage, role: &V2Role, auth: &OmniSecureAuth, option: &OmniSecureStreamOption) -> Result<()> {
+        V2ProfileMessage::validate(profile)?;
+        if profile.version != V2_VERSION || &profile.role != role || profile.auth_type != auth.auth_type() || profile.context != option.context {
+            return Err(Self::invalid("V2 profile does not match configured policy"));
+        }
+        match auth {
+            OmniSecureAuth::Anonymous if profile.name.is_empty() && profile.public_key.is_empty() => Ok(()),
+            OmniSecureAuth::Mutual { .. } => {
+                if profile.public_key.len() != 44 || profile.public_key[..12] != [0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00] {
+                    return Err(Self::invalid("noncanonical Ed25519 DER public key"));
+                }
+                let key = VerifyingKey::from_public_key_der(&profile.public_key)?;
+                if key.is_weak() || key.to_edwards().compress().as_bytes() != key.as_bytes() {
+                    return Err(Self::invalid("weak or noncanonical Ed25519 public key"));
+                }
+                Ok(())
+            }
+            _ => Err(Self::invalid("anonymous identity must be empty")),
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use omnius_core_rocketpack::primitive::Timestamp64;
+    async fn receive_magic<R: AsyncRead + Unpin>(reader: &mut R) -> Result<()> {
+        let mut magic = [0u8; 8];
+        reader.read_exact(&mut magic).await?;
+        if &magic != b"OMNISC2\0" {
+            return Err(Self::invalid("unsupported secure stream wire format"));
+        }
+        Ok(())
+    }
 
-    use super::*;
+    pub(super) async fn send<W: AsyncWrite + Unpin, M: RocketPackStruct>(writer: &mut W, message: &M, limit: usize) -> Result<()> {
+        let bytes = message.export()?;
+        if bytes.len() > limit {
+            return Err(Self::invalid("handshake frame exceeds limit"));
+        }
+        writer.write_all(&(bytes.len() as u32).to_le_bytes()).await?;
+        writer.write_all(&bytes).await?;
+        writer.flush().await?;
+        Ok(())
+    }
 
-    #[test]
-    fn signature_preimage_uses_explicit_rpf_tags_not_wire_export() {
-        let hash_algorithm = make_bitflags!(HashAlgorithmType::SHA3_256);
-        let profile = ProfileMessage {
-            session_id: vec![7; 32],
-            auth_type: AuthType::Sign,
-            key_exchange_algorithm_type_flags: 3,
-            key_derivation_algorithm_type_flags: 5,
-            cipher_algorithm_type_flags: 7,
-            hash_algorithm_type_flags: hash_algorithm.bits(),
-        };
-        let agreement = OmniAgreementPublicKey {
-            algorithm_type: OmniAgreementAlgorithmType::X25519,
-            public_key: vec![9; 32],
-            created_time: Timestamp64::new(11),
-        };
+    pub(super) async fn receive<M: RocketPackStruct>(reader: &mut (impl AsyncRead + Unpin), limit: usize) -> Result<M> {
+        let length = reader.read_u32_le().await? as usize;
+        if length > limit {
+            return Err(Self::invalid("handshake frame exceeds limit"));
+        }
+        let mut bytes = vec![0; length];
+        reader.read_exact(&mut bytes).await?;
+        HandshakePayload::validate(&bytes)?;
+        let message = M::import(&bytes)?;
+        if message.export()? != bytes {
+            return Err(Self::invalid("noncanonical handshake payload"));
+        }
+        Ok(message)
+    }
 
-        let actual = Authenticator::<tokio::io::DuplexStream>::gen_hash(&profile, &agreement, &hash_algorithm).unwrap();
-        let mut expected = Sha3_256::new();
-        expected.update([7; 32]);
-        expected.update(2_u32.to_le_bytes());
-        expected.update(3_u32.to_le_bytes());
-        expected.update(5_u32.to_le_bytes());
-        expected.update(7_u32.to_le_bytes());
-        expected.update(hash_algorithm.bits().to_le_bytes());
-        expected.update(11_i64.to_be_bytes());
-        expected.update(2_u32.to_le_bytes());
-        expected.update([9; 32]);
-        assert_eq!(actual, expected.finalize().to_vec());
+    async fn verify_finished(reader: &mut (impl AsyncRead + Unpin), expected: &[u8], limit: usize) -> Result<()> {
+        let message = Self::receive::<V2FinishedMessage>(reader, limit).await?;
+        if !bool::from(message.verify_data.as_slice().ct_eq(expected)) {
+            return Err(Self::invalid("invalid Finished"));
+        }
+        Ok(())
+    }
+
+    fn invalid(message: &'static str) -> Error {
+        Error::new(ErrorKind::InvalidFormat).with_message(message)
     }
 }

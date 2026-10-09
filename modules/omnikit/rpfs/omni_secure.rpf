@@ -1,6 +1,9 @@
 version 1;
 package omni_secure;
 
+use omni_sign::OmniCert;
+
+#[rust::derive(Eq)]
 enum AuthType {
   @1 None;
   @2 Sign;
@@ -21,3 +24,49 @@ const KEY_EXCHANGE_ALGORITHM_X25519: u32 = 1;
 const KEY_DERIVATION_ALGORITHM_HKDF: u32 = 1;
 const CIPHER_ALGORITHM_AES_256_GCM: u32 = 1;
 const HASH_ALGORITHM_SHA3_256: u32 = 1;
+
+#[rust::derive(Eq)]
+enum V2Role {
+  @1 Connected;
+  @2 Accepted;
+}
+
+#[rust::derive(Eq)]
+struct V2ProfileMessage {
+  @1 version: u32;
+  @2 role: V2Role;
+  @3 auth_type: AuthType;
+  @4 context: bytes[1..=V2_MAX_CONTEXT_LENGTH];
+  @5 nonce: bytes[SESSION_ID_LENGTH..=SESSION_ID_LENGTH];
+  @6 ephemeral_public_key: bytes[V2_DH_PUBLIC_KEY_LENGTH..=V2_DH_PUBLIC_KEY_LENGTH];
+  @7 name: string[..=V2_MAX_NAME_LENGTH];
+  @8 public_key: bytes[..=V2_IDENTITY_PUBLIC_KEY_LENGTH];
+}
+
+#[rust::derive(Eq)]
+struct V2AuthMessage {
+  @1 cert: Option<OmniCert>;
+}
+
+#[rust::derive(Eq)]
+struct V2FinishedMessage {
+  @1 verify_data: bytes[V2_HASH_LENGTH..=V2_HASH_LENGTH];
+}
+
+const V2_VERSION: u32 = 2;
+const V2_MAX_CONTEXT_LENGTH: u32 = 256;
+const V2_MAX_NAME_LENGTH: u32 = 256;
+const V2_DH_PUBLIC_KEY_LENGTH: u32 = 32;
+const V2_IDENTITY_PUBLIC_KEY_LENGTH: u32 = 44;
+const V2_HASH_LENGTH: u32 = 32;
+const V2_SIGNATURE_LENGTH: u32 = 64;
+const V2_HANDSHAKE_MAX_FRAME_LENGTH: u32 = 16384;
+const V2_RECORD_HEADER_LENGTH: u32 = 21;
+const V2_RECORD_MAX_PLAINTEXT_LENGTH: u32 = 65536;
+const V2_RECORD_TAG_LENGTH: u32 = 16;
+const V2_KEY_UPDATE_LENGTH: u32 = 8;
+const V2_EPOCH_MAX_PLAINTEXT_LENGTH: u64 = 1073741824;
+const V2_EPOCH_MAX_RECORD_COUNT: u64 = 1048576;
+const V2_RECORD_DATA: u32 = 1;
+const V2_RECORD_KEY_UPDATE: u32 = 2;
+const V2_RECORD_CLOSE: u32 = 3;
