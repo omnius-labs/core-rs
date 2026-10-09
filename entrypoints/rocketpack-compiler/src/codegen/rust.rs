@@ -324,7 +324,14 @@ fn render_rust_file(graph: &SemanticGraph, file_index: usize, options: &RustOpti
     // リーフは root 宣言の inline mod 内で include! されるため inner attribute を置けない。
     // `#![allow(...)]` は root 宣言側に付いており、ネストしたモジュールへも効く。
     writeln!(&mut out, "{GENERATED_MARKER}").ok();
-    writeln!(&mut out, "// Source: {}", graph.files[file_index].source_path.display()).ok();
+    // OS ごとの再生成でヘッダの差分が出ないよう、区切りは `/` に統一する。
+    let source_path = graph.files[file_index]
+        .source_path
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/");
+    writeln!(&mut out, "// Source: {source_path}").ok();
     let depth = 0usize;
     for (item_index, item) in file.items.iter().enumerate() {
         match item {
