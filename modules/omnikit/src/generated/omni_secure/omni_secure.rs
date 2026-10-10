@@ -78,6 +78,7 @@ pub struct ProfileMessage {
     pub key_derivation_algorithm_type_flags: u32,
     pub cipher_algorithm_type_flags: u32,
     pub hash_algorithm_type_flags: u32,
+    pub role: u8,
 }
 
 impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
@@ -91,7 +92,7 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
         value: &Self,
     ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
-        encoder.write_map(6)?;
+        encoder.write_map(7)?;
         encoder.write_u64(1)?;
         omnius_core_rocketpack::validate_length("ProfileMessage.session_id", 32, 32, (&value.session_id).len())?;
         encoder.write_bytes((&value.session_id).as_slice())?;
@@ -105,6 +106,8 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         encoder.write_u32(*(&value.cipher_algorithm_type_flags))?;
         encoder.write_u64(6)?;
         encoder.write_u32(*(&value.hash_algorithm_type_flags))?;
+        encoder.write_u64(7)?;
+        encoder.write_u8(*(&value.role))?;
         Ok(())
     }
 
@@ -120,6 +123,7 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
         let mut __rpf_storage_key_derivation_algorithm_type_flags: Option<u32> = None;
         let mut __rpf_storage_cipher_algorithm_type_flags: Option<u32> = None;
         let mut __rpf_storage_hash_algorithm_type_flags: Option<u32> = None;
+        let mut __rpf_storage_role: Option<u8> = None;
         let count = decoder.read_map()?;
 
         for _ in 0..count {
@@ -142,6 +146,9 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
                 6 => {
                     __rpf_storage_hash_algorithm_type_flags = Some(decoder.read_u32()?);
                 }
+                7 => {
+                    __rpf_storage_role = Some(decoder.read_u8()?);
+                }
                 _ => decoder.skip_field()?,
             }
         }
@@ -153,6 +160,53 @@ impl omnius_core_rocketpack::RocketPackStruct for ProfileMessage {
             key_derivation_algorithm_type_flags: __rpf_storage_key_derivation_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: key_derivation_algorithm_type_flags"))?,
             cipher_algorithm_type_flags: __rpf_storage_cipher_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: cipher_algorithm_type_flags"))?,
             hash_algorithm_type_flags: __rpf_storage_hash_algorithm_type_flags.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: hash_algorithm_type_flags"))?,
+            role: __rpf_storage_role.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: role"))?,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct KeyConfirmationMessage {
+    pub mac: Vec<u8>,
+}
+
+impl omnius_core_rocketpack::RocketPackStruct for KeyConfirmationMessage {
+    fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        omnius_core_rocketpack::validate_length("KeyConfirmationMessage.mac", 32, 32, (&value.mac).len())?;
+        Ok(())
+    }
+
+    fn pack(
+        encoder: &mut impl omnius_core_rocketpack::RocketPackEncoder,
+        value: &Self,
+    ) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
+        encoder.write_map(1)?;
+        encoder.write_u64(1)?;
+        omnius_core_rocketpack::validate_length("KeyConfirmationMessage.mac", 32, 32, (&value.mac).len())?;
+        encoder.write_bytes((&value.mac).as_slice())?;
+        Ok(())
+    }
+
+    fn unpack(
+        decoder: &mut impl omnius_core_rocketpack::RocketPackDecoder,
+    ) -> std::result::Result<Self, omnius_core_rocketpack::RocketPackDecoderError>
+    where
+        Self: Sized,
+    {
+        let mut __rpf_storage_mac: Option<Vec<u8>> = None;
+        let count = decoder.read_map()?;
+
+        for _ in 0..count {
+            match decoder.read_u64()? {
+                1 => {
+                    __rpf_storage_mac = Some(decoder.read_bytes_bounded("KeyConfirmationMessage.mac", 32, 32)?);
+                }
+                _ => decoder.skip_field()?,
+            }
+        }
+
+        Ok(Self {
+            mac: __rpf_storage_mac.ok_or(omnius_core_rocketpack::RocketPackDecoderError::Other("missing field: mac"))?,
         })
     }
 }

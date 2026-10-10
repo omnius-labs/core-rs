@@ -44,8 +44,26 @@ mod tests {
         let rng = Arc::new(Mutex::new(ChaCha20Rng::from_rng(&mut UnwrapErr(SysRng))));
 
         let (client_stream, server_stream) = tokio::io::duplex(4096);
-        let secure_client = OmniSecureStream::new(client_stream, OmniSecureStreamType::Connected, 1024, None, clock.clone(), rng.clone());
-        let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, clock.clone(), rng.clone());
+        let secure_client = OmniSecureStream::new(
+            client_stream,
+            OmniSecureStreamType::Connected,
+            1024,
+            None,
+            false,
+            std::time::Duration::from_secs(300),
+            clock.clone(),
+            rng.clone(),
+        );
+        let secure_server = OmniSecureStream::new(
+            server_stream,
+            OmniSecureStreamType::Accepted,
+            1024,
+            None,
+            false,
+            std::time::Duration::from_secs(300),
+            clock.clone(),
+            rng.clone(),
+        );
 
         let (secure_client, secure_server) = tokio::try_join!(secure_client, secure_server)?;
 
@@ -78,7 +96,17 @@ mod tests {
             let addr = "0.0.0.0:50000";
             let listener = TcpListener::bind(addr).await?;
             let (server_stream, _) = listener.accept().await?;
-            let secure_server = OmniSecureStream::new(server_stream, OmniSecureStreamType::Accepted, 1024, None, clock.clone(), rng.clone()).await?;
+            let secure_server = OmniSecureStream::new(
+                server_stream,
+                OmniSecureStreamType::Accepted,
+                1024,
+                None,
+                false,
+                std::time::Duration::from_secs(300),
+                clock.clone(),
+                rng.clone(),
+            )
+            .await?;
 
             let codec = tokio_util::codec::LengthDelimitedCodec::builder().max_frame_length(1024).little_endian().new_codec();
             let mut framed = tokio_util::codec::Framed::new(secure_server, codec);

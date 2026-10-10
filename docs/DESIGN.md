@@ -649,16 +649,15 @@ RocketPack の可変長型制約は任意であり、制約ありなしのどち
 `Timestamp64` と `Timestamp96` は Rust generator と生成例で利用できる。
 RocketPack に関する §11.1 の決定済み contract に残作業はない。
 
-§6.2 の handshake は未実装である。
-secure auth は署名者自身の profile と一時公開鍵だけを署名し、session ID の XOR と空の info で鍵を導出している。
-相手の署名の必須指定、cert の取得、作成時刻と全 0 の shared secret の拒否、公開鍵を含む鍵確認を実装する作業が残る。
-profile の role と鍵確認 message の schema、意味的フィールドからの transcript 構成も更新対象である。
-HMAC-SHA3-256 の計算と検証には `hmac` の直接依存を workspace と omnikit に追加する。omnikit の直接依存には `hkdf` と `sha3` があり、`hmac` は含まれていない。
+§6.2 の handshake を実装している。
+secure auth は双方の role、profile、一時公開鍵から transcript を構成し、署名と HKDF の info に含める。
+相手の署名の必須指定と cert の取得に対応し、作成時刻の許容幅と全 0 の shared secret を検査する。
+双方の署名公開鍵を含む鍵確認を交換してから stream を返す。
+profile の role と鍵確認 message は schema と生成型にあり、HMAC-SHA3-256 には workspace と omnikit の直接依存 `hmac` を使う。
 
 §6.2 の鍵と nonce は frame 層がそのまま使える。
-handshake の受信境界は更新を要する。
-[framed_receiver.rs](../modules/omnikit/src/service/connection/codec/framed_receiver.rs) の `FramedReceiver::into_inner` は先読み済みの buffer を返さないため、auth 層は message の長さ分だけを読む方式にする。
-これらは handshake と constructor・認証結果の API の変更であり、`stream.rs` の読み書き、encoder、decoder の変更を要しない。
+auth 層は message の長さ分だけを読み、最後の鍵確認に続く暗号化した frame を先読みしない。
+`stream.rs` の読み書き、encoder、decoder は従来のままである。
 
 omnikit の secure connection 層と remoting 層はそれぞれ単体で動作するが、両者を結線して secure な経路上で remoting を行う実装は存在しない。
 複数呼び出しを yamux で多重化する結線も存在しない（§11.2）。
