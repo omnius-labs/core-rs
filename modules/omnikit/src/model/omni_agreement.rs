@@ -51,6 +51,10 @@ impl OmniAgreement {
         let public_key = x25519_dalek::PublicKey::from(public_key);
         let shared_secret = secret_key.diffie_hellman(&public_key);
 
+        if !shared_secret.was_contributory() {
+            return Err(Error::new(ErrorKind::InvalidFormat).with_message("all-zero shared secret"));
+        }
+
         Ok(shared_secret.as_bytes().to_vec())
     }
 }
@@ -60,6 +64,21 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[test]
+    fn rejects_all_zero_shared_secret() -> TestResult {
+        let agreement = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, Utc::now())?;
+        let mut public_key = agreement.gen_agreement_public_key();
+        // Both encodings are low-order points whose X25519 result is all zero.
+        for first_byte in [0, 1] {
+            public_key.public_key = vec![0; 32];
+            public_key.public_key[0] = first_byte;
+            let error = OmniAgreement::gen_secret(&agreement.gen_agreement_private_key(), &public_key).unwrap_err();
+            assert_eq!(error.kind(), &ErrorKind::InvalidFormat);
+            assert_eq!(error.message(), Some("all-zero shared secret"));
+        }
+        Ok(())
+    }
 
     #[tokio::test]
     async fn simple_test() -> TestResult {

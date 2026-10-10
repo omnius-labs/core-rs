@@ -1,4 +1,4 @@
-use std::{pin::Pin, sync::Arc, vec};
+use std::{pin::Pin, sync::Arc, time::Duration, vec};
 
 use chrono::Utc;
 use parking_lot::Mutex;
@@ -8,7 +8,10 @@ use tracing::trace;
 
 use omnius_core_base::clock::Clock;
 
-use crate::{generated::omni_sign::OmniSigner, prelude::*};
+use crate::{
+    generated::omni_sign::{OmniCert, OmniSigner},
+    prelude::*,
+};
 
 use super::*;
 
@@ -31,6 +34,7 @@ where
     read_state: ReadState,
     write_state: WriteState,
     sign_id: Option<String>,
+    peer_cert: Option<OmniCert>,
     encoder: Aes256GcmEncoder,
     decoder: Aes256GcmDecoder,
 }
@@ -67,16 +71,19 @@ impl<T> OmniSecureStream<T>
 where
     T: AsyncRead + AsyncWrite + Send + 'static,
 {
+    #[allow(clippy::too_many_arguments)]
     pub async fn new(
         stream: T,
         stream_type: OmniSecureStreamType,
         max_frame_length: usize,
         signer: Option<OmniSigner>,
+        require_peer_signature: bool,
+        max_clock_skew: Duration,
         clock: Arc<dyn Clock<Utc> + Send + Sync>,
         rng: Arc<Mutex<dyn rand::Rng + Send + Sync>>,
     ) -> Result<Self> {
         let (reader, writer) = tokio::io::split(stream);
-        let mut authenticator = Authenticator::new(stream_type, reader, writer, max_frame_length, signer, clock, rng).await?;
+        let mut authenticator = Authenticator::new(stream_type, reader, writer, max_frame_length, signer, require_peer_signature, max_clock_skew, clock, rng).await?;
         let auth_result = authenticator.auth().await?;
         let (reader, writer) = authenticator.into_inner();
 
@@ -85,7 +92,8 @@ where
             writer,
             read_state: ReadState::Init,
             write_state: WriteState::Init,
-            sign_id: auth_result.sign_id,
+            sign_id: auth_result.peer_cert.as_ref().map(ToString::to_string),
+            peer_cert: auth_result.peer_cert,
             encoder: Aes256GcmEncoder::new(&auth_result.enc_key, &auth_result.enc_nonce),
             decoder: Aes256GcmDecoder::new(&auth_result.dec_key, &auth_result.dec_nonce),
         })
@@ -93,6 +101,10 @@ where
 
     pub fn sign_id(&self) -> Option<&str> {
         self.sign_id.as_deref()
+    }
+
+    pub fn peer_cert(&self) -> Option<&OmniCert> {
+        self.peer_cert.as_ref()
     }
 }
 

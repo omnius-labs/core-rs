@@ -13,6 +13,11 @@ struct ProfileMessage {
   @4 key_derivation_algorithm_type_flags: u32;
   @5 cipher_algorithm_type_flags: u32;
   @6 hash_algorithm_type_flags: u32;
+  @7 role: u8;
+}
+
+struct KeyConfirmationMessage {
+  @1 mac: bytes[32..=32];
 }
 
 const SESSION_ID_LENGTH: u32 = 32;

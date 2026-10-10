@@ -7,6 +7,7 @@ use crate::generated::{
 
 impl ProfileMessage {
     pub fn new(
+        role: u8,
         session_id: Vec<u8>,
         auth_type: AuthType,
         key_exchange_algorithm_type: BitFlags<KeyExchangeAlgorithmType>,
@@ -15,6 +16,7 @@ impl ProfileMessage {
         hash_algorithm_type: BitFlags<HashAlgorithmType>,
     ) -> Self {
         let mut v = ProfileMessage {
+            role,
             session_id,
             auth_type,
             key_exchange_algorithm_type_flags: 0,
