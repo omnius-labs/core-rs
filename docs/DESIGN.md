@@ -201,40 +201,165 @@ layer 1: raw AsyncRead + AsyncWrite（呼び出し側が用意）
 
 ### 6.2 secure connection
 
-`service/connection/secure/auth.rs` の `Authenticator::auth` が handshake 全体を実装する。
+handshake は、双方の接続ごとの値を署名と鍵導出に含め、鍵確認で署名者の公開鍵も照合する。
+[auth.rs](../modules/omnikit/src/service/connection/secure/auth.rs) の `Authenticator::auth` がこの処理を担当し、成功した鍵だけを暗号化した frame の層へ渡す。
+V1 は本節の手順だけを持ち、旧形式の受理と fallback は行わない。
+
+#### API と接続の向き
+
+`OmniSecureStream::new` は、`stream`、`stream_type`、`max_frame_length`、`signer`、`require_peer_signature: bool`、`max_clock_skew: std::time::Duration`、`clock`、`rng` をこの順で受け取る。
+発信側は `OmniSecureStreamType::Connected`、受理側は `Accepted` を指定する。
+role はそれぞれ 1 byte の `0x01` と `0x02` で表し、`ProfileMessage` にも含める。
+`ProfileMessage` の `role` の schema 型は `u8` とし、decode 後に値を検査する。
+相手が自分と同じ role または未知の role を送る接続は拒否する。
+
+`signer` があれば自分の `auth_type` は `Sign`、なければ `None` とする。
+`require_peer_signature` が `true` の側は、相手の profile が `None` なら拒否する。
+`false` の場合も、相手が `Sign` を申告すれば cert の受信と検証を必須とする。
+自分の署名の有無と、相手へ署名を要求するかどうかは独立であり、`AuthType::None` は匿名の鍵交換に使える。
+
+成功後の `peer_cert(&self) -> Option<&OmniCert>` は、handshake で検証し、鍵確認でも公開鍵を照合した相手の cert を返す。
+相手が `None` の場合は `None` を返す。
+`sign_id()` はその cert から作る表示用の文字列を返す。
+期待する相手かどうかの判定は呼び出し側が返された cert の `public_key` と既知の公開鍵を照合して行い、署名の対象に含まれない cert の `name` は認証済みの識別情報として扱わない。
+
+#### Message の順序
 
 ```mermaid
 sequenceDiagram
-    participant A as 自分
-    participant B as 相手
-    A->>B: ProfileMessage(session_id, auth_type, algorithm flags)
-    B->>A: ProfileMessage(session_id, auth_type, algorithm flags)
-    A->>B: OmniAgreementPublicKey
-    B->>A: OmniAgreementPublicKey
-    opt 自分が signer を持つ
-        A->>B: OmniCert
+    participant C as 発信側 Connected
+    participant A as 受理側 Accepted
+    C->>A: ProfileMessage(role, session_id, auth_type, algorithm flags)
+    A->>C: ProfileMessage(role, session_id, auth_type, algorithm flags)
+    C->>A: OmniAgreementPublicKey
+    Note over A: 型・長さ・作成時刻を検査
+    A->>C: OmniAgreementPublicKey
+    Note over C: 型・長さ・作成時刻を検査
+    Note over C,A: transcript を構成し、X25519 の全 0 結果を拒否
+    opt 発信側の auth_type が Sign
+        C->>A: OmniCert(signature over Connected role and transcript)
+        Note over A: 発信側の署名を検証
     end
-    opt 相手の auth_type が Sign
-        B->>A: OmniCert
+    opt 受理側の auth_type が Sign
+        A->>C: OmniCert(signature over Accepted role and transcript)
+        Note over C: 受理側の署名を検証
     end
-    Note over A,B: 双方で X25519 shared secret を計算し、HKDF-SHA3-256 で鍵導出
-    Note over A,B: 以後は AES-256-GCM で暗号化された OmniSecureStream
+    Note over C,A: HKDF-SHA3-256 で鍵導出
+    C->>A: KeyConfirmationMessage(Connected MAC)
+    Note over A: MAC を検証
+    A->>C: KeyConfirmationMessage(Accepted MAC)
+    Note over C: MAC を検証
+    Note over C,A: 各側は自分の MAC の送信完了と相手の MAC の検証後に stream を返す
 ```
 
-相手の認証は、相手が申告した `auth_type` にのみ依存する。
-自分が signer を持っていても、相手が `AuthType::None` を送れば相手の証明書は要求されない。
-双方が相手に認証を強制するかどうかは各々の設定次第であり、mutual 認証を型として強制する仕組みはない。
+profile と一時公開鍵の各段は、発信側が相手の同じ段の message を待たずに送信し、受理側はそれを受信・検査してから自分の message を送信する。
+各側は profile の送受信と相手の profile の検査を終えてから一時公開鍵の段へ進み、一時公開鍵についても同じ条件を満たしてから cert の段へ進む。
+cert の段では、発信側が `Sign` なら先に cert を送信し、受理側はそれを受信・検証してから、自分も `Sign` の場合に cert を送信する。
+発信側が `None` なら、受理側は発信側の cert を待たず、自分が `Sign` の場合だけ cert を送信する。相手が `None` の側は相手の cert を待たず、双方が `None` なら cert の段を省く。
+鍵確認は直列であり、発信側が MAC を送信し、受理側はそれを受信・検証してから自分の MAC を送信する。
+各送信に対して相手が受信を行い、双方が同じ段で受信待ちになる状態も、双方が送信完了だけを待つ状態も作らないため、相互待ちによる deadlock は起きない。
 
-鍵交換と鍵導出は次のとおりである。
+各接続で新しい 32 byte のランダムな `session_id` と X25519 の一時鍵対を生成し、再利用しない。
+profile の 4 つの algorithm flags はそれぞれ `1` のみを認め、X25519、HKDF、AES-256-GCM、SHA3-256 を使う。
+署名は `OmniSignType::Ed25519_Sha3_256_Base64Url` のみを認める。
 
-- 鍵交換は X25519（`x25519_dalek`）のみを実装する。
-  `ProfileMessage` の algorithm flags は bitmask で複数候補を表現できるが、実装がある候補は各 category につき 1 つだけであり、一致しない場合は `ErrorKind::UnsupportedType` になる。
-- 鍵導出は「`自分の session_id` XOR `相手の session_id`」を salt に使う HKDF-SHA3-256 であり、AES-256-GCM の鍵と nonce を送受信それぞれ独立に 1 組ずつ導出する。
-- handshake（`ProfileMessage`、`OmniAgreementPublicKey`、`OmniCert`）は平文で送られ、`Authenticator::auth` 完了後にだけ `OmniSecureStream` が AES-256-GCM で読み書きを暗号化する。
-- handshake に失敗した場合、`auth()` は `Err` を返すだけであり、相手へ失敗を伝える message は送らない。
-  呼び出し側は下位 transport を close する前提になる。
-- `OmniSecureStream::new` に渡す `max_frame_length` は handshake 中の平文 frame にだけ働く。
-  handshake 後の暗号化 stream 自体の frame 分割は `secure/stream.rs` に定めた固定 64 KiB を使い、呼び出し側が指定した `max_frame_length` には従わない。
+handshake の各 message は平文で、4 byte の little-endian 長さと RocketPack payload からなる frame に入る。
+auth 層は長さを `max_frame_length` と照合してから payload を確保し、その message の末尾までだけを読む。
+最後の鍵確認に続く byte 列を先読みせず、送信は message ごとに flush する。
+これにより、handshake 後の暗号化した frame は下位 stream に未読のまま残る。
+
+#### Transcript と署名
+
+`||` は byte 列の連結、`C` は発信側、`A` は受理側を表す。
+以下の `b"...\0"` は ASCII byte 列と末尾の 1 byte の NUL であり、整数と固定長の値に長さ prefix は付けない。
+transcript `T` は、送受信の視点によらず、次の順で構成する。
+
+```text
+P_X = session_id[32]
+      || auth_type(u32 LE)
+      || key_exchange_algorithm_type_flags(u32 LE)
+      || key_derivation_algorithm_type_flags(u32 LE)
+      || cipher_algorithm_type_flags(u32 LE)
+      || hash_algorithm_type_flags(u32 LE)
+E_X = created_time.seconds(i64 BE)
+      || agreement_algorithm_type(u32 LE)
+      || public_key[32]
+T   = b"OmniSecureStream/V1/transcript\0"
+      || 0x01 || P_C || E_C
+      || 0x02 || P_A || E_A
+```
+
+`auth_type` は `None=1`、`Sign=2`、`agreement_algorithm_type` は `X25519=2` とする。
+profile の role は `T` の `0x01` と `0x02` に対応し、作成時刻は UTC の Unix 秒である。
+wire の `export()` 全体や、受信後に選んだ値への置き換えは使わず、双方が送受信した意味的フィールドをそのまま含める。
+
+role `r` の署名 preimage は `b"OmniSecureStream/V1/signature\0" || r || T` とする。
+その SHA3-256 hash の 32 byte に `OmniSigner::sign` で署名し、相手は相手の role で同じ hash を計算して `OmniCert::verify` に渡す。
+用途の接頭辞と role により、別用途の署名と反対向きの署名を流用できない。
+記録した署名の再送は、受信側が接続ごとに新しい値を選ぶ前提で transcript の不一致として検出する。
+
+#### 作成時刻と X25519 の検査
+
+一時公開鍵の受信直後、署名の送信・検証と鍵導出に先立ち、algorithm が X25519、公開鍵が 32 byte であることを検査する。
+同じ位置で `clock.now()` の UTC Unix 秒と `created_time.seconds` の差の絶対値を求め、`max_clock_skew` を超えれば拒否する。
+過去と未来を同じ基準で検査し、境界値と同じ差は受理する。
+差は `i128` で計算し、極端な `i64` の時刻でも overflow させない。
+許容幅は整数秒に限り、端数を含む `Duration` は constructor で拒否する。0 秒も指定でき、既定値や検査を無効にする値は設けない。
+生成側も同じ clock の Unix 秒を一時鍵の作成時刻にする。
+
+X25519 の shared secret は、32 byte がすべて 0 なら `OmniAgreement::gen_secret` で拒否し、HKDF へ渡さない。
+時計のずれが許容幅を超える接続は確立できず、許容幅内の再送の検出は新しい `session_id` と一時鍵に依存する。
+
+#### HKDF と鍵確認
+
+HKDF-SHA3-256 は X25519 の shared secret を IKM、`session_id_C || session_id_A` の 64 byte を salt、`b"OmniSecureStream/V1/keys\0" || SHA3-256(T)` を info として、152 byte を一度に展開する。
+出力は次の順で分割する。
+
+| byte 範囲（終端を含まない） | 用途 |
+| --- | --- |
+| `[0, 32)` | 発信側から受理側への frame の AES 鍵 |
+| `[32, 44)` | 同方向の frame の初期 nonce |
+| `[44, 76)` | 受理側から発信側への frame の AES 鍵 |
+| `[76, 88)` | 同方向の frame の初期 nonce |
+| `[88, 120)` | 発信側の鍵確認用 MAC 鍵 `K_C` |
+| `[120, 152)` | 受理側の鍵確認用 MAC 鍵 `K_A` |
+
+発信側は最初の frame 鍵と nonce を encode に、次の組を decode に使い、受理側は逆に使う。
+鍵確認には専用の MAC 鍵を使い、frame の鍵と nonce は消費しない。
+salt は一時鍵とは独立に選ぶ接続ごとの乱数から作り、info は用途と transcript に鍵を結び付ける。
+salt と info の役割は [RFC 5869 §2–3](https://www.rfc-editor.org/rfc/rfc5869.html#section-2) に従う。
+
+鍵確認の対象には `T` と、発信側・受理側の順に並べた署名公開鍵の slot `I_C`、`I_A` を含める。
+自分の slot は自分が送った cert、相手の slot は検証済みの受信 cert から作り、相手から送られた slot の申告値は使わない。
+
+```text
+I_X (None) = 0x00
+I_X (Sign) = 0x01 || cert.typ(u32 LE)
+             || cert.public_key.len(u32 LE) || cert.public_key
+M_r = b"OmniSecureStream/V1/confirmation\0" || r || T || I_C || I_A
+MAC_r = HMAC-SHA3-256(K_r, M_r)
+```
+
+`cert.typ` は `Ed25519_Sha3_256_Base64Url=2` とし、公開鍵は cert に含まれる DER byte 列をそのまま使う。
+`KeyConfirmationMessage` の schema は `@1 mac: bytes[32..=32];` の 1 field だけを持つ。
+`KeyConfirmationMessage` はこの MAC の 32 byte を持ち、受信側は相手の role と対応する MAC 鍵で検証し、比較は定数時間で行う。
+片方だけが署名する場合はその側だけが `Sign` slot、双方が `None` なら両 slot が `0x00` となる。
+署名の公開鍵を中継者のものへ差し替えると、本人の送信 cert と相手の受信 cert で slot が食い違い、中継者が shared secret を知らない限り鍵確認を通せない。
+双方が `None` の場合も鍵確認を交換するが、相手の身元の認証と能動的な中間者攻撃への保護は得られない。
+
+#### 失敗と frame 層との境界
+
+不正な role・形式・長さ・時刻、必須署名の欠落、署名や MAC の検証失敗、全 0 の shared secret は handshake の失敗とし、`auth()` と `OmniSecureStream::new` は `Err` を返す。
+未対応の algorithm は `ErrorKind::UnsupportedType`、それ以外の検査違反は `ErrorKind::InvalidFormat` とし、I/O error と EOF も成功へ変換しない。
+失敗通知や fallback は送らず、成功した stream と相手の cert を公開しない。
+constructor は下位 stream を所有し、失敗時に保持している reader と writer を drop する。
+呼び出し側も同じ接続を再利用せずに閉じ、handshake 全体の期限と同時数を管理する。
+
+暗号化した frame の層は AES-256-GCM の鍵 32 byte と初期 nonce 12 byte の各方向 1 組だけを受け取り、transcript や cert を解釈しない。
+[stream.rs](../modules/omnikit/src/service/connection/secure/stream.rs) の読み書きは、little-endian の 4 byte 長さと暗号文・16 byte の tag を扱い、平文を最大 64 KiB に分割する。
+[encoder.rs](../modules/omnikit/src/service/connection/secure/encoder.rs) と [decoder.rs](../modules/omnikit/src/service/connection/secure/decoder.rs) は、初期 nonce から成功した frame ごとに [util.rs](../modules/omnikit/src/service/connection/secure/util.rs) の little-endian counter を進める。
+新しい handshake も同じ長さの鍵と nonce を渡し、鍵確認で counter を進めないため、この層の変更を要しない。
+`max_frame_length` は handshake の平文 frame にだけ適用し、暗号化した stream の固定 64 KiB の分割は変えない。
 
 **AEAD の nonce は wire に載らず、送受信ごとに独立した counter を 1 message ごとに決定的に増分することでのみ一意性を保つ。**
 この前提は、下位 stream が順序を保証する reliable な stream であることに依存する。
@@ -358,15 +483,25 @@ workspace 内に旧形式を読む利用経路はなく、二重 decoder と ver
 #### 署名 preimage を意味的フィールドへ固定する
 
 **決定**
-secure auth の署名 preimage は `session_id`、AuthType tag、4 つの flags、created time、Agreement type tag、public key を固定順で連結する。
-AuthType と Agreement type の tag、および flags は little-endian `u32`、created time は big-endian `i64` とする。
-enum tag は現行 RPF の `None=1`、`Sign` と `X25519=2` を用い、wire `export()` 全体を署名しない。
+secure auth は §6.2 の transcript を、発信側・受理側の順に双方の role、profile、一時公開鍵の意味的フィールドから構成する。
+署名は用途の接頭辞と署名者の role を加えた preimage の hash を対象とし、同じ transcript の hash を HKDF の info に含める。
+HKDF の salt は双方のランダムな session ID を発信側・受理側の順で連結する。
+双方の署名公開鍵を含めた専用 MAC の鍵確認が成功してから handshake を完了する。
+作成時刻の許容幅と相手の署名の必須指定は呼び出し側が決め、全 0 の X25519 結果を拒否する。
+旧い V1 をこの手順で置き換え、frame の暗号化方式は維持する。
 
 **理由**
-wire の tag 順や将来のフィールド追加を署名互換性から切り離し、意味的に必要な値だけを protocol contract にするためである。
+双方の接続ごとの値と向きを署名することで、profile や一時公開鍵の書き換えと、過去の署名の再送を検出する。
+公開鍵を含む鍵確認は、署名だけを別の署名者のものへ差し替える中継を検出し、導出した鍵を双方が保持することも確かめる。
+用途の接頭辞は同じ署名鍵の別用途での署名の流用を防ぎ、時刻の検査は許容幅を超えた古い鍵を接続ごとの値に依存せず拒否する。
+意味的フィールドを固定すると、wire の tag 順や serialization の変更だけでは preimage が変わらない。
+暗号化した frame は鍵と nonce の受け渡しだけで使えるため、handshake の保証を加えるためにその層を作り直す必要がない。
 
 **却下案**
 wire export 全体を hash する方式は実装が短いが、serialization の変更だけで署名が無効になるため採用しない。
+自分の profile と一時公開鍵だけを署名し、session ID の XOR を salt にする方式は、相手の値と接続の向きが署名に結び付かず、署名者を差し替える中継も検出できないため採用しない。
+transcript だけを対象に鍵確認する方式は、同じ一時鍵を中継したまま署名者の公開鍵を差し替えられるため採用しない。
+鍵確認を frame の AES 鍵と nonce で行う方式は、frame 層へ渡す counter の調整を必要とするため採用しない。
 
 <a id="d-rpf-length-syntax"></a>
 #### 有限な包含レンジを可変長型へ任意で後置する
@@ -512,7 +647,18 @@ omnikit の remoting を使う具体的な client または server の実装が�
 
 RocketPack の可変長型制約は任意であり、制約ありなしのどちらも parser、意味検査、Rust generator、runtime の境界検査へ反映されている。
 `Timestamp64` と `Timestamp96` は Rust generator と生成例で利用できる。
-§11.1 の決定済み contract に残作業はない。
+RocketPack に関する §11.1 の決定済み contract に残作業はない。
+
+§6.2 の handshake は未実装である。
+secure auth は署名者自身の profile と一時公開鍵だけを署名し、session ID の XOR と空の info で鍵を導出している。
+相手の署名の必須指定、cert の取得、作成時刻と全 0 の shared secret の拒否、公開鍵を含む鍵確認を実装する作業が残る。
+profile の role と鍵確認 message の schema、意味的フィールドからの transcript 構成も更新対象である。
+HMAC-SHA3-256 の計算と検証には `hmac` の直接依存を workspace と omnikit に追加する。omnikit の直接依存には `hkdf` と `sha3` があり、`hmac` は含まれていない。
+
+§6.2 の鍵と nonce は frame 層がそのまま使える。
+handshake の受信境界は更新を要する。
+[framed_receiver.rs](../modules/omnikit/src/service/connection/codec/framed_receiver.rs) の `FramedReceiver::into_inner` は先読み済みの buffer を返さないため、auth 層は message の長さ分だけを読む方式にする。
+これらは handshake と constructor・認証結果の API の変更であり、`stream.rs` の読み書き、encoder、decoder の変更を要しない。
 
 omnikit の secure connection 層と remoting 層はそれぞれ単体で動作するが、両者を結線して secure な経路上で remoting を行う実装は存在しない。
 複数呼び出しを yamux で多重化する結線も存在しない（§11.2）。
