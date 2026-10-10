@@ -315,6 +315,10 @@ mod tests {
     }
 
     async fn authenticate(stream: DuplexStream, typ: OmniSecureStreamType, signer: Option<OmniSigner>, required: bool, seconds: i64) -> Result<AuthResult> {
+        let seed = match typ {
+            OmniSecureStreamType::Connected => [42; 32],
+            OmniSecureStreamType::Accepted => [43; 32],
+        };
         let (reader, writer) = tokio::io::split(stream);
         let mut auth = TestAuth::new(
             typ,
@@ -325,7 +329,7 @@ mod tests {
             required,
             Duration::from_secs(300),
             clock(seconds),
-            Arc::new(Mutex::new(ChaCha20Rng::from_seed([42; 32]))),
+            Arc::new(Mutex::new(ChaCha20Rng::from_seed(seed))),
         )
         .await?;
         auth.auth().await
@@ -346,11 +350,17 @@ mod tests {
         Ok(())
     }
 
-    async fn run_relay(connected_signs: bool, accepted_signs: bool, mut mutate: impl FnMut(u8, usize, Vec<u8>) -> Vec<u8>) -> (Result<AuthResult>, Result<AuthResult>) {
+    async fn run_relay(
+        connected_signs: bool,
+        accepted_signs: bool,
+        required: bool,
+        mut mutate: impl FnMut(u8, usize, Vec<u8>) -> Option<Vec<u8>>,
+    ) -> (Result<AuthResult>, Result<AuthResult>) {
         // A tiny transport also exercises the specified send/receive ordering.
         let (connected, mut left) = tokio::io::duplex(32);
         let (accepted, mut right) = tokio::io::duplex(32);
         let relay = async move {
+            let mut connected_session_id = None;
             for stage in 0..4 {
                 for role in [0x01, 0x02] {
                     if stage == 2 && !(if role == 0x01 { connected_signs } else { accepted_signs }) {
@@ -358,16 +368,37 @@ mod tests {
                     }
                     let (from, to) = if role == 0x01 { (&mut left, &mut right) } else { (&mut right, &mut left) };
                     let payload = read_frame(from).await?;
-                    let payload = mutate(role, stage, payload);
-                    write_frame(to, &payload).await?;
+                    if stage == 0 {
+                        let session_id = ProfileMessage::import(&payload)?.session_id;
+                        if role == 0x01 {
+                            connected_session_id = Some(session_id);
+                        } else {
+                            assert_ne!(Some(session_id), connected_session_id);
+                        }
+                    }
+                    if let Some(payload) = mutate(role, stage, payload) {
+                        write_frame(to, &payload).await?;
+                    }
                 }
             }
             Ok::<_, Error>(())
         };
         let (connected, accepted, _) = timeout(Duration::from_secs(5), async {
             tokio::join!(
-                authenticate(connected, OmniSecureStreamType::Connected, connected_signs.then(|| signer("connected")), false, NOW),
-                authenticate(accepted, OmniSecureStreamType::Accepted, accepted_signs.then(|| signer("accepted")), false, NOW),
+                authenticate(
+                    connected,
+                    OmniSecureStreamType::Connected,
+                    connected_signs.then(|| signer("connected")),
+                    required && accepted_signs,
+                    NOW
+                ),
+                authenticate(
+                    accepted,
+                    OmniSecureStreamType::Accepted,
+                    accepted_signs.then(|| signer("accepted")),
+                    required && connected_signs,
+                    NOW
+                ),
                 relay
             )
         })
@@ -433,13 +464,107 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn handshake_derives_keys_in_connection_order() -> TestResult {
+        for role in [1, 2] {
+            let typ = if role == 1 { OmniSecureStreamType::Connected } else { OmniSecureStreamType::Accepted };
+            let (endpoint, mut peer) = tokio::io::duplex(32);
+            // This peer derives the reference keys independently of auth(),
+            // using its own private key and the messages received on the wire.
+            let reference_peer = async {
+                let peer_role = 3 - role;
+                let profile = ProfileMessage {
+                    role: peer_role,
+                    session_id: vec![peer_role; 32],
+                    auth_type: AuthType::None,
+                    key_exchange_algorithm_type_flags: 1,
+                    key_derivation_algorithm_type_flags: 1,
+                    cipher_algorithm_type_flags: 1,
+                    hash_algorithm_type_flags: 1,
+                };
+                if peer_role == 1 {
+                    write_frame(&mut peer, &profile.export()?).await?;
+                }
+                let endpoint_profile = ProfileMessage::import(&read_frame(&mut peer).await?)?;
+                assert_eq!(endpoint_profile.role, role);
+                assert_ne!(endpoint_profile.session_id, profile.session_id);
+                if peer_role == 2 {
+                    write_frame(&mut peer, &profile.export()?).await?;
+                }
+                let agreement = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, clock(NOW).now())?;
+                let public_key = agreement.gen_agreement_public_key();
+                if peer_role == 1 {
+                    write_frame(&mut peer, &public_key.export()?).await?;
+                }
+                let endpoint_key = OmniAgreementPublicKey::import(&read_frame(&mut peer).await?)?;
+                if peer_role == 2 {
+                    write_frame(&mut peer, &public_key.export()?).await?;
+                }
+
+                let connected = if role == 1 { (&endpoint_profile, &endpoint_key) } else { (&profile, &public_key) };
+                let accepted = if role == 2 { (&endpoint_profile, &endpoint_key) } else { (&profile, &public_key) };
+                // §6.2 fixes both the field order and Connected-before-Accepted
+                // order; do not reuse the production transcript helper here.
+                let mut transcript = b"OmniSecureStream/V1/transcript\0".to_vec();
+                for (profile, key) in [connected, accepted] {
+                    transcript.push(profile.role);
+                    transcript.extend_from_slice(&profile.session_id);
+                    for tag in [1_u32, 1, 1, 1, 1] {
+                        transcript.extend_from_slice(&tag.to_le_bytes());
+                    }
+                    transcript.extend_from_slice(&key.created_time.seconds.to_be_bytes());
+                    transcript.extend_from_slice(&2_u32.to_le_bytes());
+                    transcript.extend_from_slice(&key.public_key);
+                }
+                let salt = [connected.0.session_id.as_slice(), accepted.0.session_id.as_slice()].concat();
+                let info = [b"OmniSecureStream/V1/keys\0".as_slice(), &Sha3_256::digest(&transcript)].concat();
+                let secret = OmniAgreement::gen_secret(&agreement.gen_agreement_private_key(), &endpoint_key)?;
+                let mut expected = [0; 152];
+                SimpleHkdf::<Sha3_256>::new(Some(&salt), &secret).expand(&info, &mut expected).unwrap();
+                let mac = |sender_role: u8| {
+                    let key = if sender_role == 1 { &expected[88..120] } else { &expected[120..152] };
+                    let mut mac = SimpleHmac::<Sha3_256>::new_from_slice(key).unwrap();
+                    mac.update(b"OmniSecureStream/V1/confirmation\0");
+                    mac.update(&[sender_role]);
+                    mac.update(&transcript);
+                    mac.update(&[0, 0]);
+                    mac
+                };
+                let confirmation = KeyConfirmationMessage {
+                    mac: mac(peer_role).finalize().into_bytes().to_vec(),
+                };
+                if peer_role == 1 {
+                    write_frame(&mut peer, &confirmation.export()?).await?;
+                }
+                let received = KeyConfirmationMessage::import(&read_frame(&mut peer).await?)?;
+                mac(role).verify_slice(&received.mac).expect("key confirmation differs from §6.2 reference");
+                if peer_role == 2 {
+                    write_frame(&mut peer, &confirmation.export()?).await?;
+                }
+                Ok::<_, Error>(expected)
+            };
+            let (result, expected) = timeout(Duration::from_secs(5), async {
+                tokio::join!(authenticate(endpoint, typ, None, false, NOW), reference_peer)
+            })
+            .await?;
+            let result = result?;
+            let expected = expected?;
+            let (enc, dec) = if role == 1 { (0, 44) } else { (44, 0) };
+            assert_eq!(result.enc_key, expected[enc..enc + 32]);
+            assert_eq!(result.enc_nonce, expected[enc + 32..enc + 44]);
+            assert_eq!(result.dec_key, expected[dec..dec + 32]);
+            assert_eq!(result.dec_nonce, expected[dec + 32..dec + 44]);
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn handshake_rejects_substituted_signature() -> TestResult {
         for (connected_signs, accepted_signs, target_role) in [(true, true, 1), (true, true, 2), (true, false, 1), (false, true, 2)] {
             let attacker = signer("attacker");
             let mut profiles = [None, None];
             let mut keys = [None, None];
             let mut substituted = false;
-            let (_, accepted) = run_relay(connected_signs, accepted_signs, |role, stage, payload| {
+            let (_, accepted) = run_relay(connected_signs, accepted_signs, false, |role, stage, payload| {
                 let index = usize::from(role - 1);
                 match stage {
                     0 => profiles[index] = Some(ProfileMessage::import(&payload).unwrap()),
@@ -458,11 +583,11 @@ mod tests {
                         replacement.verify(&hash).unwrap();
                         assert_ne!(original.public_key, replacement.public_key);
                         substituted = true;
-                        return replacement.export().unwrap();
+                        return Some(replacement.export().unwrap());
                     }
                     _ => {}
                 }
-                payload
+                Some(payload)
             })
             .await;
             assert!(substituted);
@@ -477,14 +602,14 @@ mod tests {
     async fn handshake_rejects_replayed_messages() -> TestResult {
         let mut recording = Vec::new();
         let mut old_accepted_profile = None;
-        let (connected, accepted) = run_relay(true, true, |role, stage, payload| {
+        let (connected, accepted) = run_relay(true, true, false, |role, stage, payload| {
             if role == 1 {
                 recording.push(payload.clone());
             }
             if role == 2 && stage == 0 {
                 old_accepted_profile = Some(ProfileMessage::import(&payload).unwrap());
             }
-            payload
+            Some(payload)
         })
         .await;
         connected?;
@@ -504,7 +629,7 @@ mod tests {
                 true,
                 Duration::from_secs(300),
                 clock(NOW),
-                Arc::new(Mutex::new(ChaCha20Rng::from_seed([43; 32]))),
+                Arc::new(Mutex::new(ChaCha20Rng::from_seed([44; 32]))),
             )
             .await?;
             auth.auth().await
@@ -528,26 +653,64 @@ mod tests {
 
     #[tokio::test]
     async fn handshake_rejects_tampered_profile_or_key() -> TestResult {
-        for stage_to_change in [0, 1] {
+        for (target_role, stage_to_change) in [(1, 0), (1, 1), (2, 0), (2, 1)] {
             let replacement_key = OmniAgreement::new(OmniAgreementAlgorithmType::X25519, DateTime::from_timestamp(NOW, 0).unwrap())?.gen_agreement_public_key();
             let mut changed = false;
-            let (_, accepted) = run_relay(true, true, |role, stage, payload| {
-                if role == 1 && stage == stage_to_change {
+            let (_, accepted) = run_relay(true, true, false, |role, stage, payload| {
+                if role == target_role && stage == stage_to_change {
                     changed = true;
                     if stage == 0 {
                         let mut profile = ProfileMessage::import(&payload).unwrap();
                         profile.session_id[0] ^= 1;
-                        return profile.export().unwrap();
+                        return Some(profile.export().unwrap());
                     }
                     let mut key = OmniAgreementPublicKey::import(&payload).unwrap();
                     key.public_key = replacement_key.public_key.clone();
-                    return key.export().unwrap();
+                    return Some(key.export().unwrap());
                 }
-                payload
+                Some(payload)
             })
             .await;
             assert!(changed);
+            // Accepted verifies the first cert, whose transcript includes both
+            // profiles and keys, so either direction fails this verification.
             assert_rejection(accepted, "failed to verify");
+        }
+        for (connected_signs, accepted_signs, target_role) in [(true, true, 1), (true, true, 2), (true, false, 1), (false, true, 2)] {
+            for required in [false, true] {
+                let mut changed = false;
+                let (connected, accepted) = run_relay(connected_signs, accepted_signs, required, |role, stage, payload| {
+                    if role == target_role {
+                        if stage == 0 {
+                            let mut profile = ProfileMessage::import(&payload).unwrap();
+                            assert_eq!(profile.auth_type, AuthType::Sign);
+                            profile.auth_type = AuthType::None;
+                            changed = true;
+                            return Some(profile.export().unwrap());
+                        }
+                        if stage == 2 {
+                            // The receiver expects no cert after the downgrade.
+                            // Omit it to test authentication, not frame decoding.
+                            return None;
+                        }
+                    }
+                    Some(payload)
+                })
+                .await;
+                assert!(changed);
+                let (rejecting_role, message) = if required {
+                    (3 - target_role, "peer signature required")
+                } else if connected_signs && accepted_signs {
+                    // The remaining cert is verified against different auth
+                    // types in the sender's and receiver's transcripts.
+                    (target_role, "failed to verify")
+                } else {
+                    // Only one side signs; after omitting that cert the first
+                    // MAC still binds different transcripts and cert slots.
+                    (2, "key confirmation failed")
+                };
+                assert_rejection(if rejecting_role == 1 { connected } else { accepted }, message);
+            }
         }
         Ok(())
     }
@@ -592,14 +755,14 @@ mod tests {
         for target_role in [1, 2] {
             for seconds in [NOW - 301, NOW + 301, i64::MIN, i64::MAX] {
                 let mut changed = false;
-                let (connected, accepted) = run_relay(true, true, |role, stage, payload| {
+                let (connected, accepted) = run_relay(true, true, false, |role, stage, payload| {
                     if role == target_role && stage == 1 {
                         let mut key = OmniAgreementPublicKey::import(&payload).unwrap();
                         key.created_time.seconds = seconds;
                         changed = true;
-                        return key.export().unwrap();
+                        return Some(key.export().unwrap());
                     }
-                    payload
+                    Some(payload)
                 })
                 .await;
                 assert!(changed);
