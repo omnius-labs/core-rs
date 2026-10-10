@@ -219,61 +219,101 @@ fn render_module_tree(graph: &SemanticGraph, options: &RustOptions) -> Result<BT
         nodes.entry(rendered_package).or_default().files.push(file_index);
     }
 
+    validate_source_module_stems(graph, &nodes)?;
+
     let mut generated = BTreeMap::new();
+    // root 宣言にはパッケージ階層を inline mod で展開し、底で各ソースを include! する。
+    // 生成物は mod 宣言を一切持たないリーフ (protobuf 系と同型) にするため、
+    // 利用側が `#[path]` や inline mod で別位置に取り込んでも mod ファイル解決の
+    // 問題は発生しない。
+    let mut root_declaration = String::new();
+    write_generated_header(&mut root_declaration);
     let root_node = nodes.get(&Vec::new()).expect("root package node must exist");
-    generated.insert(PathBuf::from(format!("{}.rs", options.module_name)), render_root_module(options));
-    generated.insert(PathBuf::from(&options.module_name).join(".root.rs"), render_package_module(root_node, graph, false)?);
+    write_module_declarations(&mut root_declaration, graph, &nodes, root_node, &[], 0, options)?;
+    insert_generated(&mut generated, PathBuf::from(format!("{}.rs", options.module_name)), root_declaration)?;
 
     for (package, node) in &nodes {
-        if package.is_empty() {
-            continue;
-        }
-        let mut path = PathBuf::from(&options.module_name);
-        for segment in &package[..package.len() - 1] {
-            path.push(segment);
-        }
-        path.push(format!("{}.rs", package.last().expect("non-empty package")));
-        generated.insert(path, render_package_module(node, graph, true)?);
-
         for file_index in &node.files {
-            let internal_name = internal_module_name(&graph.files[*file_index]);
-            let mut source_path = PathBuf::from(&options.module_name);
+            let stem = source_module_stem(&graph.files[*file_index]);
+            let mut leaf_path = PathBuf::from(&options.module_name);
             for segment in package {
-                source_path.push(segment);
+                leaf_path.push(segment);
             }
-            source_path.push(format!("{internal_name}.rs"));
-            generated.insert(source_path, render_rust_file(graph, *file_index, options)?);
+            leaf_path.push(format!("{stem}.rs"));
+            let leaf = render_rust_file(graph, *file_index, options)?;
+            insert_generated(&mut generated, leaf_path, leaf)?;
         }
     }
     Ok(generated)
 }
 
-fn render_root_module(options: &RustOptions) -> String {
-    let mut out = String::new();
-    write_generated_header(&mut out);
-    writeln!(&mut out, "include!({:?});", format!("{}/.root.rs", options.module_name)).ok();
-    out
+/// 生成ファイルの重複書き込みを検出する。パス衝突は呼び出し側の検証で防ぐはずだが、
+/// 黙って上書きすると壊れたツリーが生成されるため、保险としてエラーにする。
+fn insert_generated(generated: &mut BTreeMap<PathBuf, String>, path: PathBuf, contents: String) -> Result<(), CodegenError> {
+    if generated.insert(path.clone(), contents).is_some() {
+        return Err(CodegenError::Other(format!("generated file path collision: `{}`", path.display())));
+    }
+    Ok(())
 }
 
-fn render_package_module(node: &PackageNode, graph: &SemanticGraph, include_header: bool) -> Result<String, CodegenError> {
-    let mut out = String::new();
-    if include_header {
-        write_generated_header(&mut out);
-    } else {
-        writeln!(&mut out, "{GENERATED_MARKER}").ok();
+/// 同一パッケージ内で、stem 変換後に同じリーフファイル名へ落ちる複数のソースファイルを検出する。
+fn validate_source_module_stems(graph: &SemanticGraph, nodes: &BTreeMap<Vec<String>, PackageNode>) -> Result<(), CodegenError> {
+    for (package, node) in nodes {
+        let package_display = package.join("::");
+        let mut used = BTreeMap::<String, String>::new();
+        for file_index in &node.files {
+            let file = &graph.files[*file_index];
+            let stem = source_module_stem(file);
+            if let Some(previous_path) = used.insert(stem.clone(), file.source_path.display().to_string()) {
+                return Err(CodegenError::Other(format!(
+                    "Rust source module name collision in package `{package_display}`: `{previous_path}` and `{}` both map to `{stem}.rs`",
+                    file.source_path.display()
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// パッケージ階層を inline mod のネストとして書き出し、所属するソースを include! する。
+/// include! のパスは `<module_name>/...` で、root 宣言 (`<module_name>.rs`) の物理位置から解決される。
+fn write_module_declarations(
+    out: &mut String,
+    graph: &SemanticGraph,
+    nodes: &BTreeMap<Vec<String>, PackageNode>,
+    node: &PackageNode,
+    package: &[String],
+    depth: usize,
+    options: &RustOptions,
+) -> Result<(), CodegenError> {
+    let mut includes = BTreeMap::<String, String>::new();
+    for file_index in &node.files {
+        let stem = source_module_stem(&graph.files[*file_index]);
+        let mut include_path = options.module_name.clone();
+        for segment in package {
+            include_path.push('/');
+            include_path.push_str(segment);
+        }
+        include_path.push('/');
+        include_path.push_str(&stem);
+        includes.insert(stem, include_path);
+    }
+
+    for include_path in includes.values() {
+        writeln!(out, "{}include!(\"{include_path}.rs\");", indent(depth)).ok();
+    }
+    if !includes.is_empty() && !node.children.is_empty() {
+        writeln!(out).ok();
     }
     for child in &node.children {
-        writeln!(&mut out, "pub mod {child};").ok();
+        let mut child_package = package.to_vec();
+        child_package.push(child.clone());
+        let child_node = nodes.get(&child_package).expect("child package node must exist in the package tree");
+        writeln!(out, "{}pub mod {child} {{", indent(depth)).ok();
+        write_module_declarations(out, graph, nodes, child_node, &child_package, depth + 1, options)?;
+        writeln!(out, "{}}}", indent(depth)).ok();
     }
-    if !node.children.is_empty() && !node.files.is_empty() {
-        writeln!(&mut out).ok();
-    }
-    for file_index in &node.files {
-        let internal_name = internal_module_name(&graph.files[*file_index]);
-        writeln!(&mut out, "mod {internal_name};").ok();
-        writeln!(&mut out, "pub use {internal_name}::*;").ok();
-    }
-    Ok(out)
+    Ok(())
 }
 
 fn render_rust_file(graph: &SemanticGraph, file_index: usize, options: &RustOptions) -> Result<String, CodegenError> {
@@ -281,7 +321,17 @@ fn render_rust_file(graph: &SemanticGraph, file_index: usize, options: &RustOpti
     let file = &graph.files[file_index].ast;
     let mut out = String::new();
 
-    write_generated_header(&mut out);
+    // リーフは root 宣言の inline mod 内で include! されるため inner attribute を置けない。
+    // `#![allow(...)]` は root 宣言側に付いており、ネストしたモジュールへも効く。
+    writeln!(&mut out, "{GENERATED_MARKER}").ok();
+    // OS ごとの再生成でヘッダの差分が出ないよう、区切りは `/` に統一する。
+    let source_path = graph.files[file_index]
+        .source_path
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/");
+    writeln!(&mut out, "// Source: {source_path}").ok();
     let depth = 0usize;
     for (item_index, item) in file.items.iter().enumerate() {
         match item {
@@ -1567,26 +1617,23 @@ fn render_literal(literal: &Literal) -> Result<String, CodegenError> {
     })
 }
 
-fn internal_module_name(file: &crate::semantic::SchemaFile) -> String {
+/// ソースファイルに対応する生成モジュールのファイル名 (拡張子なし)。
+/// Rust の識別子に使えない文字は `_` へ置き換え、先頭が数字のときは `_` を前置する。
+/// キーワードのエスケープ (`r#`) は disk 上のファイル名には現れないため、
+/// コード上の識別子へはこの後 `sanitize_ident` を通して付ける。
+fn source_module_stem(file: &crate::semantic::SchemaFile) -> String {
     let stem = file
-        .relative_path
+        .source_path
         .file_stem()
         .and_then(|stem| stem.to_str())
         .unwrap_or("source")
         .chars()
         .map(|ch| if ch.is_ascii_alphanumeric() || ch == '_' { ch } else { '_' })
         .collect::<String>();
-    let identity = format!("{}:{}", file.owner, file.relative_path.display());
-    format!("__rpf_{}_{:016x}", stem, stable_hash(identity.as_bytes()))
-}
-
-fn stable_hash(bytes: &[u8]) -> u64 {
-    let mut hash = 0xcbf29ce484222325_u64;
-    for byte in bytes {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x100000001b3);
+    if stem.starts_with(|ch: char| ch.is_ascii_digit()) {
+        return format!("_{stem}");
     }
-    hash
+    stem
 }
 
 fn validate_relative_output_dir(output_dir: &str) -> Result<(), CodegenError> {
@@ -1866,22 +1913,21 @@ mod integration_tests {
 
         let output = manifest.parent().expect("manifest parent").join("gen/src");
         assert!(output.join("rocketpack.rs").is_file());
-        assert!(output.join("rocketpack/.root.rs").is_file());
-        assert!(!output.join("rocketpack/example/v1/mod.rs").exists());
+        assert!(!output.join("rocketpack/.root.rs").exists());
+        assert!(!output.join("rocketpack/mod.rs").exists());
+        assert!(!output.join("rocketpack/example.rs").exists());
+        assert!(!output.join("rocketpack/example/v1.rs").exists());
         let package_dir = output.join("rocketpack/example/v1");
         let before = generated_source_names(&package_dir)?;
-        assert_eq!(before.len(), 2);
+        assert_eq!(before, vec!["one.rs".to_string(), "two.rs".to_string()]);
         let root_module = fs::read_to_string(output.join("rocketpack.rs"))?;
-        assert!(root_module.contains("include!(\"rocketpack/.root.rs\");"));
-        let root_package_module = fs::read_to_string(output.join("rocketpack/.root.rs"))?;
-        assert!(root_package_module.contains("pub mod example;"));
-        let example_module = fs::read_to_string(output.join("rocketpack/example.rs"))?;
-        assert!(example_module.contains("pub mod v1;"));
-        let package_module = fs::read_to_string(output.join("rocketpack/example/v1.rs"))?;
-        for source_name in &before {
-            let internal_name = source_name.strip_suffix(".rs").expect("Rust source extension");
-            assert!(package_module.contains(&format!("mod {internal_name};\npub use {internal_name}::*;")));
-        }
+        assert!(root_module.contains("pub mod example {"));
+        assert!(root_module.contains("pub mod v1 {"));
+        assert!(root_module.contains("include!(\"rocketpack/example/v1/one.rs\");"));
+        assert!(root_module.contains("include!(\"rocketpack/example/v1/two.rs\");"));
+        let one_source = fs::read_to_string(package_dir.join("one.rs"))?;
+        assert!(one_source.contains("// Source: rpfs/one.rpf"));
+        assert!(!root_module.contains("// Source:"));
         assert_generated_tree_has_no_path_attributes(&output)?;
 
         fs::rename(output.join("rocketpack.rs"), output.join(".rocketpack-rocketpack.rs.backup"))?;
@@ -1991,8 +2037,11 @@ mod integration_tests {
         )?;
         generate_manifest(&collision).await?;
         let output = collision.parent().expect("manifest parent").join("gen/src/rocketpack");
-        assert!(output.join("r#type.rs").is_file());
-        assert!(output.join("type_.rs").is_file());
+        assert!(output.join("r#type/v1/keyword.rs").is_file());
+        assert!(output.join("type_/v1/escaped.rs").is_file());
+        let root_module = fs::read_to_string(collision.parent().expect("manifest parent").join("gen/src/rocketpack.rs"))?;
+        assert!(root_module.contains("pub mod r#type {"));
+        assert!(root_module.contains("pub mod type_ {"));
         Ok(())
     }
 
@@ -2034,6 +2083,53 @@ mod integration_tests {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn duplicate_source_stems_in_a_package_are_rejected() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let manifest = write_module(
+            temp.path(),
+            "root",
+            "",
+            &[
+                ("nested/one.rpf", "version 1;\npackage example::v1;\nstruct One {}\n"),
+                ("other/one.rpf", "version 1;\npackage example::v1;\nstruct OneTwo {}\n"),
+            ],
+        )?;
+        let error = generate_manifest(&manifest).await.expect_err("duplicate stems in one package must fail");
+        assert!(error.to_string().contains("Rust source module name collision"), "{error}");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn root_named_package_is_generated_without_conflicts() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let manifest = write_module(temp.path(), "root-pkg", "", &[("root.rpf", "version 1;\npackage root::v1;\nstruct Root {}\n")])?;
+        generate_manifest(&manifest).await?;
+
+        let output = manifest.parent().expect("manifest parent").join("gen/src");
+        let root_module = fs::read_to_string(output.join("rocketpack.rs"))?;
+        assert!(root_module.contains("pub mod root {"));
+        assert!(root_module.contains("pub mod v1 {"));
+        assert!(root_module.contains("include!(\"rocketpack/root/v1/root.rs\");"));
+        let leaf = fs::read_to_string(output.join("rocketpack/root/v1/root.rs"))?;
+        assert!(leaf.contains("pub struct Root"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn keyword_source_stems_keep_plain_file_names() -> TestResult {
+        let temp = tempfile::tempdir()?;
+        let manifest = write_module(temp.path(), "root", "", &[("type.rpf", "version 1;\npackage example::v1;\nstruct Keyword {}\n")])?;
+        generate_manifest(&manifest).await?;
+
+        let output = manifest.parent().expect("manifest parent").join("gen/src");
+        let package_dir = output.join("rocketpack/example/v1");
+        assert!(package_dir.join("type.rs").is_file());
+        let root_module = fs::read_to_string(output.join("rocketpack.rs"))?;
+        assert!(root_module.contains("include!(\"rocketpack/example/v1/type.rs\");"));
+        Ok(())
+    }
+
     async fn generate_manifest(manifest: &Path) -> Result<(), Box<dyn std::error::Error>> {
         let graph = SemanticGraph::build(ManifestGraph::load(manifest).await?)?;
         let conf = &graph.root_manifest().config.generators[0];
@@ -2045,7 +2141,7 @@ mod integration_tests {
         let mut names = fs::read_dir(package_dir)?
             .filter_map(|entry| entry.ok())
             .filter_map(|entry| entry.file_name().into_string().ok())
-            .filter(|name| name.starts_with("__rpf_") && name.ends_with(".rs"))
+            .filter(|name| name.ends_with(".rs"))
             .collect::<Vec<_>>();
         names.sort();
         Ok(names)
@@ -2070,7 +2166,11 @@ mod integration_tests {
         let source_dir = directory.join("rpfs");
         fs::create_dir_all(&source_dir)?;
         for (relative_path, contents) in sources {
-            fs::write(source_dir.join(relative_path), contents)?;
+            let source_file = source_dir.join(relative_path);
+            if let Some(parent) = source_file.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(source_file, contents)?;
         }
         let manifest = directory.join("rocketpack.yaml");
         fs::write(
@@ -2123,7 +2223,7 @@ mod tests {
         let package_dir = temp.path().join("gen/src/rocketpack/test");
         let mut generated = fs::read_dir(package_dir)?
             .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_name().to_string_lossy().starts_with("__rpf_"))
+            .filter(|entry| entry.file_name().to_string_lossy().ends_with(".rs"))
             .map(|entry| fs::read_to_string(entry.path()).map(|contents| GeneratedRustFile { contents }))
             .collect::<Result<Vec<_>, _>>()?;
         generated.sort_by(|left, right| left.contents.cmp(&right.contents));

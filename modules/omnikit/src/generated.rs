@@ -2,4 +2,18 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-include!("generated/.root.rs");
+pub mod omni_agreement {
+    include!("generated/omni_agreement/omni_agreement.rs");
+}
+pub mod omni_hash {
+    include!("generated/omni_hash/omni_hash.rs");
+}
+pub mod omni_remoting {
+    include!("generated/omni_remoting/omni_remoting.rs");
+}
+pub mod omni_secure {
+    include!("generated/omni_secure/omni_secure.rs");
+}
+pub mod omni_sign {
+    include!("generated/omni_sign/omni_sign.rs");
+}

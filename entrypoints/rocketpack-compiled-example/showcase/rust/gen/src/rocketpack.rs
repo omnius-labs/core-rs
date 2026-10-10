@@ -2,4 +2,11 @@
 #![allow(dead_code)]
 #![allow(nonstandard_style)]
 #![allow(clippy::all)]
-include!("rocketpack/.root.rs");
+pub mod omnius {
+    pub mod demo {
+        pub mod v1 {
+            include!("rocketpack/omnius/demo/v1/common.rs");
+            include!("rocketpack/omnius/demo/v1/showcase.rs");
+        }
+    }
+}

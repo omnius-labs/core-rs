@@ -36,7 +36,9 @@ pub struct SchemaSymbol {
 pub struct SchemaFile {
     pub owner: String,
     pub absolute_path: PathBuf,
-    pub relative_path: PathBuf,
+    /// モジュール (rocketpack.yaml の場所) を基準としたソースファイルのパス。
+    /// 生成コードの `// Source:` ヘッダと生成モジュール名の導出に使う。
+    pub source_path: PathBuf,
     pub package: Vec<String>,
     pub text: String,
     pub ast: File,
@@ -93,7 +95,7 @@ pub struct SemanticGraph {
 struct DiscoveredSource {
     owner: String,
     absolute_path: PathBuf,
-    relative_path: PathBuf,
+    source_path: PathBuf,
 }
 
 impl SemanticGraph {
@@ -113,7 +115,7 @@ impl SemanticGraph {
             files.push(SchemaFile {
                 owner: source.owner,
                 absolute_path: source.absolute_path,
-                relative_path: source.relative_path,
+                source_path: source.source_path,
                 package,
                 text,
                 ast,
@@ -532,7 +534,7 @@ fn discover_source_files(owner: &str, root_dir: &Path, source: &SourceConfig, di
             DiscoveredSource {
                 owner: owner.to_string(),
                 absolute_path,
-                relative_path,
+                source_path: PathBuf::from(&source.base_dir).join(&relative_path),
             },
         );
     }
@@ -784,7 +786,7 @@ mod tests {
         let consumer_index = graph
             .files
             .iter()
-            .position(|file| file.relative_path == Path::new("consumer.rpf"))
+            .position(|file| file.source_path == Path::new("rpfs/consumer.rpf"))
             .expect("consumer file must exist");
         let item = match &graph.files[consumer_index].ast.items[0] {
             Item::Struct(item) => item,
