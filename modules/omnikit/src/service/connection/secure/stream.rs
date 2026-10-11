@@ -495,10 +495,10 @@ where
                     let size = std::cmp::min(MAX_FRAME_LENGTH - plaintext.len(), write_buf.len());
                     plaintext.extend_from_slice(&write_buf[..size]);
 
-                    if plaintext.len() == MAX_FRAME_LENGTH {
-                        if let Err(e) = this.seal_plaintext() {
-                            return std::task::Poll::Ready(Err(e));
-                        }
+                    if plaintext.len() == MAX_FRAME_LENGTH
+                        && let Err(e) = this.seal_plaintext()
+                    {
+                        return std::task::Poll::Ready(Err(e));
                     }
 
                     return std::task::Poll::Ready(Ok(size));
