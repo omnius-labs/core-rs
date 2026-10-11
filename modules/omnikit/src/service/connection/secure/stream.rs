@@ -288,6 +288,47 @@ mod tests {
     }
 }
 
+impl<T> OmniSecureStream<T>
+where
+    T: AsyncRead + AsyncWrite + Send + 'static,
+{
+    /// Encrypts the buffered plaintext and moves to `SendPayload`. Does nothing outside `WritePlaintext`.
+    fn seal_plaintext(&mut self) -> std::io::Result<()> {
+        let WriteState::WritePlaintext { plaintext } = &mut self.write_state else {
+            return Ok(());
+        };
+        let enc_buf = self.encoder.encode(plaintext).map_err(|e| std::io::Error::other(e.to_string()))?;
+        self.write_state = WriteState::SendPayload {
+            header: SendHeader {
+                offset: 0,
+                buf: (enc_buf.len() as u32).to_le_bytes(),
+            },
+            body: SendBody { offset: 0, buf: enc_buf },
+        };
+        Ok(())
+    }
+
+    /// Sends the frame held by `SendPayload` and returns to `Init` once all of it is written. Does nothing outside `SendPayload`.
+    fn poll_send_payload(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+        loop {
+            let WriteState::SendPayload { header, body } = &mut self.write_state else {
+                return std::task::Poll::Ready(Ok(()));
+            };
+            if header.offset < header.buf.len() {
+                let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &header.buf[header.offset..]))?;
+                header.offset += n;
+            } else {
+                let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &body.buf[body.offset..]))?;
+                body.offset += n;
+
+                if body.offset == body.buf.len() {
+                    self.write_state = WriteState::Init;
+                }
+            }
+        }
+    }
+}
+
 #[allow(unused)]
 impl<T> AsyncWrite for OmniSecureStream<T>
 where
@@ -306,41 +347,15 @@ where
                     plaintext.extend_from_slice(&write_buf[..size]);
 
                     if plaintext.len() == MAX_FRAME_LENGTH {
-                        let enc_buf = match this.encoder.encode(plaintext) {
-                            Ok(buf) => buf,
-                            Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
-                        };
-                        this.write_state = WriteState::SendPayload {
-                            header: SendHeader {
-                                offset: 0,
-                                buf: (enc_buf.len() as u32).to_le_bytes(),
-                            },
-                            body: SendBody { offset: 0, buf: enc_buf },
-                        };
+                        if let Err(e) = this.seal_plaintext() {
+                            return std::task::Poll::Ready(Err(e));
+                        }
                     }
 
                     return std::task::Poll::Ready(Ok(size));
                 }
-                WriteState::SendPayload { header, body } => {
-                    if header.offset < header.buf.len() {
-                        let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &header.buf[header.offset..]) {
-                            std::task::Poll::Ready(Ok(n)) => n,
-                            std::task::Poll::Ready(Err(e)) => return std::task::Poll::Ready(Err(e)),
-                            std::task::Poll::Pending => return std::task::Poll::Pending,
-                        };
-                        header.offset += n;
-                    } else {
-                        let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &body.buf[body.offset..]) {
-                            std::task::Poll::Ready(Ok(n)) => n,
-                            std::task::Poll::Ready(Err(e)) => return std::task::Poll::Ready(Err(e)),
-                            std::task::Poll::Pending => return std::task::Poll::Pending,
-                        };
-                        body.offset += n;
-
-                        if body.offset == body.buf.len() {
-                            this.write_state = WriteState::Init;
-                        }
-                    }
+                WriteState::SendPayload { .. } => {
+                    std::task::ready!(this.poll_send_payload(cx))?;
                 }
             }
         }
@@ -350,43 +365,17 @@ where
         let this = Pin::into_inner(self);
         trace!("poll_flush: {:?}", this.write_state);
         loop {
-            match &mut this.write_state {
+            match this.write_state {
                 WriteState::Init => {
                     return tokio::io::AsyncWrite::poll_flush(Pin::new(&mut this.writer), cx);
                 }
-                WriteState::WritePlaintext { plaintext } => {
-                    let enc_buf = match this.encoder.encode(plaintext) {
-                        Ok(buf) => buf,
-                        Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
-                    };
-                    this.write_state = WriteState::SendPayload {
-                        header: SendHeader {
-                            offset: 0,
-                            buf: (enc_buf.len() as u32).to_le_bytes(),
-                        },
-                        body: SendBody { offset: 0, buf: enc_buf },
-                    };
-                }
-                WriteState::SendPayload { header, body } => {
-                    if header.offset < header.buf.len() {
-                        let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &header.buf[header.offset..]) {
-                            std::task::Poll::Ready(Ok(n)) => n,
-                            std::task::Poll::Ready(Err(e)) => return std::task::Poll::Ready(Err(e)),
-                            std::task::Poll::Pending => return std::task::Poll::Pending,
-                        };
-                        header.offset += n;
-                    } else {
-                        let n = match tokio::io::AsyncWrite::poll_write(Pin::new(&mut this.writer), cx, &body.buf[body.offset..]) {
-                            std::task::Poll::Ready(Ok(n)) => n,
-                            std::task::Poll::Ready(Err(e)) => return std::task::Poll::Ready(Err(e)),
-                            std::task::Poll::Pending => return std::task::Poll::Pending,
-                        };
-                        body.offset += n;
-
-                        if body.offset == body.buf.len() {
-                            this.write_state = WriteState::Init;
-                        }
+                WriteState::WritePlaintext { .. } => {
+                    if let Err(e) = this.seal_plaintext() {
+                        return std::task::Poll::Ready(Err(e));
                     }
+                }
+                WriteState::SendPayload { .. } => {
+                    std::task::ready!(this.poll_send_payload(cx))?;
                 }
             }
         }
