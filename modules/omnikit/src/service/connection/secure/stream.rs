@@ -133,6 +133,13 @@ where
                         std::task::Poll::Ready(Err(e)) => return std::task::Poll::Ready(Err(e)),
                         std::task::Poll::Pending => return std::task::Poll::Pending,
                     };
+                    if n == 0 {
+                        return if *header_offset == 0 {
+                            std::task::Poll::Ready(Ok(()))
+                        } else {
+                            std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "stream ended during frame header")))
+                        };
+                    }
                     *header_offset += n;
 
                     if *header_offset == header_buf.len() {
@@ -158,6 +165,9 @@ where
                         std::task::Poll::Ready(Err(e)) => return std::task::Poll::Ready(Err(e)),
                         std::task::Poll::Pending => return std::task::Poll::Pending,
                     };
+                    if n == 0 && *body_offset < body_buf.len() {
+                        return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, "stream ended during frame body")));
+                    }
                     *body_offset += n;
 
                     if *body_offset == body_buf.len() {
@@ -180,6 +190,100 @@ where
                     return std::task::Poll::Ready(Ok(()));
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::ErrorKind;
+
+    use tokio::{
+        io::{AsyncReadExt as _, AsyncWriteExt as _, DuplexStream},
+        time::timeout,
+    };
+
+    use super::*;
+
+    fn stream_pair() -> (OmniSecureStream<DuplexStream>, DuplexStream) {
+        let (stream, peer) = tokio::io::duplex(4096);
+        let (reader, writer) = tokio::io::split(stream);
+        let secure = OmniSecureStream {
+            reader,
+            writer,
+            read_state: ReadState::Init,
+            write_state: WriteState::Init,
+            sign_id: None,
+            peer_cert: None,
+            encoder: Aes256GcmEncoder::new(&[0; 32], &[0; 12]),
+            decoder: Aes256GcmDecoder::new(&[0; 32], &[0; 12]),
+        };
+        (secure, peer)
+    }
+
+    #[tokio::test]
+    async fn eof_at_frame_boundary_remains_eof() {
+        for send_frame in [false, true] {
+            let (mut stream, mut peer) = stream_pair();
+            let plaintext = b"hello";
+            if send_frame {
+                let body = Aes256GcmEncoder::new(&[0; 32], &[0; 12]).encode(plaintext).unwrap();
+                peer.write_all(&(body.len() as u32).to_le_bytes()).await.unwrap();
+                peer.write_all(&body).await.unwrap();
+            }
+            drop(peer);
+
+            if send_frame {
+                // Read the plaintext in parts to exercise the return to a frame boundary.
+                for expected in plaintext.chunks(2) {
+                    let mut buffer = [0; 2];
+                    let n = timeout(Duration::from_secs(1), stream.read(&mut buffer)).await.expect("frame read timed out").unwrap();
+                    assert_eq!(&buffer[..n], expected);
+                }
+            }
+
+            for _ in 0..3 {
+                let mut buffer = [0xaa; 2];
+                let n = timeout(Duration::from_secs(1), stream.read(&mut buffer)).await.expect("EOF read timed out").unwrap();
+                assert_eq!(n, 0);
+                assert_eq!(buffer, [0xaa; 2]);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn eof_during_frame_header_is_unexpected_eof() {
+        for length in 1..HEADER_SIZE {
+            let (mut stream, mut peer) = stream_pair();
+            peer.write_all(&32u32.to_le_bytes()[..length]).await.unwrap();
+            drop(peer);
+
+            let mut buffer = [0xaa; 8];
+            let error = timeout(Duration::from_secs(1), stream.read(&mut buffer))
+                .await
+                .expect("partial header read timed out")
+                .unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::UnexpectedEof);
+            assert_eq!(buffer, [0xaa; 8]);
+        }
+    }
+
+    #[tokio::test]
+    async fn eof_during_frame_body_is_unexpected_eof() {
+        let body = Aes256GcmEncoder::new(&[0; 32], &[0; 12]).encode(b"hello").unwrap();
+        for length in 0..body.len() {
+            let (mut stream, mut peer) = stream_pair();
+            peer.write_all(&(body.len() as u32).to_le_bytes()).await.unwrap();
+            peer.write_all(&body[..length]).await.unwrap();
+            drop(peer);
+
+            let mut buffer = [0xaa; 8];
+            let error = timeout(Duration::from_secs(1), stream.read(&mut buffer))
+                .await
+                .expect("partial body read timed out")
+                .unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::UnexpectedEof);
+            assert_eq!(buffer, [0xaa; 8]);
         }
     }
 }

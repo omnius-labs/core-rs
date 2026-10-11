@@ -357,6 +357,8 @@ constructor は下位 stream を所有し、失敗時に保持している reade
 
 暗号化した frame の層は AES-256-GCM の鍵 32 byte と初期 nonce 12 byte の各方向 1 組だけを受け取り、transcript や cert を解釈しない。
 [stream.rs](../modules/omnikit/src/service/connection/secure/stream.rs) の読み書きは、little-endian の 4 byte 長さと暗号文・16 byte の tag を扱い、平文を最大 64 KiB に分割する。
+次の frame の header を 1 byte も読んでいない境界で下位 stream が EOF を返した場合、読み取りは 0 byte の EOF を返し、以後の読み取りも EOF を返す。
+header または body の途中で EOF を受け取った場合は、`std::io::ErrorKind::UnexpectedEof` を返す。
 [encoder.rs](../modules/omnikit/src/service/connection/secure/encoder.rs) と [decoder.rs](../modules/omnikit/src/service/connection/secure/decoder.rs) は、初期 nonce から成功した frame ごとに [util.rs](../modules/omnikit/src/service/connection/secure/util.rs) の little-endian counter を進める。
 新しい handshake も同じ長さの鍵と nonce を渡し、鍵確認で counter を進めないため、この層の変更を要しない。
 `max_frame_length` は handshake の平文 frame にだけ適用し、暗号化した stream の固定 64 KiB の分割は変えない。
@@ -657,7 +659,7 @@ profile の role と鍵確認 message は schema と生成型にあり、HMAC-SH
 
 §6.2 の鍵と nonce は frame 層がそのまま使える。
 auth 層は message の長さ分だけを読み、最後の鍵確認に続く暗号化した frame を先読みしない。
-`stream.rs` の読み書き、encoder、decoder は従来のままである。
+`stream.rs` の読み取りは、frame 境界の EOF と、header または body の途中の `UnexpectedEof` を区別して返す。
 
 omnikit の secure connection 層と remoting 層はそれぞれ単体で動作するが、両者を結線して secure な経路上で remoting を行う実装は存在しない。
 複数呼び出しを yamux で多重化する結線も存在しない（§11.2）。
