@@ -10,11 +10,7 @@ RocketPack compiler 固有の論点は [RocketPack compiler の設計](./design/
 
 | 項目 | 深刻度 | 調査日 | Issue |
 | --- | --- | --- | --- |
-| [下位 stream が 0 byte の書き込みを返し続けると OmniSecureStream の送信が戻らない](./issues/secure-stream-zero-write-spins.md) | 高 | 2026-10-11 | - |
 | [OmniSecureStream の shutdown が未送信のデータを送らずに下位 stream を閉じる](./issues/secure-stream-shutdown-drops-unsent-data.md) | 高 | 2026-10-11 | - |
-
-2 項目はどちらも `OmniSecureStream` の書き込み側にあり、header と body を下位 stream へ送る同じ処理に関わる。
-送信の処理を 1 つにまとめる変更を先に行うと、両方を同じ箇所で直せる。
 
 ## ここに含めていないもの
 

@@ -205,10 +205,12 @@ mod tests {
 
     use super::*;
 
-    fn stream_pair() -> (OmniSecureStream<DuplexStream>, DuplexStream) {
-        let (stream, peer) = tokio::io::duplex(4096);
+    fn secure_over<T>(stream: T) -> OmniSecureStream<T>
+    where
+        T: AsyncRead + AsyncWrite + Send + 'static,
+    {
         let (reader, writer) = tokio::io::split(stream);
-        let secure = OmniSecureStream {
+        OmniSecureStream {
             reader,
             writer,
             read_state: ReadState::Init,
@@ -217,8 +219,41 @@ mod tests {
             peer_cert: None,
             encoder: Aes256GcmEncoder::new(&[0; 32], &[0; 12]),
             decoder: Aes256GcmDecoder::new(&[0; 32], &[0; 12]),
-        };
-        (secure, peer)
+        }
+    }
+
+    fn stream_pair() -> (OmniSecureStream<DuplexStream>, DuplexStream) {
+        let (stream, peer) = tokio::io::duplex(4096);
+        (secure_over(stream), peer)
+    }
+
+    /// Reports `Ok(0)` from `poll_write` for the first `zero_writes` calls, then fails so that a caller that keeps retrying cannot hang the test.
+    struct ZeroWriteStream {
+        zero_writes: usize,
+    }
+
+    impl AsyncRead for ZeroWriteStream {
+        fn poll_read(self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>, _buf: &mut tokio::io::ReadBuf<'_>) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for ZeroWriteStream {
+        fn poll_write(mut self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>, _buf: &[u8]) -> std::task::Poll<std::io::Result<usize>> {
+            if self.zero_writes == 0 {
+                return std::task::Poll::Ready(Err(std::io::Error::new(ErrorKind::TimedOut, "retried after Ok(0)")));
+            }
+            self.zero_writes -= 1;
+            std::task::Poll::Ready(Ok(0))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
     }
 
     #[tokio::test]
@@ -286,6 +321,25 @@ mod tests {
             assert_eq!(buffer, [0xaa; 8]);
         }
     }
+
+    #[tokio::test]
+    async fn flush_fails_with_write_zero_when_lower_stream_accepts_no_bytes() {
+        let mut stream = secure_over(ZeroWriteStream { zero_writes: 16 });
+        stream.write_all(b"hello").await.unwrap();
+
+        let error = timeout(Duration::from_secs(1), stream.flush()).await.expect("flush timed out").unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::WriteZero);
+    }
+
+    #[tokio::test]
+    async fn write_fails_with_write_zero_when_lower_stream_accepts_no_bytes() {
+        let mut stream = secure_over(ZeroWriteStream { zero_writes: 16 });
+        // A full frame is sealed by this call and sent by the next one.
+        assert_eq!(stream.write(&[1; MAX_FRAME_LENGTH]).await.unwrap(), MAX_FRAME_LENGTH);
+
+        let error = timeout(Duration::from_secs(1), stream.write(b"x")).await.expect("write timed out").unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::WriteZero);
+    }
 }
 
 impl<T> OmniSecureStream<T>
@@ -316,9 +370,15 @@ where
             };
             if header.offset < header.buf.len() {
                 let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &header.buf[header.offset..]))?;
+                if n == 0 {
+                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "failed to write frame header")));
+                }
                 header.offset += n;
             } else {
                 let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &body.buf[body.offset..]))?;
+                if n == 0 {
+                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "failed to write frame body")));
+                }
                 body.offset += n;
 
                 if body.offset == body.buf.len() {
