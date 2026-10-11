@@ -340,6 +340,37 @@ mod tests {
         let error = timeout(Duration::from_secs(1), stream.write(b"x")).await.expect("write timed out").unwrap_err();
         assert_eq!(error.kind(), ErrorKind::WriteZero);
     }
+
+    #[tokio::test]
+    async fn shutdown_sends_buffered_data_before_closing() {
+        // Unflushed plaintext, a sealed full frame, and a sealed frame followed by unflushed plaintext.
+        for size in [5, MAX_FRAME_LENGTH, MAX_FRAME_LENGTH + 5] {
+            let (mut stream, peer) = stream_pair();
+            let mut receiver = secure_over(peer);
+            let data: Vec<u8> = (0..size).map(|i| i as u8).collect();
+
+            let send = async {
+                stream.write_all(&data).await.unwrap();
+                stream.shutdown().await.unwrap();
+            };
+            let receive = async {
+                let mut received = Vec::new();
+                receiver.read_to_end(&mut received).await.unwrap();
+                received
+            };
+            let ((), received) = timeout(Duration::from_secs(5), async { tokio::join!(send, receive) }).await.expect("shutdown timed out");
+            assert_eq!(received, data);
+        }
+    }
+
+    #[tokio::test]
+    async fn shutdown_reports_failure_to_send_buffered_data() {
+        let mut stream = secure_over(ZeroWriteStream { zero_writes: 16 });
+        stream.write_all(b"hello").await.unwrap();
+
+        let error = timeout(Duration::from_secs(1), stream.shutdown()).await.expect("shutdown timed out").unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::WriteZero);
+    }
 }
 
 impl<T> OmniSecureStream<T>
@@ -444,6 +475,8 @@ where
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
         let this = Pin::into_inner(self);
         trace!("poll_shutdown: {:?}", this.write_state);
+        // Send everything still buffered before the lower stream is closed.
+        std::task::ready!(AsyncWrite::poll_flush(Pin::new(&mut *this), cx))?;
         tokio::io::AsyncWrite::poll_shutdown(Pin::new(&mut this.writer), cx)
     }
 }

@@ -10,7 +10,8 @@ RocketPack compiler 固有の論点は [RocketPack compiler の設計](./design/
 
 | 項目 | 深刻度 | 調査日 | Issue |
 | --- | --- | --- | --- |
-| [OmniSecureStream の shutdown が未送信のデータを送らずに下位 stream を閉じる](./issues/secure-stream-shutdown-drops-unsent-data.md) | 高 | 2026-10-11 | - |
+
+現在、一覧に載る項目はない。
 
 ## ここに含めていないもの
 
