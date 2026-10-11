@@ -175,7 +175,12 @@ where
                             Ok(buf) => buf,
                             Err(e) => return std::task::Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                         };
-                        this.read_state = ReadState::ReadPlaintext { plaintext: Bytes::from(dec_buf) };
+                        // An empty frame carries no data and must not look like end of stream.
+                        this.read_state = if dec_buf.is_empty() {
+                            ReadState::Init
+                        } else {
+                            ReadState::ReadPlaintext { plaintext: Bytes::from(dec_buf) }
+                        };
                     }
                 }
                 ReadState::ReadPlaintext { ref mut plaintext } => {
@@ -284,6 +289,26 @@ mod tests {
                 assert_eq!(buffer, [0xaa; 2]);
             }
         }
+    }
+
+    #[tokio::test]
+    async fn empty_frame_is_not_end_of_stream() {
+        let (mut stream, mut peer) = stream_pair();
+        let mut encoder = Aes256GcmEncoder::new(&[0; 32], &[0; 12]);
+        for plaintext in [&b""[..], b"hi"] {
+            let body = encoder.encode(plaintext).unwrap();
+            peer.write_all(&(body.len() as u32).to_le_bytes()).await.unwrap();
+            peer.write_all(&body).await.unwrap();
+        }
+
+        // The peer stays open, so a zero-byte read here would be a false EOF.
+        let mut buffer = [0; 8];
+        let n = timeout(Duration::from_secs(1), stream.read(&mut buffer)).await.expect("read timed out").unwrap();
+        assert_eq!(&buffer[..n], b"hi");
+
+        drop(peer);
+        let n = timeout(Duration::from_secs(1), stream.read(&mut buffer)).await.expect("EOF read timed out").unwrap();
+        assert_eq!(n, 0);
     }
 
     #[tokio::test]
