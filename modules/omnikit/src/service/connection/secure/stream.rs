@@ -50,8 +50,15 @@ enum ReadState {
 #[derive(Debug)]
 enum WriteState {
     Init,
-    WritePlaintext { plaintext: BytesMut },
-    SendPayload { header: SendHeader, body: SendBody },
+    WritePlaintext {
+        plaintext: BytesMut,
+    },
+    SendPayload {
+        header: SendHeader,
+        body: SendBody,
+    },
+    /// Everything is sent and the lower stream's shutdown has started; it must be resumed without flushing again.
+    Closing,
 }
 
 #[derive(Debug)]
@@ -224,6 +231,39 @@ mod tests {
             peer_cert: None,
             encoder: Aes256GcmEncoder::new(&[0; 32], &[0; 12]),
             decoder: Aes256GcmDecoder::new(&[0; 32], &[0; 12]),
+        }
+    }
+
+    /// Returns `Pending` once from `poll_shutdown`, and rejects `poll_flush` after shutdown has started.
+    struct PendingShutdownStream {
+        shutdown_started: bool,
+    }
+
+    impl AsyncRead for PendingShutdownStream {
+        fn poll_read(self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>, _buf: &mut tokio::io::ReadBuf<'_>) -> std::task::Poll<std::io::Result<()>> {
+            std::task::Poll::Ready(Ok(()))
+        }
+    }
+
+    impl AsyncWrite for PendingShutdownStream {
+        fn poll_write(self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>, buf: &[u8]) -> std::task::Poll<std::io::Result<usize>> {
+            std::task::Poll::Ready(Ok(buf.len()))
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, _cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+            if self.shutdown_started {
+                return std::task::Poll::Ready(Err(std::io::Error::new(ErrorKind::BrokenPipe, "flushed after shutdown started")));
+            }
+            std::task::Poll::Ready(Ok(()))
+        }
+
+        fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+            if self.shutdown_started {
+                return std::task::Poll::Ready(Ok(()));
+            }
+            self.shutdown_started = true;
+            cx.waker().wake_by_ref();
+            std::task::Poll::Pending
         }
     }
 
@@ -417,6 +457,14 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn shutdown_resumes_lower_shutdown_without_flushing_again() {
+        let mut stream = secure_over(PendingShutdownStream { shutdown_started: false });
+        stream.write_all(b"hello").await.unwrap();
+
+        timeout(Duration::from_secs(1), stream.shutdown()).await.expect("shutdown timed out").unwrap();
+    }
+
+    #[tokio::test]
     async fn shutdown_reports_failure_to_send_buffered_data() {
         let mut stream = secure_over(ZeroWriteStream { zero_writes: 16 });
         stream.write_all(b"hello").await.unwrap();
@@ -506,6 +554,9 @@ where
                 WriteState::SendPayload { .. } => {
                     std::task::ready!(this.poll_send_payload(cx))?;
                 }
+                WriteState::Closing => {
+                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "write after shutdown")));
+                }
             }
         }
     }
@@ -515,7 +566,7 @@ where
         trace!("poll_flush: {:?}", this.write_state);
         loop {
             match this.write_state {
-                WriteState::Init => {
+                WriteState::Init | WriteState::Closing => {
                     return tokio::io::AsyncWrite::poll_flush(Pin::new(&mut this.writer), cx);
                 }
                 WriteState::WritePlaintext { .. } => {
@@ -534,7 +585,10 @@ where
         let this = Pin::into_inner(self);
         trace!("poll_shutdown: {:?}", this.write_state);
         // Send everything still buffered before the lower stream is closed.
-        std::task::ready!(AsyncWrite::poll_flush(Pin::new(&mut *this), cx))?;
+        if !matches!(this.write_state, WriteState::Closing) {
+            std::task::ready!(AsyncWrite::poll_flush(Pin::new(&mut *this), cx))?;
+            this.write_state = WriteState::Closing;
+        }
         tokio::io::AsyncWrite::poll_shutdown(Pin::new(&mut this.writer), cx)
     }
 }
