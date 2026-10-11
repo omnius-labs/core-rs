@@ -364,6 +364,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn empty_write_and_flush_send_nothing() {
+        let (mut stream, mut peer) = stream_pair();
+        assert_eq!(stream.write(&[]).await.unwrap(), 0);
+        stream.flush().await.unwrap();
+        stream.shutdown().await.unwrap();
+        drop(stream);
+
+        let mut sent = Vec::new();
+        peer.read_to_end(&mut sent).await.unwrap();
+        assert!(sent.is_empty());
+    }
+
+    #[tokio::test]
+    async fn data_after_an_empty_flush_is_delivered() {
+        let (mut stream, peer) = stream_pair();
+        let mut receiver = secure_over(peer);
+
+        assert_eq!(stream.write(&[]).await.unwrap(), 0);
+        stream.flush().await.unwrap();
+        stream.write_all(b"hello").await.unwrap();
+        stream.shutdown().await.unwrap();
+
+        let mut received = Vec::new();
+        timeout(Duration::from_secs(1), receiver.read_to_end(&mut received)).await.expect("read timed out").unwrap();
+        assert_eq!(received, b"hello");
+    }
+
+    #[tokio::test]
     async fn shutdown_reports_failure_to_send_buffered_data() {
         let mut stream = secure_over(ZeroWriteStream { zero_writes: 16 });
         stream.write_all(b"hello").await.unwrap();
@@ -377,11 +405,16 @@ impl<T> OmniSecureStream<T>
 where
     T: AsyncRead + AsyncWrite + Send + 'static,
 {
-    /// Encrypts the buffered plaintext and moves to `SendPayload`. Does nothing outside `WritePlaintext`.
+    /// Encrypts the buffered plaintext and moves to `SendPayload`, or back to `Init` if there is none. Does nothing outside `WritePlaintext`.
     fn seal_plaintext(&mut self) -> std::io::Result<()> {
         let WriteState::WritePlaintext { plaintext } = &mut self.write_state else {
             return Ok(());
         };
+        // An empty frame reads as end of stream, so nothing is sent when there is no plaintext.
+        if plaintext.is_empty() {
+            self.write_state = WriteState::Init;
+            return Ok(());
+        }
         let enc_buf = self.encoder.encode(plaintext).map_err(|e| std::io::Error::other(e.to_string()))?;
         self.write_state = WriteState::SendPayload {
             header: SendHeader {
