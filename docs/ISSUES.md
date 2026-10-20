@@ -1,21 +1,21 @@
-# core-rs の既知の不具合
+# Known defects in core-rs
 
-本書は、core-rs のコードで確認した明確な不具合だけを扱う。
-依存する library や OS の振る舞いそのものは扱わない。
-workspace 横断の設計判断と将来構想は [DESIGN.md](./DESIGN.md#11-設計判断) が扱う。
-RocketPack compiler 固有の論点は [RocketPack compiler の設計](./design/rocketpack-compiler.md#10-設計判断) が扱う。
+This document covers only clear defects confirmed in the core-rs code.
+It does not cover the behavior of dependent libraries or the OS themselves.
+Design decisions and future plans that span the workspace are covered by [DESIGN.md](./DESIGN.md#11-design-decisions).
+Topics specific to the RocketPack compiler are covered by [RocketPack compiler design](./design/rocketpack-compiler.md#10-design-decisions).
 
-項目を外部 Issue に起票した場合は一覧の Issue 列へ番号を追記し、修正された場合は一覧の行と `docs/issues/` の子文書を削除する。
-行番号は調査時点のスナップショットであるため、修正時に再確認する。
+When an item is filed in an external issue tracker, add its number to the Issue column of the list; when an item is fixed, delete its row from the list and its child document under `docs/issues/`.
+Line numbers are a snapshot at the time of investigation, so recheck them when fixing.
 
-| 項目 | 深刻度 | 調査日 | Issue |
+| Item | Severity | Investigated on | Issue |
 | --- | --- | --- | --- |
 
-現在、一覧に載る項目はない。
+There are currently no items in the list.
 
-## ここに含めていないもの
+## Not included here
 
-| 論点 | 設計上の扱い |
+| Topic | Treatment in the design |
 | --- | --- |
-| Remote dependency と lockfile | [RocketPack compiler の設計にある保留事項](./design/rocketpack-compiler.md#102-保留) |
-| 複数の Rust module root | [RocketPack compiler の設計にある保留事項](./design/rocketpack-compiler.md#102-保留) |
+| Remote dependencies and lockfiles | [Deferred items in the RocketPack compiler design](./design/rocketpack-compiler.md#102-deferred) |
+| Multiple Rust module roots | [Deferred items in the RocketPack compiler design](./design/rocketpack-compiler.md#102-deferred) |
