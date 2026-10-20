@@ -9,10 +9,10 @@ publish = false
 name = "lint-style"
 path = "src/main.rs"
 
-# 依存は workspace から解決しない。
-# 本 crate は pxna と axus の workspace にも member として取り込まれるため、
-# workspace ごとに version や feature がずれると検査結果が静かに変わる。
-# 特に proc-macro2 の span-locations は、欠けると行番号が 0 になる。
+# Dependencies are not resolved from the workspace.
+# This crate is also taken into the pxna and axus workspaces as a member,
+# so if the version or features drift per workspace, the check results change silently.
+# In particular, without the span-locations feature of proc-macro2, line numbers become 0.
 [dependencies]
 anyhow = "1.0.101"
 proc-macro2 = { version = "1.0.106", features = ["span-locations"] }

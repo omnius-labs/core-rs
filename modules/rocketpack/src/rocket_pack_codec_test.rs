@@ -287,7 +287,7 @@ mod tests {
         for (bytes, value) in cases {
             encode_test!(write_array, value, &bytes);
 
-            // 宣言した要素数ぶんの payload を続けないと read_array は EOF を返す
+            // read_array returns EOF unless as many payloads as the declared element count follow
             let mut buf = bytes.clone();
             buf.resize(bytes.len() + value, compose(0, 0));
             decode_test!(read_array, &buf, value as u64);
@@ -305,7 +305,7 @@ mod tests {
         for (bytes, value) in cases {
             encode_test!(write_map, value, &bytes);
 
-            // 宣言した entry 数ぶんの key と value を続けないと read_map は EOF を返す
+            // read_map returns EOF unless as many keys and values as the declared entry count follow
             let mut buf = bytes.clone();
             buf.resize(bytes.len() + value * 2, compose(0, 0));
             decode_test!(read_map, &buf, value as u64);
@@ -475,7 +475,7 @@ mod tests {
 
     #[test]
     fn array_and_map_reject_counts_larger_than_the_remaining_buffer() -> TestResult {
-        // 9 byte で u64::MAX 個を宣言する。要素は最低 1 byte を占めるので表現できない
+        // Declare u64::MAX elements in 9 bytes. Each element occupies at least 1 byte, so this cannot be represented
         for major in [4, 5] {
             let mut bytes = vec![compose(major, 27)];
             bytes.extend_from_slice(&u64::MAX.to_be_bytes());
@@ -485,8 +485,8 @@ mod tests {
             assert!(matches!(result, Err(RocketPackDecoderError::UnexpectedEof)), "major {major}: {result:?}");
         }
 
-        // 宣言した個数がちょうど残りに収まる場合は受け入れる
-        // 要素は最低 1 byte、entry は key と value で最低 2 byte を占める
+        // Accept the case where the declared count exactly fits in the remainder
+        // An element occupies at least 1 byte, and an entry occupies at least 2 bytes for the key and value
         for (major, min_bytes_per_item) in [(4usize, 1usize), (5, 2)] {
             let min_payload = min_bytes_per_item * 2;
             let mut bytes = vec![compose(major as u8, 2)];

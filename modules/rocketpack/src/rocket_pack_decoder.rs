@@ -422,7 +422,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
 
-        // 要素は最低 1 byte を占めるため、残りより多い要素数は表現できない
+        // Each element occupies at least 1 byte, so an element count larger than the remainder cannot be represented
         if (self.remaining() as u64) < len {
             return Err(RocketPackDecoderError::UnexpectedEof);
         }
@@ -444,7 +444,7 @@ impl<'a> RocketPackDecoder for RocketPackBytesDecoder<'a> {
             return Err(RocketPackDecoderError::MismatchFieldType { position, field_type });
         };
 
-        // entry は key と value で最低 2 byte を占めるため、残り / 2 より多い entry 数は表現できない
+        // Each entry occupies at least 2 bytes for the key and value, so an entry count larger than the remainder / 2 cannot be represented
         if ((self.remaining() as u64) / 2) < len {
             return Err(RocketPackDecoderError::UnexpectedEof);
         }

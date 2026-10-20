@@ -45,8 +45,8 @@ pub struct YamuxConfig {
 
 impl Default for YamuxConfig {
     fn default() -> Self {
-        // 対向が ACK を待たずに開ける stream 数（yamux の MAX_ACK_BACKLOG）と同じ値にする。
-        // 対向はこれを超えて stream を開かないため、accept が遅れても backlog は溢れない。
+        // Use the same value as the number of streams the peer can open without waiting for an ACK (MAX_ACK_BACKLOG of yamux).
+        // The peer does not open more streams than this, so the backlog does not overflow even if accept is delayed.
         const ACCEPT_BACKLOG: usize = 256;
 
         Self {
@@ -296,8 +296,8 @@ where
 
         match sender.try_send(yamux_stream) {
             Ok(()) => true,
-            // yamux では、受け入れられない stream は RST で拒否する。
-            // drop すると外部 crate が RST を送り、対向の open が失敗する。
+            // In yamux, a stream that cannot be accepted is rejected with an RST.
+            // Dropping it makes the external crate send an RST, and the open on the peer fails.
             Err(mpsc::error::TrySendError::Full(_)) => {
                 warn!("accept backlog exceeded, inbound stream was reset");
                 true
@@ -347,8 +347,8 @@ mod tests {
 
     use super::*;
 
-    /// `accept_backlog` が対向の ACK backlog より小さいと、対向が開けるだけ stream を
-    /// 開いた時点で backlog が溢れ、超過分が accept へ届かないまま RST で拒否される。
+    /// If `accept_backlog` is smaller than the ACK backlog of the peer, the backlog overflows as soon as the peer opens as many streams as it can,
+    /// and the excess is rejected with an RST without ever reaching accept.
     #[tokio::test]
     async fn inbound_streams_are_not_reset_up_to_the_peer_ack_backlog() {
         const STREAM_COUNT: u32 = 128;
@@ -357,8 +357,8 @@ mod tests {
         let client = YamuxConnection::new(YamuxConnectionType::Client, client_io, YamuxConfig::default()).unwrap();
         let server = YamuxConnection::new(YamuxConnectionType::Server, server_io, YamuxConfig::default()).unwrap();
 
-        // yamux は SYN を最初の書き込みへ載せるため、開いたうえで 1 度書き込む。
-        // stream は accept 側が読み終えるまで保持する。
+        // yamux carries the SYN on the first write, so open the stream and then write once.
+        // Keep the stream until the accepting side has finished reading it.
         let mut client_streams = Vec::new();
         for i in 0..STREAM_COUNT {
             let mut stream = client.connect_stream().await.unwrap();
