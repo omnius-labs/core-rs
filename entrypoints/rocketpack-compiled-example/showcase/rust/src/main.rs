@@ -46,7 +46,7 @@ fn sample_primitive_showcase_1() -> PrimitiveShowcase1 {
         u64_field: 123_456_789,
         f32_field: 1.5,
         f64_field: 9.25,
-        // 制約なし側と制約あり側は、取り違えが golden byte 列に出るよう別の値にしている
+        // The unconstrained side and the constrained side use different values so that a mix-up shows up in the golden byte sequence
         string_field: "free".to_string(),
         bytes_field: vec![0x01, 0x02],
         vec_field_1: vec![9],
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn unconstrained_values_accept_lengths_beyond_the_constrained_limits() {
         let mut value = sample_primitive_showcase_1();
-        // 制約付き側の上限 (string 32、Vec<u8> 8、Map 4) を大きく超える値
+        // A value far above the limits of the constrained side (string 32, Vec<u8> 8, Map 4)
         value.string_field = "x".repeat(10_000);
         value.bytes_field = vec![0xFF; 10_000];
         value.vec_field_1 = vec![1; 1_000];
@@ -245,7 +245,7 @@ mod tests {
 
     #[test]
     fn decode_rejects_lengths_at_each_prefix_position() {
-        // tag 24 以上は 0x18 を前置する 2 byte で符号化される
+        // Tags of 24 and above are encoded in 2 bytes with a 0x18 prefix
         assert_length_error(&[0xA1, 0x17, 0x60], "PrimitiveShowcase1.string_field_constrained", 0, 2);
         assert_length_error(&[0xA1, 0x17, 0x78, 33], "PrimitiveShowcase1.string_field_constrained", 33, 2);
         assert_length_error(&[0xA1, 0x18, 0x18, 0x40], "PrimitiveShowcase1.bytes_field_constrained", 0, 3);
@@ -253,8 +253,8 @@ mod tests {
         assert_length_error(&[0xA1, 0x18, 0x19, 0x80], "PrimitiveShowcase1.vec_field_1_constrained", 0, 3);
         assert_length_error(&[0xA1, 0x18, 0x1C, 0xA0], "PrimitiveShowcase1.map_field_1_constrained", 0, 3);
 
-        // 上限超過を検査するには、宣言した個数ぶんの後続 byte が必要になる。
-        // 足りない場合は buffer 長の検査が先に UnexpectedEof を返す
+        // To check the limit violation, the trailing bytes for the declared count are required.
+        // If they are missing, the buffer length check returns UnexpectedEof first
         assert_length_error(
             &[&[0xA1, 0x18, 0x19, 0x89][..], &[0x00; 9][..]].concat(),
             "PrimitiveShowcase1.vec_field_1_constrained",
@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn decode_rejects_counts_larger_than_the_remaining_buffer() {
-        // 9 byte で u64::MAX 個の要素を宣言しても、確保する前に弾かれる
+        // Even if 9 bytes declare u64::MAX elements, it is rejected before allocating
         let bytes = [&[0xA1, 0x18, 0x19, 0x9B][..], &u64::MAX.to_be_bytes()[..]].concat();
 
         assert!(matches!(PrimitiveShowcase1::import(&bytes), Err(RocketPackDecoderError::UnexpectedEof)));

@@ -37,7 +37,7 @@ impl Parser {
         Self { tokens, errors: Vec::new(), i: 0 }
     }
 
-    // ===== 基本ユーティリティ =====
+    // ===== Basic utilities =====
 
     fn peek(&self) -> Option<&SpannedToken> {
         self.tokens.get(self.i)
@@ -101,12 +101,12 @@ impl Parser {
         (s, e)
     }
 
-    // ===== エントリ =====
+    // ===== Entry points =====
 
     pub fn parse_file(&mut self) -> File {
         let mut file = File::default();
 
-        // 任意の順序でトップレベルを読み込む
+        // Read top-level items in any order
         while let Some(_) = self.peek() {
             if self.at(Token::Hash) {
                 let attributes = self.parse_attributes();
@@ -128,15 +128,15 @@ impl Parser {
                 continue;
             }
 
-            // キーワードは Ident で来るので先読みして判定
+            // Keywords arrive as Ident, so look ahead to decide
             if let Some(kw) = self.peek_keyword() {
                 match kw.as_str() {
                     "version" => {
                         if file.version.is_some() {
                             let (s, e) = self.error_here(ParseErrorKind::Duplicate);
-                            // 食い進めておく
+                            // Consume it and move on
                             self.parse_version();
-                            // 破棄
+                            // Discard
                             let _ = (s, e);
                         } else {
                             file.version = Some(self.parse_version());
@@ -167,13 +167,13 @@ impl Parser {
                         file.items.push(Item::Const(self.parse_const()));
                     }
                     _ => {
-                        // 未対応トップレベル
+                        // Unsupported top-level item
                         self.error_here(ParseErrorKind::Unexpected("unknown top-level"));
                         self.bump();
                     }
                 }
             } else {
-                // 何かしらのトークンを消費して前に進む
+                // Consume some token to make progress
                 self.error_here(ParseErrorKind::Unexpected("unexpected token at top-level"));
                 self.bump();
             }
@@ -225,7 +225,7 @@ impl Parser {
         Attribute { path, args }
     }
 
-    // ===== トップレベル要素 =====
+    // ===== Top-level items =====
 
     fn parse_version(&mut self) -> Spanned<u32> {
         let start = self.expect_ident_kw("version").span.start;
@@ -244,7 +244,7 @@ impl Parser {
     fn parse_use(&mut self) -> Use {
         let _start = self.expect_ident_kw("use").span.start;
         let path = Spanned::new(self.parse_path(), self.prev_start(), self.prev_end());
-        // MVP: `as Alias` のみ対応
+        // MVP: only `as Alias` is supported
         let alias = if self.is_ident_kw("as") {
             let a = self.expect_ident();
             Some(a)
@@ -349,7 +349,7 @@ impl Parser {
             self.expect(Token::Semi, ";");
             VariantKind::Tuple(params)
         } else if self.at(Token::LBrace) {
-            // レコード: 中身は struct の field と同じ書式（@番号付き）
+            // Record: the contents use the same format as struct fields (numbered with @)
             self.bump();
             let mut fields = Vec::new();
             while !self.at(Token::RBrace) && self.peek().is_some() {
@@ -390,7 +390,7 @@ impl Parser {
         v
     }
 
-    // ===== 型 =====
+    // ===== Types =====
 
     fn expect_type(&mut self) -> Spanned<Type> {
         let start = self.curr_start();
@@ -511,7 +511,7 @@ impl Parser {
         Path { segments: segs }
     }
 
-    // ===== リテラル =====
+    // ===== Literals =====
 
     fn expect_literal(&mut self) -> Spanned<Literal> {
         let (start, val, end) = match self.peek().cloned() {
@@ -561,7 +561,7 @@ impl Parser {
         Spanned::new(val, start, end)
     }
 
-    // ===== 諸々の expect/状態 =====
+    // ===== Misc expect helpers and state =====
 
     fn expect_ident(&mut self) -> Spanned<String> {
         match self.bump() {
@@ -737,7 +737,7 @@ mod tests {
 
     #[test]
     fn rejects_incomplete_or_exclusive_length_ranges() {
-        // 範囲を書くなら包含かつ有限に限る。無制限にしたい場合は括弧ごと省略する
+        // A range, when written, must be inclusive and finite. To make it unbounded, omit the brackets entirely
         for source in [
             "version 1; package test; struct Sample { @1 value: string[..4]; }",
             "version 1; package test; struct Sample { @1 value: string[1..4]; }",

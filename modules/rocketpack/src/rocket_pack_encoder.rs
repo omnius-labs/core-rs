@@ -18,7 +18,7 @@ pub enum RocketPackEncoderError {
     LengthOutOfRange { context: &'static str, min: u64, max: u64, actual: u64 },
 }
 
-// omnius-lint:debt(free-fn) RocketPack の生成コードが crate 直下の関数として呼ぶため、移動には compiler の codegen 変更と再生成が要る
+// omnius-lint:debt(free-fn) Generated RocketPack code calls this as a function directly under the crate, so moving it requires a codegen change in the compiler and regeneration
 pub fn validate_length(context: &'static str, min: u64, max: u64, actual: usize) -> Result<()> {
     let actual = u64::try_from(actual).map_err(|_| RocketPackEncoderError::LengthOverflow { len: actual })?;
     if actual < min || actual > max {

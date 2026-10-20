@@ -16,7 +16,7 @@ impl<T> Spanned<T> {
     }
 }
 
-// ===== トップレベル =====
+// ===== Top level =====
 
 #[derive(Debug, Clone, Default)]
 pub struct File {
@@ -34,9 +34,9 @@ pub struct Use {
 
 // ===== attribute =====
 //
-// `#[namespace::name(arg1, arg2, ...)]` を struct/enum の直前に書く。
-// namespace はコード生成ターゲット (例: `rust`) を表し、自分のnamespaceと一致しない
-// attribute は各ジェネレータが無視する。
+// `#[namespace::name(arg1, arg2, ...)]` is written right before a struct/enum.
+// The namespace names a code generation target (for example `rust`), and each generator
+// ignores attributes whose namespace does not match its own.
 
 #[derive(Debug, Clone)]
 pub struct Attribute {
@@ -63,7 +63,7 @@ impl std::fmt::Display for Item {
     }
 }
 
-// ===== 型表現 =====
+// ===== Type expressions =====
 
 #[derive(Debug, Clone)]
 pub struct Path {

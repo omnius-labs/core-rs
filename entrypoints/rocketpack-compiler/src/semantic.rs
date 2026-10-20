@@ -36,8 +36,8 @@ pub struct SchemaSymbol {
 pub struct SchemaFile {
     pub owner: String,
     pub absolute_path: PathBuf,
-    /// モジュール (rocketpack.yaml の場所) を基準としたソースファイルのパス。
-    /// 生成コードの `// Source:` ヘッダと生成モジュール名の導出に使う。
+    /// Path of the source file relative to the module (the location of rocketpack.yaml).
+    /// Used to derive the `// Source:` header of the generated code and the generated module name.
     pub source_path: PathBuf,
     pub package: Vec<String>,
     pub text: String,

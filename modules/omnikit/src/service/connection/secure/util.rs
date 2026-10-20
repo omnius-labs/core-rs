@@ -1,4 +1,4 @@
-// omnius-lint:debt(free-fn) nonce を表す型が欠けており、Aes256GcmEncoder と Aes256GcmDecoder が共有する所有者の新設を暗号処理の変更と分ける
+// omnius-lint:debt(free-fn) There is no type that represents a nonce; introducing an owner shared by Aes256GcmEncoder and Aes256GcmDecoder is kept separate from changes to the cryptographic processing
 pub fn increment_bytes(bytes: &mut [u8]) {
     for b in bytes {
         if *b == 0xFF {

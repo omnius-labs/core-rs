@@ -112,15 +112,15 @@ pub enum ParseErrorKind {
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    #[error("設定ファイルを読み込めませんでした: {0}")]
+    #[error("failed to read the config file: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("設定ファイルを解析できませんでした: {0}")]
+    #[error("failed to parse the config file: {0}")]
     Parse(#[from] serde_yaml_ng::Error),
 
-    #[error("未対応の設定ファイルバージョンです: {0}")]
+    #[error("unsupported config file version: {0}")]
     UnsupportedVersion(u32),
 
-    #[error("設定ファイルが不正です: {0}")]
+    #[error("invalid config file: {0}")]
     Invalid(String),
 }
