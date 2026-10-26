@@ -206,6 +206,125 @@ where
     }
 }
 
+impl<T> OmniSecureStream<T>
+where
+    T: AsyncRead + AsyncWrite + Send + 'static,
+{
+    /// Encrypts the buffered plaintext and moves to `SendPayload`, or back to `Init` if there is none. Does nothing outside `WritePlaintext`.
+    fn seal_plaintext(&mut self) -> std::io::Result<()> {
+        let WriteState::WritePlaintext { plaintext } = &mut self.write_state else {
+            return Ok(());
+        };
+        // An empty frame reads as end of stream, so nothing is sent when there is no plaintext.
+        if plaintext.is_empty() {
+            self.write_state = WriteState::Init;
+            return Ok(());
+        }
+        let enc_buf = self.encoder.encode(plaintext).map_err(|e| std::io::Error::other(e.to_string()))?;
+        self.write_state = WriteState::SendPayload {
+            header: SendHeader {
+                offset: 0,
+                buf: (enc_buf.len() as u32).to_le_bytes(),
+            },
+            body: SendBody { offset: 0, buf: enc_buf },
+        };
+        Ok(())
+    }
+
+    /// Sends the frame held by `SendPayload` and returns to `Init` once all of it is written. Does nothing outside `SendPayload`.
+    fn poll_send_payload(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
+        loop {
+            let WriteState::SendPayload { header, body } = &mut self.write_state else {
+                return std::task::Poll::Ready(Ok(()));
+            };
+            if header.offset < header.buf.len() {
+                let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &header.buf[header.offset..]))?;
+                if n == 0 {
+                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "failed to write frame header")));
+                }
+                header.offset += n;
+            } else {
+                let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &body.buf[body.offset..]))?;
+                if n == 0 {
+                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "failed to write frame body")));
+                }
+                body.offset += n;
+
+                if body.offset == body.buf.len() {
+                    self.write_state = WriteState::Init;
+                }
+            }
+        }
+    }
+}
+
+#[allow(unused)]
+impl<T> AsyncWrite for OmniSecureStream<T>
+where
+    T: AsyncRead + AsyncWrite + Send + 'static,
+{
+    fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, write_buf: &[u8]) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
+        let this = Pin::into_inner(self);
+        loop {
+            trace!("poll_write: {:?}", this.write_state);
+            match &mut this.write_state {
+                WriteState::Init => {
+                    this.write_state = WriteState::WritePlaintext { plaintext: BytesMut::new() };
+                }
+                WriteState::WritePlaintext { plaintext } => {
+                    let size = std::cmp::min(MAX_FRAME_LENGTH - plaintext.len(), write_buf.len());
+                    plaintext.extend_from_slice(&write_buf[..size]);
+
+                    if plaintext.len() == MAX_FRAME_LENGTH
+                        && let Err(e) = this.seal_plaintext()
+                    {
+                        return std::task::Poll::Ready(Err(e));
+                    }
+
+                    return std::task::Poll::Ready(Ok(size));
+                }
+                WriteState::SendPayload { .. } => {
+                    std::task::ready!(this.poll_send_payload(cx))?;
+                }
+                WriteState::Closing => {
+                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "write after shutdown")));
+                }
+            }
+        }
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
+        let this = Pin::into_inner(self);
+        trace!("poll_flush: {:?}", this.write_state);
+        loop {
+            match this.write_state {
+                WriteState::Init | WriteState::Closing => {
+                    return tokio::io::AsyncWrite::poll_flush(Pin::new(&mut this.writer), cx);
+                }
+                WriteState::WritePlaintext { .. } => {
+                    if let Err(e) = this.seal_plaintext() {
+                        return std::task::Poll::Ready(Err(e));
+                    }
+                }
+                WriteState::SendPayload { .. } => {
+                    std::task::ready!(this.poll_send_payload(cx))?;
+                }
+            }
+        }
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
+        let this = Pin::into_inner(self);
+        trace!("poll_shutdown: {:?}", this.write_state);
+        // Send everything still buffered before the lower stream is closed.
+        if !matches!(this.write_state, WriteState::Closing) {
+            std::task::ready!(AsyncWrite::poll_flush(Pin::new(&mut *this), cx))?;
+            this.write_state = WriteState::Closing;
+        }
+        tokio::io::AsyncWrite::poll_shutdown(Pin::new(&mut this.writer), cx)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::ErrorKind;
@@ -471,124 +590,5 @@ mod tests {
 
         let error = timeout(Duration::from_secs(1), stream.shutdown()).await.expect("shutdown timed out").unwrap_err();
         assert_eq!(error.kind(), ErrorKind::WriteZero);
-    }
-}
-
-impl<T> OmniSecureStream<T>
-where
-    T: AsyncRead + AsyncWrite + Send + 'static,
-{
-    /// Encrypts the buffered plaintext and moves to `SendPayload`, or back to `Init` if there is none. Does nothing outside `WritePlaintext`.
-    fn seal_plaintext(&mut self) -> std::io::Result<()> {
-        let WriteState::WritePlaintext { plaintext } = &mut self.write_state else {
-            return Ok(());
-        };
-        // An empty frame reads as end of stream, so nothing is sent when there is no plaintext.
-        if plaintext.is_empty() {
-            self.write_state = WriteState::Init;
-            return Ok(());
-        }
-        let enc_buf = self.encoder.encode(plaintext).map_err(|e| std::io::Error::other(e.to_string()))?;
-        self.write_state = WriteState::SendPayload {
-            header: SendHeader {
-                offset: 0,
-                buf: (enc_buf.len() as u32).to_le_bytes(),
-            },
-            body: SendBody { offset: 0, buf: enc_buf },
-        };
-        Ok(())
-    }
-
-    /// Sends the frame held by `SendPayload` and returns to `Init` once all of it is written. Does nothing outside `SendPayload`.
-    fn poll_send_payload(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::io::Result<()>> {
-        loop {
-            let WriteState::SendPayload { header, body } = &mut self.write_state else {
-                return std::task::Poll::Ready(Ok(()));
-            };
-            if header.offset < header.buf.len() {
-                let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &header.buf[header.offset..]))?;
-                if n == 0 {
-                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "failed to write frame header")));
-                }
-                header.offset += n;
-            } else {
-                let n = std::task::ready!(tokio::io::AsyncWrite::poll_write(Pin::new(&mut self.writer), cx, &body.buf[body.offset..]))?;
-                if n == 0 {
-                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::WriteZero, "failed to write frame body")));
-                }
-                body.offset += n;
-
-                if body.offset == body.buf.len() {
-                    self.write_state = WriteState::Init;
-                }
-            }
-        }
-    }
-}
-
-#[allow(unused)]
-impl<T> AsyncWrite for OmniSecureStream<T>
-where
-    T: AsyncRead + AsyncWrite + Send + 'static,
-{
-    fn poll_write(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, write_buf: &[u8]) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
-        let this = Pin::into_inner(self);
-        loop {
-            trace!("poll_write: {:?}", this.write_state);
-            match &mut this.write_state {
-                WriteState::Init => {
-                    this.write_state = WriteState::WritePlaintext { plaintext: BytesMut::new() };
-                }
-                WriteState::WritePlaintext { plaintext } => {
-                    let size = std::cmp::min(MAX_FRAME_LENGTH - plaintext.len(), write_buf.len());
-                    plaintext.extend_from_slice(&write_buf[..size]);
-
-                    if plaintext.len() == MAX_FRAME_LENGTH
-                        && let Err(e) = this.seal_plaintext()
-                    {
-                        return std::task::Poll::Ready(Err(e));
-                    }
-
-                    return std::task::Poll::Ready(Ok(size));
-                }
-                WriteState::SendPayload { .. } => {
-                    std::task::ready!(this.poll_send_payload(cx))?;
-                }
-                WriteState::Closing => {
-                    return std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "write after shutdown")));
-                }
-            }
-        }
-    }
-
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
-        let this = Pin::into_inner(self);
-        trace!("poll_flush: {:?}", this.write_state);
-        loop {
-            match this.write_state {
-                WriteState::Init | WriteState::Closing => {
-                    return tokio::io::AsyncWrite::poll_flush(Pin::new(&mut this.writer), cx);
-                }
-                WriteState::WritePlaintext { .. } => {
-                    if let Err(e) = this.seal_plaintext() {
-                        return std::task::Poll::Ready(Err(e));
-                    }
-                }
-                WriteState::SendPayload { .. } => {
-                    std::task::ready!(this.poll_send_payload(cx))?;
-                }
-            }
-        }
-    }
-
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
-        let this = Pin::into_inner(self);
-        trace!("poll_shutdown: {:?}", this.write_state);
-        // Send everything still buffered before the lower stream is closed.
-        if !matches!(this.write_state, WriteState::Closing) {
-            std::task::ready!(AsyncWrite::poll_flush(Pin::new(&mut *this), cx))?;
-            this.write_state = WriteState::Closing;
-        }
-        tokio::io::AsyncWrite::poll_shutdown(Pin::new(&mut this.writer), cx)
     }
 }
