@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use futures_util::SinkExt as _;
+use futures_util::SinkExt;
 use tokio::io::AsyncWrite;
 use tokio_util::bytes::Bytes;
 
@@ -55,7 +55,7 @@ where
 
     async fn send(&mut self, buffer: Bytes) -> Result<()> {
         self.framed.send(buffer).await?;
-        self.framed.flush().await?;
+        SinkExt::<Bytes>::flush(&mut self.framed).await?;
         Ok(())
     }
 }
