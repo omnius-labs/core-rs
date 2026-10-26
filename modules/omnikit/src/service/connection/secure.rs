@@ -17,7 +17,7 @@ mod tests {
     use std::sync::Arc;
 
     use chrono::DateTime;
-    use futures_util::SinkExt as _;
+    use futures_util::SinkExt;
     use parking_lot::Mutex;
     use rand::{
         Rng as _, SeedableRng as _,
@@ -117,7 +117,7 @@ mod tests {
             println!("{s}");
 
             framed.send(buffer.freeze()).await?;
-            framed.flush().await?;
+            SinkExt::<Bytes>::flush(&mut framed).await?;
 
             sleep(std::time::Duration::from_millis(3000)).await;
         }
