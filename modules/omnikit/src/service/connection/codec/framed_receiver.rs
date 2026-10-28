@@ -44,6 +44,14 @@ where
     pub fn set_max_frame_length(&mut self, max_frame_length: usize) {
         self.framed.decoder_mut().set_max_frame_length(max_frame_length);
     }
+
+    /// A frame codec reports an over-limit frame as invalid data, which is the peer's fault unlike a reset or a close.
+    fn classify(error: std::io::Error) -> Error {
+        if error.kind() == std::io::ErrorKind::InvalidData {
+            return Error::from_error(error, ErrorKind::InvalidFormat).with_message("received frame is invalid");
+        }
+        error.into()
+    }
 }
 
 #[async_trait]
@@ -56,8 +64,9 @@ where
     }
 
     async fn recv(&mut self) -> Result<Bytes> {
-        let v = self.framed.next().await.ok_or_else(|| Error::new(ErrorKind::EndOfStream))?;
-        Ok(v?.freeze())
+        let frame = self.framed.next().await.ok_or_else(|| Error::new(ErrorKind::EndOfStream))?;
+        let frame = frame.map_err(Self::classify)?;
+        Ok(frame.freeze())
     }
 }
 
@@ -74,7 +83,8 @@ mod tests {
     async fn rejects_frame_over_limit() {
         let mut receiver = FramedReceiver::new(&b"\x05\x00\x00\x00hello"[..], 4);
 
-        assert!(receiver.recv().await.is_err());
+        let error = receiver.recv().await.expect_err("an over-limit frame fails");
+        assert_eq!(error.kind(), &ErrorKind::InvalidFormat);
     }
 
     #[tokio::test]
