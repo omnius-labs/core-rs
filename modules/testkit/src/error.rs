@@ -90,6 +90,12 @@ impl From<std::convert::Infallible> for Error {
     }
 }
 
+impl From<url::ParseError> for Error {
+    fn from(e: url::ParseError) -> Self {
+        Error::from_error(e, ErrorKind::InvalidFormat).with_message("invalid host")
+    }
+}
+
 impl From<testcontainers::TestcontainersError> for Error {
     fn from(e: testcontainers::TestcontainersError) -> Self {
         Error::from_error(e, ErrorKind::TestcontainersError).with_message("testcontainers error")

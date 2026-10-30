@@ -9,3 +9,4 @@ omnius-core-base = { workspace = true }
 
 tracing = { workspace = true }
 testcontainers = { workspace = true }
+url = { workspace = true }

@@ -3075,6 +3075,7 @@ dependencies = [
  "omnius-core-base",
  "testcontainers",
  "tracing",
+ "url",
 ]
 
 [[package]]
