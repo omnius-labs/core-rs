@@ -465,6 +465,8 @@ This test is built only when both the `stable-test` and `postgres` features are 
 
 `omnius-core-testkit` is a helper that starts the Docker containers used by integration tests.
 `containers::postgres::PostgresContainer` starts the `postgres` image with the `testcontainers` crate, waits for the log message that indicates startup has completed, and then builds the connection string.
+The host of the connection string comes from `containers::endpoint::Endpoint`: it uses `TESTCONTAINERS_HOST_OVERRIDE` when that variable is set, and otherwise the host that `testcontainers` reports, which is the local machine for a local daemon, the daemon host for a remote one, and the bridge gateway when the tests run inside a container.
+A Docker-in-Docker setup whose published ports are not on the test process's loopback sets the variable to the address of the container that runs the daemon.
 
 ## 11. Design decisions
 

@@ -1,5 +1,6 @@
 use testcontainers::{ContainerAsync, GenericImage, ImageExt as _, core::WaitFor, runners::AsyncRunner};
 
+use crate::containers::endpoint::Endpoint;
 use crate::prelude::*;
 
 pub struct PostgresContainer {
@@ -23,7 +24,8 @@ impl PostgresContainer {
             .start()
             .await?;
 
-        let connection_string = format!("postgres://{}:{}@127.0.0.1:{}/{}", user, password, container.get_host_port_ipv4(5432).await?, db);
+        let endpoint = Endpoint::new(&container, 5432).await?;
+        let connection_string = format!("postgres://{}:{}@{}/{}", user, password, endpoint, db);
 
         Ok(Self { container, connection_string })
     }
