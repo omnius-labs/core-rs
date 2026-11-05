@@ -57,8 +57,10 @@ mod tests {
     async fn acquire_when_create_lock_file() -> TestResult {
         let temp_dir = TempDir::new()?;
         let lock_path = temp_dir.path().join("test.lock");
-        let _lock = FileLock::acquire(&lock_path).await?;
+        let lock = FileLock::acquire(&lock_path).await?;
         assert!(lock_path.exists());
+        // Windows does not let another handle read a file while it is locked.
+        drop(lock);
         let body = std::fs::read_to_string(lock_path)?;
         assert_eq!(body, std::process::id().to_string());
 
@@ -96,7 +98,7 @@ mod tests {
         let temp_dir = TempDir::new()?;
         let lock_path = temp_dir.path().join("test.lock");
         std::fs::write(&lock_path, "99999999999999999999")?;
-        let _lock = FileLock::acquire(&lock_path).await?;
+        drop(FileLock::acquire(&lock_path).await?);
         assert_eq!(std::fs::read_to_string(lock_path)?, std::process::id().to_string());
 
         Ok(())
