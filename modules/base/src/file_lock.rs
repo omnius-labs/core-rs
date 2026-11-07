@@ -49,6 +49,18 @@ mod tests {
     const HOLDER_PATH_ENV: &str = "FILE_LOCK_TEST_HOLDER_PATH";
     const HOLDER_READY: &str = "lock-held";
 
+    /// Kills and reaps the holder on drop, so a panic before the explicit kill cannot leave it behind.
+    struct KillOnDrop {
+        child: std::process::Child,
+    }
+
+    impl Drop for KillOnDrop {
+        fn drop(&mut self) {
+            let _ = self.child.kill();
+            let _ = self.child.wait();
+        }
+    }
+
     #[tokio::test]
     async fn acquire_when_create_lock_file() -> TestResult {
         let temp_dir = TempDir::new()?;
@@ -117,19 +129,21 @@ mod tests {
     async fn acquire_succeeds_after_the_holder_is_killed() -> TestResult {
         let temp_dir = TempDir::new()?;
         let lock_path = temp_dir.path().join("test.lock");
-        let mut holder = Command::new(std::env::current_exe()?)
-            .args(["--exact", "file_lock::tests::holder_process", "--nocapture"])
-            .env(HOLDER_PATH_ENV, &lock_path)
-            .stdout(Stdio::piped())
-            .spawn()?;
-        let mut lines = BufReader::new(holder.stdout.take().expect("stdout is piped")).lines();
+        let mut holder = KillOnDrop {
+            child: Command::new(std::env::current_exe()?)
+                .args(["--exact", "file_lock::tests::holder_process", "--nocapture"])
+                .env(HOLDER_PATH_ENV, &lock_path)
+                .stdout(Stdio::piped())
+                .spawn()?,
+        };
+        let mut lines = BufReader::new(holder.child.stdout.take().expect("stdout is piped")).lines();
         assert!(lines.any(|line| line.is_ok_and(|line| line.contains(HOLDER_READY))));
 
         let lock_err = FileLock::acquire(&lock_path).await.expect_err("acquire should fail while the holder lives");
         assert_eq!(lock_err.kind(), tokio::io::ErrorKind::WouldBlock);
 
-        holder.kill()?;
-        holder.wait()?;
+        holder.child.kill()?;
+        holder.child.wait()?;
         assert!(lock_path.exists());
         let _lock = FileLock::acquire(&lock_path).await?;
 
