@@ -1,5 +1,5 @@
 use std::{
-    fs::{File, OpenOptions, TryLockError},
+    fs::{File, OpenOptions},
     io::{Seek as _, SeekFrom, Write as _},
     path::Path,
 };
@@ -14,7 +14,7 @@ pub struct FileLock {
 }
 
 impl FileLock {
-    /// Returns `AlreadyExists` while another holder has the lock.
+    /// Returns `WouldBlock` while another holder has the lock.
     #[allow(unused)]
     pub async fn acquire<P: AsRef<Path>>(path: P) -> tokio::io::Result<Self> {
         let path = path.as_ref();
@@ -23,11 +23,7 @@ impl FileLock {
         }
 
         let mut file = OpenOptions::new().read(true).write(true).create(true).truncate(false).open(path)?;
-        match file.try_lock() {
-            Ok(()) => {}
-            Err(TryLockError::WouldBlock) => return Err(std::io::ErrorKind::AlreadyExists.into()),
-            Err(TryLockError::Error(error)) => return Err(error),
-        }
+        file.try_lock()?;
 
         file.set_len(0)?;
         file.seek(SeekFrom::Start(0))?;
@@ -73,7 +69,7 @@ mod tests {
         let lock_path = temp_dir.path().join("test.lock");
         let _lock = FileLock::acquire(&lock_path).await?;
         let lock_err = FileLock::acquire(&lock_path).await.expect_err("acquire should fail");
-        assert_eq!(lock_err.kind(), tokio::io::ErrorKind::AlreadyExists);
+        assert_eq!(lock_err.kind(), tokio::io::ErrorKind::WouldBlock);
 
         Ok(())
     }
@@ -130,7 +126,7 @@ mod tests {
         assert!(lines.any(|line| line.is_ok_and(|line| line.contains(HOLDER_READY))));
 
         let lock_err = FileLock::acquire(&lock_path).await.expect_err("acquire should fail while the holder lives");
-        assert_eq!(lock_err.kind(), tokio::io::ErrorKind::AlreadyExists);
+        assert_eq!(lock_err.kind(), tokio::io::ErrorKind::WouldBlock);
 
         holder.kill()?;
         holder.wait()?;
