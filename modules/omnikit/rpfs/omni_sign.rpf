@@ -21,6 +21,6 @@ struct OmniCert {
   @4 value: bytes[..=MAX_SIGNATURE_LENGTH];
 }
 
-const MAX_NAME_LENGTH: u32 = 256;
+const MAX_NAME_LENGTH: u32 = 32;
 const MAX_KEY_LENGTH: u32 = 4096;
 const MAX_SIGNATURE_LENGTH: u32 = 128;
