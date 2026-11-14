@@ -80,7 +80,7 @@ pub struct OmniSigner {
 impl omnius_core_rocketpack::RocketPackStruct for OmniSigner {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         <crate::generated::omni_sign::OmniSignType as omnius_core_rocketpack::RocketPackStruct>::validate(&value.typ)?;
-        omnius_core_rocketpack::validate_length("OmniSigner.name", 0, 256, (&value.name).len())?;
+        omnius_core_rocketpack::validate_length("OmniSigner.name", 0, 32, (&value.name).len())?;
         omnius_core_rocketpack::validate_length("OmniSigner.key", 0, 4096, (&value.key).len())?;
         Ok(())
     }
@@ -93,7 +93,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSigner {
         encoder.write_u64(1)?;
         encoder.write_struct(&value.typ)?;
         encoder.write_u64(2)?;
-        omnius_core_rocketpack::validate_length("OmniSigner.name", 0, 256, (&value.name).len())?;
+        omnius_core_rocketpack::validate_length("OmniSigner.name", 0, 32, (&value.name).len())?;
         encoder.write_string((&value.name).as_str())?;
         encoder.write_u64(3)?;
         omnius_core_rocketpack::validate_length("OmniSigner.key", 0, 4096, (&value.key).len())?;
@@ -118,7 +118,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniSigner {
                     __rpf_storage_typ = Some(decoder.read_struct::<crate::generated::omni_sign::OmniSignType>()?);
                 }
                 2 => {
-                    __rpf_storage_name = Some(decoder.read_string_bounded("OmniSigner.name", 0, 256)?);
+                    __rpf_storage_name = Some(decoder.read_string_bounded("OmniSigner.name", 0, 32)?);
                 }
                 3 => {
                     __rpf_storage_key = Some(decoder.read_bytes_bounded("OmniSigner.key", 0, 4096)?);
@@ -146,7 +146,7 @@ pub struct OmniCert {
 impl omnius_core_rocketpack::RocketPackStruct for OmniCert {
     fn validate(value: &Self) -> std::result::Result<(), omnius_core_rocketpack::RocketPackEncoderError> {
         <crate::generated::omni_sign::OmniSignType as omnius_core_rocketpack::RocketPackStruct>::validate(&value.typ)?;
-        omnius_core_rocketpack::validate_length("OmniCert.name", 0, 256, (&value.name).len())?;
+        omnius_core_rocketpack::validate_length("OmniCert.name", 0, 32, (&value.name).len())?;
         omnius_core_rocketpack::validate_length("OmniCert.public_key", 0, 4096, (&value.public_key).len())?;
         omnius_core_rocketpack::validate_length("OmniCert.value", 0, 128, (&value.value).len())?;
         Ok(())
@@ -160,7 +160,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniCert {
         encoder.write_u64(1)?;
         encoder.write_struct(&value.typ)?;
         encoder.write_u64(2)?;
-        omnius_core_rocketpack::validate_length("OmniCert.name", 0, 256, (&value.name).len())?;
+        omnius_core_rocketpack::validate_length("OmniCert.name", 0, 32, (&value.name).len())?;
         encoder.write_string((&value.name).as_str())?;
         encoder.write_u64(3)?;
         omnius_core_rocketpack::validate_length("OmniCert.public_key", 0, 4096, (&value.public_key).len())?;
@@ -189,7 +189,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniCert {
                     __rpf_storage_typ = Some(decoder.read_struct::<crate::generated::omni_sign::OmniSignType>()?);
                 }
                 2 => {
-                    __rpf_storage_name = Some(decoder.read_string_bounded("OmniCert.name", 0, 256)?);
+                    __rpf_storage_name = Some(decoder.read_string_bounded("OmniCert.name", 0, 32)?);
                 }
                 3 => {
                     __rpf_storage_public_key = Some(decoder.read_bytes_bounded("OmniCert.public_key", 0, 4096)?);
@@ -210,7 +210,7 @@ impl omnius_core_rocketpack::RocketPackStruct for OmniCert {
     }
 }
 
-pub const MAX_NAME_LENGTH: u32 = 256;
+pub const MAX_NAME_LENGTH: u32 = 32;
 
 pub const MAX_KEY_LENGTH: u32 = 4096;
 

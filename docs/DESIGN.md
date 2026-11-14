@@ -390,6 +390,10 @@ The package name of the `.rpf`, the module name directly under `src/generated`, 
 `OmniHash::compute_hash` uses SHA3-256, `OmniSigner::sign` and `OmniCert::verify` use Ed25519 (`ed25519_dalek`), and `OmniAgreement::gen_secret` uses X25519 (`x25519_dalek`).
 The `Display` of `OmniHash`, `OmniSigner`, and `OmniCert` goes through `OmniBase` in [service/converter/omni_base.rs](../modules/omnikit/src/service/converter/omni_base.rs) (multibase-compliant, where `f` is hex and `u` is base64url encoding).
 `OmniHash` produces a human-readable string like `sha3_256:u<base64url>`, and `OmniSigner` and `OmniCert` produce one like `{name}@u<base64url(sha3_256(public_key))>`.
+`OmniSigner.name` and `OmniCert.name` are handles of 0–32 bytes of `[A-Za-z0-9._-]`.
+The empty name is allowed because NodeProfile verifies a certificate with an empty name.
+The wire bounds enforce the length; the inherent signer and certificate APIs, `verify`, and `Display` enforce the character set.
+The explicit `RocketPackStruct::import` and `export` path is a low-level codec and enforces only the wire length.
 
 Only `OmniAddr` in `model/omni_addr.rs` is a hand-written value type with no corresponding generated type, and it is also the only one that remains a public module directly under `model`.
 It parses an s-expression-like notation such as `tcp(ip4(...),port)` with `nom` and represents an endpoint.
