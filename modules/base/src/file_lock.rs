@@ -7,10 +7,14 @@ use std::{
 /// Holds an OS advisory lock on a file, which the OS releases when the process exits in any way.
 /// The file stays in place after the release: deleting it would let one process lock the unlinked file while
 /// another locks a new file at the same path.
+///
+/// Dropping the lock unlocks it explicitly instead of only closing the file. The lock belongs to the open file
+/// description, and a process started on another thread shares that description until it calls exec, so closing
+/// alone can leave the lock held for a moment after the drop returns.
 #[allow(unused)]
 #[derive(Debug)]
 pub struct FileLock {
-    _file: File,
+    file: File,
 }
 
 impl FileLock {
@@ -30,7 +34,14 @@ impl FileLock {
         file.write_all(std::process::id().to_string().as_bytes())?;
         file.flush()?;
 
-        Ok(Self { _file: file })
+        Ok(Self { file })
+    }
+}
+
+impl Drop for FileLock {
+    fn drop(&mut self) {
+        // The OS releases the lock when the last handle closes, so a failure here only delays the release.
+        let _ = self.file.unlock();
     }
 }
 
@@ -97,6 +108,53 @@ mod tests {
 
         assert!(lock_path.exists());
         let _lock = FileLock::acquire(&lock_path).await?;
+
+        Ok(())
+    }
+
+    /// Starting a process makes the child briefly share every open file description of the parent, even those opened
+    /// with close-on-exec, until the child calls exec. Once `drop` returns the lock must be free regardless.
+    #[tokio::test]
+    async fn drop_releases_lock_while_processes_are_spawned_concurrently() -> TestResult {
+        let temp_dir = TempDir::new()?;
+        let lock_path = temp_dir.path().join("test.lock");
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+        let spawners: Vec<_> = (0..2)
+            .map(|_| {
+                let stop = stop.clone();
+                std::thread::spawn(move || {
+                    let exe = std::env::current_exe().expect("current exe");
+                    while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                        // Matches no test, so the child exits immediately.
+                        let _ = Command::new(&exe)
+                            .args(["--exact", "file_lock::tests::no_such_test"])
+                            .stdout(Stdio::null())
+                            .stderr(Stdio::null())
+                            .status();
+                    }
+                })
+            })
+            .collect();
+
+        let mut result: tokio::io::Result<()> = Ok(());
+        for _ in 0..300 {
+            result = async {
+                drop(FileLock::acquire(&lock_path).await?);
+                drop(FileLock::acquire(&lock_path).await?);
+                Ok(())
+            }
+            .await;
+            if result.is_err() {
+                break;
+            }
+        }
+
+        stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        for spawner in spawners {
+            spawner.join().expect("spawner thread");
+        }
+        result?;
 
         Ok(())
     }
